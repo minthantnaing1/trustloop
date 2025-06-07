@@ -15,9 +15,14 @@ function LoginButton() {
   return (
     <button
       onClick={handleLogin}
-      className="w-full bg-blue-800 text-white my-5 p-3 rounded-md hover:opacity-80"
+      className="microsoft-btn"
       disabled={isLoading}
     >
+      <img
+        src="https://purepng.com/public/uploads/large/purepng.com-microsoft-logo-iconlogobrand-logoiconslogos-251519939091wmudn.png"
+        alt="Microsoft logo"
+        className="microsoft-icon"
+      />
       {isLoading ? "Signing in..." : "Login with Microsoft"}
     </button>
   );

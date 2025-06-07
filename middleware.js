@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
 const protectedRoutes = ["/dashboard", "/profile"];
-const authPageRoutes = ["/login"];
+const authPageRoutes = ["/"];
 const apiAuthPrefix = "/api/auth";
 
 export default auth((req) => {
@@ -19,11 +19,11 @@ export default auth((req) => {
   }
 
   if (isProtectedRoute && !isLoggedIn) {
-    return NextResponse.redirect(new URL("/login", req.nextUrl));
+    return NextResponse.redirect(new URL("/", req.nextUrl));
   }
 
   if (isLoggedIn && isAuthPageRoute) {
-    return NextResponse.redirect(new URL("/dashboard", req.nextUrl));
+    return NextResponse.redirect(new URL("/profile", req.nextUrl));
   }
 
   return NextResponse.next();
