@@ -1,33 +1,30 @@
 /* Layout */
 .login-page {
-  min-height: 100vh;
   background-color: white;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Header */
 .login-header {
-  height: 50vh;
-  background-color: #2f497d;
+  width: 100%;
+  height: 380px;
+  background-color: #325082;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .logo {
-  max-height: 80px;
+  height: 250px;
   object-fit: contain;
-}
-
-.logo.large {
-  max-height: 210px;
 }
 
 /* Auth box */
 .auth-box {
   background-color: white;
-  margin: -3rem auto 0;
   padding: 2rem;
   width: 100%;
   max-width: 24rem;
@@ -38,6 +35,8 @@
   flex-direction: column;
   align-items: center;
   gap: 1.5rem;
+  position: absolute;
+  top: 310px;
 }
 
 /* Unified tab style */
@@ -47,8 +46,8 @@
   text-align: center;
   width: 100%;
   padding-bottom: 0.5rem;
-  border-bottom: 2px solid #2f497d;
-  color: #2f497d;
+  border-bottom: 2px solid #325082;
+  color: #325082;
 }
 
 /* Microsoft login button */
