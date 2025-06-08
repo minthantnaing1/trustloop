@@ -1,4 +1,4 @@
-import { auth } from "@/auth-edge";
+import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
 const protectedRoutes = ["/dashboard", "/profile"];

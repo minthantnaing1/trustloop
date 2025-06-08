@@ -1,2 +1,3 @@
-import { handlers } from "@/auth"; // Referring to the auth.ts we just created
+// app/api/auth/[...auth]/route.js
+import { handlers } from "@/auth";
 export const { GET, POST } = handlers;
