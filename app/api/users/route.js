@@ -11,8 +11,23 @@ export async function POST(req) {
     const existing = await User.findOne({ email });
 
     if (!existing) {
-      await User.create({ name, email, image });
+      const isAdmin = email === "u6530233@au.edu";
+
+      await User.create({
+        name,
+        email,
+        image,
+        role: isAdmin ? "admin" : "user",
+      });
+
       return new Response(JSON.stringify({ created: true }), { status: 201 });
+    }
+
+    // ✅ Update existing user’s role if needed
+    const isAdmin = email === "u6530233@au.edu";
+    if (isAdmin && existing.role !== "admin") {
+      existing.role = "admin";
+      await existing.save();
     }
 
     return new Response(JSON.stringify({ created: false }), { status: 200 });

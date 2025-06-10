@@ -6,23 +6,19 @@ import Image from "next/image";
 export default async function HomePage() {
   const session = await auth();
 
-  if (!session?.user?.email) {
-    return (
-      <main className="home-content">
-        <p className="home-error">Please sign in to access this page.</p>
-      </main>
-    );
-  }
-
   await connectDB();
-  const user = await User.findOne({ email: session.user.email }).lean();
+
+  let user = await User.findOne({ email: session.user.email }); // can use lean() if only data is showing
 
   if (!user) {
-    return (
-      <main className="home-content">
-        <p className="home-error">User not found.</p>
-      </main>
-    );
+    const isAdmin = session.user.email === "u6530233@au.edu";
+
+    user = await User.create({
+      name: session.user.name,
+      email: session.user.email,
+      image: session.user.image,
+      role: isAdmin ? "admin" : "user",
+    });
   }
 
   return (
