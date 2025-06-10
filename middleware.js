@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
-const protectedRoutes = ["/dashboard", "/profile"];
+const protectedRoutes = ["/home", "/profile"];
 const authPageRoutes = ["/"];
 const apiAuthPrefix = "/api/auth";
 
@@ -23,7 +23,7 @@ export default auth((req) => {
   }
 
   if (isLoggedIn && isAuthPageRoute) {
-    return NextResponse.redirect(new URL("/profile", req.nextUrl));
+    return NextResponse.redirect(new URL("/home", req.nextUrl));
   }
 
   return NextResponse.next();
