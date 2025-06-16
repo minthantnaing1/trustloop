@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 import Image from "next/image";
+import NavBar from "@/components/NavBar";
 
 export default async function HomePage() {
   const session = await auth();
@@ -16,7 +17,7 @@ export default async function HomePage() {
     user = await User.create({
       name: session.user.name,
       email: session.user.email,
-      image: session.user.image,
+      image: session.user.image || "/default-profile.jpg", // fallback here
       role: isAdmin ? "admin" : "user",
     });
   }
@@ -24,33 +25,7 @@ export default async function HomePage() {
   return (
     <>
       {/* Navigation */}
-      <header className="nav-container">
-        <div className="nav-left">
-          <img
-            src="/TrustLoopLogoW.png"
-            alt="Website Logo"
-            height="75px"
-            width="100px"
-          />
-        </div>
-
-        <div className="nav-mid">
-          <p>Welcome to TrustLoop</p>
-          <ul className="nav-link">
-            <li>HOME</li>
-            <li>BUY</li>
-            <li>SELL</li>
-            <li>AUCTION</li>
-            <li>DONATION</li>
-          </ul>
-        </div>
-
-        <div className="nav-right">
-          <span>🛒</span>
-          <span>❤️</span>
-          <span>⚙️</span>
-        </div>
-      </header>
+      <NavBar />
 
       {/* Main Content */}
       <main className="home-content">
