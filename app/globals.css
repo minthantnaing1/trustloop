@@ -96,10 +96,15 @@ body {
 }
 
 .nav-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%; /* Full width */
   height: 90px;
   background-color: #325082;
   display: flex;
   justify-content: space-between;
+  z-index: 1000000; /* Makes sure it stays above other elements */
 }
 
 .nav-left {
@@ -137,6 +142,15 @@ body {
   letter-spacing: 0.5px;
 }
 
+.nav-link a {
+  color: white;
+  text-decoration: none;
+}
+
+.nav-link a:visited {
+  color: white;
+}
+
 .nav-right {
   display: flex;
   align-items: center;
@@ -153,6 +167,7 @@ body {
 }
 
 .home-top-section {
+  margin-top: 110px;
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
@@ -244,8 +259,9 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 20px auto;
-  max-width: 1200px;
+  margin: 110px auto 20px; /* top + center + spacing */
+  max-width: 1200px; /* match .buy-sell-items */
+  width: 100%;
 }
 
 .buy-sell-search {
@@ -271,18 +287,17 @@ body {
 .buy-sell-items {
   max-width: 1200px;
   margin: auto;
-  padding: 20px;
 }
 
 .buy-sell-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3 columns */
+  gap: 20px; /* spacing between cards */
 }
 
 .buy-sell-card {
   flex: 1 1 220px;
-  height: 200px;
+  height: 300px;
   background-color: #e2e2e2;
   border-radius: 10px;
   position: relative;
@@ -293,10 +308,26 @@ body {
 }
 
 .buy-sell-card-img {
-  height: 80%;
+  height: 90%;
   background: #ccc;
   border-radius: 8px;
   margin-bottom: 10px;
+}
+
+.buy-sell-card-info {
+  padding: 4px 6px;
+  font-size: 14px;
+}
+
+.buy-sell-card-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.buy-sell-card-category {
+  margin: 0;
+  font-size: 12px;
+  color: #555;
 }
 
 .buy-sell-card-actions {
@@ -317,4 +348,216 @@ body {
   cursor: pointer;
   text-align: center;
   text-decoration: none;
+}
+
+/* ========================= */
+/* ✅ Sell Page Styles */
+/* ========================= */
+
+.sell-form-wrapper {
+  max-width: 1200px;
+  margin: 110px auto 20px auto; /* top auto bottom auto (center horizontally) */
+  background-color: white;
+  padding: 0 20px; /* optional padding inside the form */
+}
+
+.sell-form-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.sell-image-box {
+  flex: 1 1 300px;
+  background: #e2e2e2;
+  height: 300px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sell-placeholder {
+  color: #325082;
+  font-weight: 600;
+}
+
+.sell-input-section {
+  flex: 2 1 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.sell-input,
+.sell-input-area {
+  background: #e2e2e2;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  width: 100%;
+  font-family: inherit;
+}
+
+.sell-inline {
+  display: flex;
+  gap: 10px;
+}
+
+.sell-input-area {
+  min-height: 80px;
+}
+
+.sell-form-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.sell-cancel-btn,
+.sell-confirm-btn {
+  background-color: #325082;
+  color: white;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* ========================= */
+/* ✅ Product Detail Page Styles */
+/* ========================= */
+
+.product-detail-wrapper {
+  max-width: 1200px;
+  margin: 120px auto 40px;
+  padding: 0 20px;
+}
+
+.product-detail-content {
+  display: flex;
+  gap: 30px;
+}
+
+.product-images {
+  flex: 1;
+}
+
+.main-image {
+  height: 300px;
+  background: #ddd;
+  border-radius: 10px;
+}
+
+.thumbnail-row {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+}
+
+.thumbnail-placeholder {
+  width: 60px;
+  height: 60px;
+  background: #ccc;
+  border-radius: 6px;
+}
+
+.product-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.product-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.product-category,
+.product-price {
+  font-size: 14px;
+}
+
+.product-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.add-cart,
+.buy-now,
+.fav-btn {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.add-cart {
+  background: #325082;
+  color: white;
+}
+
+.buy-now {
+  background: white;
+  border: 2px solid #325082;
+  color: #325082;
+}
+
+.fav-btn {
+  background: white;
+  border: 1px solid #ccc;
+}
+
+.info-box {
+  background: #e2e2e2;
+  padding: 12px;
+  border-radius: 6px;
+}
+
+.comment-box input {
+  width: 585px;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.seller-box {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-top: 20px;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: #f0f0f0; /* light gray background */
+  border: 1px solid #ccc; /* gray border */
+}
+
+.seller-img {
+  border-radius: 50%;
+  object-fit: cover;
+  width: 50px;
+  height: 50px;
+  border: 2px solid #325082;
+}
+
+.seller-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.seller-info h3 {
+  font-weight: normal;
+}
+
+.seller-name {
+  font-weight: bold;
+  font-size: 16px;
+  color: #222;
+}
+
+.seller-email {
+  margin: 0;
+  font-size: 14px;
+  color: #555;
 }

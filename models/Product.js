@@ -16,7 +16,7 @@ const ProductSchema = new mongoose.Schema(
     condition: {
       type: String,
       enum: ["new", "like new", "used", "poor"],
-      default: "used",
+      required: true,
     },
 
     // Type of listing
@@ -27,7 +27,7 @@ const ProductSchema = new mongoose.Schema(
     },
 
     // Pricing
-    price: { type: Number }, // sell or request
+    price: { type: Number, required: true }, // sell or request
     startingPrice: { type: Number }, // auction
     currentBid: {
       amount: Number,

@@ -21,16 +21,18 @@ export default async function BuySellPage() {
 
       {/* Search + Sell Button */}
       <div className="buy-sell-toolbar">
+        <h2>Items</h2>
         <input
           className="buy-sell-search"
           placeholder="Search for anything..."
         />
-        <button className="buy-sell-sell-btn">+ Sell Your Items</button>
+        <Link href="/sell">
+          <button className="buy-sell-sell-btn">+ Sell Your Items</button>
+        </Link>
       </div>
 
       {/* Product Grid */}
       <section className="buy-sell-items">
-        <h2>Items</h2>
         <div className="buy-sell-grid">
           {products.map((product) => {
             const isOwner = product.owner?.email === userEmail;
@@ -39,9 +41,14 @@ export default async function BuySellPage() {
               <div key={product._id} className="buy-sell-card">
                 <div className="buy-sell-card-img" />
 
+                <div className="buy-sell-card-info">
+                  <h4 className="buy-sell-card-title">{product.title}</h4>
+                  <p className="buy-sell-card-category">{product.category}</p>
+                </div>
+
                 <div className="buy-sell-card-actions">
                   <Link
-                    href={`/product/${product._id}`}
+                    href={`/buy-sell/${product._id}`}
                     className="buy-sell-detail-btn"
                   >
                     More Detail...

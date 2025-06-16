@@ -17,7 +17,7 @@ export default async function HomePage() {
     user = await User.create({
       name: session.user.name,
       email: session.user.email,
-      image: session.user.image,
+      image: session.user.image || "/default-profile.jpg", // fallback here
       role: isAdmin ? "admin" : "user",
     });
   }
