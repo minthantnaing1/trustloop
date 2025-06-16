@@ -235,3 +235,86 @@ body {
   background-color: #e2e2e2;
   border-radius: 10px;
 }
+
+/* ========================= */
+/* ✅ Buy-Sell Page Styles */
+/* ========================= */
+
+.buy-sell-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 20px auto;
+  max-width: 1200px;
+}
+
+.buy-sell-search {
+  padding: 10px 14px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  width: 70%;
+  font-size: 14px;
+  outline: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.buy-sell-sell-btn {
+  background-color: #325082;
+  color: white;
+  padding: 10px 16px;
+  font-size: 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.buy-sell-items {
+  max-width: 1200px;
+  margin: auto;
+  padding: 20px;
+}
+
+.buy-sell-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.buy-sell-card {
+  flex: 1 1 220px;
+  height: 200px;
+  background-color: #e2e2e2;
+  border-radius: 10px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 10px;
+}
+
+.buy-sell-card-img {
+  height: 80%;
+  background: #ccc;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.buy-sell-card-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.buy-sell-detail-btn,
+.buy-sell-cart-btn {
+  flex: 1;
+  padding: 6px 8px;
+  background-color: #325082;
+  color: white;
+  font-size: 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+}
