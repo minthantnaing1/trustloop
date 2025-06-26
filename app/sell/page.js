@@ -1,4 +1,3 @@
-// app/sell/page.js
 "use client";
 
 import { useState } from "react";
@@ -42,39 +41,28 @@ export default function SellPage() {
   return (
     <>
       <NavBar />
-      <main className="sell-form-wrapper">
-        <div className="sell-form-header">
-          <button
-            className="sell-cancel-btn"
-            onClick={() => router.push("/buy-sell")}
-          >
-            Cancel
-          </button>
-          <button className="sell-confirm-btn" onClick={handleSubmit}>
-            Confirm To Sell
-          </button>
-        </div>
-
-        <div className="sell-form-body">
-          {/* Image Placeholder */}
-          <div className="sell-image-box">
-            <div className="sell-placeholder">+ Upload Images</div>
+      <main className="max-w-[1200px] mx-auto mt-[110px] mb-5 px-5">
+        <div className="flex flex-wrap gap-[20px]">
+          {/* Image Upload */}
+          <div className="flex-1 min-w-[300px] h-[300px] bg-[#e2e2e2] rounded-[12px] flex items-center justify-center">
+            <div className="text-[#325082] font-semibold">+ Upload Images</div>
           </div>
 
-          {/* Form Inputs */}
-          <div className="sell-input-section">
-            <div className="sell-inline">
+          {/* Form */}
+          <div className="flex-1 min-w-[600px] flex flex-col gap-[15px]">
+            <div className="flex gap-[10px]">
               <input
-                className="sell-input"
+                className="flex-1 bg-[#e2e2e2] p-3 rounded-[8px] outline-none"
                 name="title"
                 placeholder="Product Name"
                 onChange={handleChange}
                 value={form.title}
               />
             </div>
-            <div className="sell-inline">
+
+            <div className="flex gap-[10px]">
               <input
-                className="sell-input"
+                className="flex-1 bg-[#e2e2e2] p-3 rounded-[8px] outline-none"
                 name="price"
                 placeholder="Price"
                 type="number"
@@ -82,7 +70,7 @@ export default function SellPage() {
                 value={form.price}
               />
               <select
-                className="sell-input"
+                className="flex-1 bg-[#e2e2e2] p-3 rounded-[8px] outline-none"
                 name="category"
                 onChange={handleChange}
                 value={form.category}
@@ -97,8 +85,9 @@ export default function SellPage() {
                 <option value="others">Others</option>
               </select>
             </div>
+
             <select
-              className="sell-input"
+              className="bg-[#e2e2e2] p-3 rounded-[8px] outline-none"
               name="condition"
               onChange={handleChange}
               value={form.condition}
@@ -111,22 +100,38 @@ export default function SellPage() {
               <option value="used">Used</option>
               <option value="poor">Poor</option>
             </select>
-          </div>
 
-          <textarea
-            className="sell-input-area"
-            name="location"
-            placeholder="Meetup Location"
-            onChange={handleChange}
-            value={form.location}
-          />
-          <textarea
-            className="sell-input-area"
-            name="description"
-            placeholder="Description"
-            onChange={handleChange}
-            value={form.description}
-          />
+            <textarea
+              className="bg-[#e2e2e2] p-3 rounded-[8px] outline-none min-h-[80px]"
+              name="location"
+              placeholder="Meetup Location"
+              onChange={handleChange}
+              value={form.location}
+            />
+            <textarea
+              className="bg-[#e2e2e2] p-3 rounded-[8px] outline-none min-h-[80px]"
+              name="description"
+              placeholder="Description"
+              onChange={handleChange}
+              value={form.description}
+            />
+          </div>
+        </div>
+
+        {/* ✅ Buttons below the form, centered */}
+        <div className="flex justify-center gap-5 mt-8">
+          <button
+            className="w-[200px] bg-[#325082] text-white px-5 py-3 rounded-[8px] hover:opacity-90"
+            onClick={() => router.push("/buy-sell")}
+          >
+            Cancel
+          </button>
+          <button
+            className="w-[200px] bg-[#325082] text-white px-5 py-3 rounded-[8px] hover:opacity-90"
+            onClick={handleSubmit}
+          >
+            Confirm To Sell
+          </button>
         </div>
       </main>
     </>
