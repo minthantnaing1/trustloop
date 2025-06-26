@@ -16,7 +16,7 @@ export default function BuySellPage() {
   const [showFilter, setShowFilter] = useState(false);
   const [showDeleteMode, setShowDeleteMode] = useState(false);
   const [userEmail, setUserEmail] = useState("");
-  const [confirmDeleteId, setConfirmDeleteId] = useState(null); // ✅ for confirmation modal
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   const [filters, setFilters] = useState({
     category: "",
@@ -47,10 +47,10 @@ export default function BuySellPage() {
   }, []);
 
   const handleDelete = async (id) => {
-    const res = await fetch(`/api/products?id=${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
     if (res.ok) {
       setProducts(products.filter((p) => p._id !== id));
-      setConfirmDeleteId(null); // ✅ close modal
+      setConfirmDeleteId(null);
     } else {
       alert("Failed to delete product.");
     }
@@ -65,8 +65,6 @@ export default function BuySellPage() {
     <>
       <NavBar />
       <div className={`${confirmDeleteId ? "brightness-50" : ""}`}>
-        {/* Product grid and all page content here */}
-        {/* Toolbar */}
         <div className="flex justify-between items-center mt-[110px] mb-6 max-w-[1200px] mx-auto w-full gap-3 relative">
           <h2 className="text-lg font-semibold text-black">Items</h2>
 
@@ -218,7 +216,6 @@ export default function BuySellPage() {
                     key={product._id}
                     className="relative flex flex-col justify-end h-[300px] bg-[#e2e2e2] rounded-[10px] p-[10px] hover:shadow-md transition"
                   >
-                    {/* ❌ Delete Icon */}
                     {showDeleteMode && isOwner && (
                       <button
                         onClick={() => setConfirmDeleteId(product._id)}
@@ -251,7 +248,8 @@ export default function BuySellPage() {
           )}
         </section>
       </div>
-      {/* ✅ Delete Confirmation Modal */}
+
+      {/* Delete Confirmation Modal */}
       {confirmDeleteId && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-[9999]">
           <div className="bg-white p-6 rounded-lg shadow-md w-[350px]">

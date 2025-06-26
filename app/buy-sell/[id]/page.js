@@ -1,18 +1,19 @@
-import { connectDB } from "@/lib/db";
-import Product from "@/models/Product";
 import NavBar from "@/components/NavBar";
 import Image from "next/image";
 
-export default async function ProductDetailPage(props) {
-  const params = await props.params;
-  const id = params.id;
+export default async function ProductDetailPage({ params }) {
+  const { id } = await params; // ✅ await added (silences error)
 
-  await connectDB();
-  const product = await Product.findById(id).populate("owner").lean();
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_BASE_URL}/api/products/${id}`,
+    { cache: "no-store" }
+  );
 
-  if (!product) {
+  if (!res.ok) {
     return <div>Product not found.</div>;
   }
+
+  const product = await res.json();
 
   return (
     <>

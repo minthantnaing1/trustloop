@@ -15,6 +15,8 @@ export default function SellPage() {
     description: "",
   });
 
+  const [loading, setLoading] = useState(false); // ✅ Add loading state
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -25,16 +27,24 @@ export default function SellPage() {
       return;
     }
 
-    const res = await fetch("/api/products", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, type: "sell" }),
-    });
+    try {
+      setLoading(true); // ✅ Disable button
 
-    if (res.ok) {
-      router.push("/buy-sell");
-    } else {
-      alert("Error submitting product.");
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, type: "sell" }),
+      });
+
+      if (res.ok) {
+        router.push("/buy-sell");
+      } else {
+        alert("Error submitting product.");
+      }
+    } catch (err) {
+      alert("Something went wrong.");
+    } finally {
+      setLoading(false); // ✅ Reset loading (optional if redirect)
     }
   };
 
@@ -118,19 +128,26 @@ export default function SellPage() {
           </div>
         </div>
 
-        {/* ✅ Buttons below the form, centered */}
+        {/* ✅ Buttons */}
         <div className="flex justify-center gap-5 mt-8">
           <button
             className="w-[200px] bg-[#325082] text-white px-5 py-3 rounded-[8px] hover:opacity-90"
             onClick={() => router.push("/buy-sell")}
+            disabled={loading} // disable during loading
           >
             Cancel
           </button>
+
           <button
-            className="w-[200px] bg-[#325082] text-white px-5 py-3 rounded-[8px] hover:opacity-90"
+            className={`w-[200px] ${
+              loading
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-[#325082] hover:opacity-90"
+            } text-white px-5 py-3 rounded-[8px]`}
             onClick={handleSubmit}
+            disabled={loading} // ✅ prevent multiple clicks
           >
-            Confirm To Sell
+            {loading ? "Processing..." : "Confirm To Sell"}
           </button>
         </div>
       </main>

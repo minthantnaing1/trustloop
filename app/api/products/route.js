@@ -50,21 +50,10 @@ export async function GET(req) {
       price: { $gte: minPrice, $lte: maxPrice },
     };
 
-    if (search) {
-      filters.title = { $regex: search, $options: "i" };
-    }
-
-    if (category) {
-      filters.category = category;
-    }
-
-    if (condition) {
-      filters.condition = condition;
-    }
-
-    if (location) {
-      filters.location = { $regex: location, $options: "i" };
-    }
+    if (search) filters.title = { $regex: search, $options: "i" };
+    if (category) filters.category = category;
+    if (condition) filters.condition = condition;
+    if (location) filters.location = { $regex: location, $options: "i" };
 
     const products = await Product.find(filters)
       .populate("owner")
@@ -76,41 +65,6 @@ export async function GET(req) {
     );
   } catch (err) {
     console.error("❌ Product GET error:", err);
-    return new Response("Server Error", { status: 500 });
-  }
-}
-
-// ✅ DELETE PRODUCT (With owner check)
-export async function DELETE(req) {
-  try {
-    const session = await auth();
-    if (!session?.user?.email) {
-      return new Response("Unauthorized", { status: 401 });
-    }
-
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
-    if (!id) {
-      return new Response("Product ID is required", { status: 400 });
-    }
-
-    await connectDB();
-
-    const product = await Product.findById(id).populate("owner");
-    if (!product) {
-      return new Response("Product not found", { status: 404 });
-    }
-
-    // ✅ Check if current user is the owner
-    if (product.owner.email !== session.user.email) {
-      return new Response("Unauthorized - Not your product", { status: 403 });
-    }
-
-    await Product.findByIdAndDelete(id);
-
-    return new Response("Deleted successfully", { status: 200 });
-  } catch (err) {
-    console.error("❌ Product DELETE error:", err);
     return new Response("Server Error", { status: 500 });
   }
 }
