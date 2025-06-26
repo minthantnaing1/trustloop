@@ -3,9 +3,8 @@ import Product from "@/models/Product";
 import NavBar from "@/components/NavBar";
 import Image from "next/image";
 
-export default async function ProductDetailPage(props) {
-  const params = await props.params;
-  const id = params.id;
+export default async function ProductDetailPage({ params }) {
+  const id = await params.id;
 
   await connectDB();
   const product = await Product.findById(id).populate("owner").lean();
