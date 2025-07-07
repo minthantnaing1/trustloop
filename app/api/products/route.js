@@ -45,9 +45,17 @@ export async function GET(req) {
     const condition = searchParams.get("condition");
     const location = searchParams.get("location");
 
+    const user = session?.user?.email
+      ? await User.findOne({ email: session.user.email })
+      : null;
+
     const filters = {
-      isAvailable: true,
       price: { $gte: minPrice, $lte: maxPrice },
+      $or: [
+        { isHidden: false },
+        { isHidden: { $exists: false } },
+        ...(user ? [{ owner: user._id }] : []),
+      ],
     };
 
     if (search) filters.title = { $regex: search, $options: "i" };

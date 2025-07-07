@@ -5,13 +5,21 @@ import { auth } from "@/auth";
 
 // ✅ Get Single Product by ID
 export async function GET(_req, { params }) {
-  const { id } = await params; // ✅ await added (silences error)
+  const { id } = await params; // ✅ Await added to fix CMD error
 
   try {
     await connectDB();
+    const session = await auth();
+
     const product = await Product.findById(id).populate("owner");
 
     if (!product) {
+      return new Response("Product not found", { status: 404 });
+    }
+
+    const isOwner = session?.user?.email === product.owner.email;
+
+    if (product.isHidden && !isOwner) {
       return new Response("Product not found", { status: 404 });
     }
 
@@ -52,8 +60,10 @@ export async function DELETE(_req, { params }) {
   }
 }
 
-// ✅ Update Single Product (Bonus)
+// ✅ Update Single Product
 export async function PATCH(req, { params }) {
+  const { id } = await params; // ✅ Await added to fix CMD error
+
   try {
     const session = await auth();
     if (!session?.user?.email) {
@@ -63,7 +73,7 @@ export async function PATCH(req, { params }) {
     const body = await req.json();
     await connectDB();
 
-    const product = await Product.findById(params.id).populate("owner");
+    const product = await Product.findById(id).populate("owner");
     if (!product) {
       return new Response("Product not found", { status: 404 });
     }

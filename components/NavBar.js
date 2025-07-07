@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import {
   ShoppingCartIcon,
   HeartIcon,
@@ -21,42 +22,54 @@ function NavBar() {
     setting: false,
   });
 
+  const pathname = usePathname();
+
   return (
-    <header className="fixed top-0 left-0 w-full h-[90px] bg-[#325082] flex justify-between items-center px-8 z-[10000]">
-      {/* Left */}
+    <header className="fixed top-0 left-0 w-full h-[90px] bg-gradient-to-r from-[#2b446a] to-[#325082] shadow-md flex justify-between items-center px-8 z-[10000]">
+      {/* Left - Logo */}
       <div className="flex items-center">
         <Image src="/TrustLoopLogoW.png" alt="Logo" width={100} height={75} />
       </div>
 
-      {/* Middle */}
+      {/* Middle - Welcome & Nav Links */}
       <div className="flex flex-col items-center">
-        <p className="text-white font-medium text-lg">Welcome to TrustLoop</p>
-        <ul className="flex gap-[88px] text-[14px] mt-[10px]">
+        <p className="text-white font-semibold text-lg tracking-wide">
+          Welcome to TrustLoop
+        </p>
+        <ul className="flex gap-[70px] mt-[10px]">
           {[
             { label: "HOME", href: "/home" },
             { label: "BUY & SELL", href: "/buy-sell" },
             { label: "AUCTION", href: "/auction" },
             { label: "DONATION", href: "/donation" },
-          ].map((item) => (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                className="text-white px-3 py-1 rounded-md hover:bg-white hover:text-[#325082] transition"
-              >
-                {item.label}
-              </Link>
-            </li>
-          ))}
+          ].map((item) => {
+            const isActive = pathname === item.href;
+
+            return (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  className={`text-white text-[14px] font-medium px-2 py-1 border-b-2 transition-all duration-200 ${
+                    isActive
+                      ? "border-white"
+                      : "border-transparent hover:border-white"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </div>
 
-      {/* Right */}
-      <div className="flex items-center gap-5 text-white">
+      {/* Right - Action Icons */}
+      <div className="flex items-center gap-6 text-white">
         {/* Cart */}
         <div
           onMouseEnter={() => setHover({ ...hover, cart: true })}
           onMouseLeave={() => setHover({ ...hover, cart: false })}
-          className="cursor-pointer"
+          className="cursor-pointer transition-transform hover:scale-110"
         >
           {hover.cart ? (
             <CartSolid className="w-6 h-6" />
@@ -69,7 +82,7 @@ function NavBar() {
         <div
           onMouseEnter={() => setHover({ ...hover, heart: true })}
           onMouseLeave={() => setHover({ ...hover, heart: false })}
-          className="cursor-pointer"
+          className="cursor-pointer transition-transform hover:scale-110"
         >
           {hover.heart ? (
             <HeartSolid className="w-6 h-6" />
@@ -82,7 +95,7 @@ function NavBar() {
         <div
           onMouseEnter={() => setHover({ ...hover, setting: true })}
           onMouseLeave={() => setHover({ ...hover, setting: false })}
-          className="cursor-pointer"
+          className="cursor-pointer transition-transform hover:scale-110"
         >
           {hover.setting ? (
             <CogSolid className="w-6 h-6" />

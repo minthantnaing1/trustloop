@@ -49,6 +49,7 @@ const ProductSchema = new mongoose.Schema(
 
     // Lifecycle
     isAvailable: { type: Boolean, default: true },
+    isHidden: { type: Boolean, default: false },
     expiresAt: { type: Date },
 
     // Metadata

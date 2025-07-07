@@ -4,19 +4,21 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import NavBar from "@/components/NavBar";
-import {
-  AdjustmentsHorizontalIcon,
-  XMarkIcon,
-} from "@heroicons/react/24/outline";
+import ProductCard from "@/components/ProductCard";
+import ConfirmModal from "@/components/ConfirmModal";
+import { AdjustmentsHorizontalIcon } from "@heroicons/react/24/outline";
 
 export default function BuySellPage() {
-  const router = useRouter();
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState("");
   const [showFilter, setShowFilter] = useState(false);
-  const [showDeleteMode, setShowDeleteMode] = useState(false);
+  const [hideMode, setHideMode] = useState(false);
   const [userEmail, setUserEmail] = useState("");
-  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({
+    open: false,
+    productId: null,
+    newStatus: null,
+  });
 
   const [filters, setFilters] = useState({
     category: "",
@@ -46,14 +48,25 @@ export default function BuySellPage() {
     fetchProducts();
   }, []);
 
-  const handleDelete = async (id) => {
-    const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
+  const handleConfirmToggle = async () => {
+    const { productId, newStatus } = confirmModal;
+
+    const res = await fetch(`/api/products/${productId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ isAvailable: newStatus }),
+      headers: { "Content-Type": "application/json" },
+    });
+
     if (res.ok) {
-      setProducts(products.filter((p) => p._id !== id));
-      setConfirmDeleteId(null);
+      const updated = await res.json();
+      setProducts((prev) =>
+        prev.map((p) => (p._id === updated._id ? updated : p))
+      );
     } else {
-      alert("Failed to delete product.");
+      alert("Failed to update product visibility.");
     }
+
+    setConfirmModal({ open: false, productId: null, newStatus: null });
   };
 
   const handleApplyFilters = () => {
@@ -61,28 +74,33 @@ export default function BuySellPage() {
     setShowFilter(false);
   };
 
+  const ownProducts = products.filter((p) => p.owner?.email === userEmail);
+  const otherProducts = products.filter(
+    (p) => p.owner?.email !== userEmail && p.isAvailable
+  );
+
   return (
     <>
       <NavBar />
-      <div className={`${confirmDeleteId ? "brightness-50" : ""}`}>
+      <div>
+        {/* Header & Search */}
         <div className="flex justify-between items-center mt-[110px] mb-6 max-w-[1200px] mx-auto w-full gap-3 relative">
           <h2 className="text-lg font-semibold text-black">Items</h2>
 
-          {/* Search + Filter */}
           <div className="flex items-center border border-[#ccc] rounded-[8px] w-[60%] px-0.5">
-            <button
-              onClick={() => setShowFilter(!showFilter)}
-              className="p-2 hover:bg-gray-100 rounded-md"
-            >
-              <AdjustmentsHorizontalIcon className="w-5 h-5 text-gray-700" />
-            </button>
-
             <input
               className="flex-1 px-2 py-[10px] text-sm outline-none"
               placeholder="Search for anything..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
+
+            <button
+              onClick={() => setShowFilter(!showFilter)}
+              className="p-2 hover:bg-gray-100 rounded-md"
+            >
+              <AdjustmentsHorizontalIcon className="w-5 h-5 text-gray-700" />
+            </button>
 
             <button
               onClick={fetchProducts}
@@ -92,18 +110,18 @@ export default function BuySellPage() {
             </button>
           </div>
 
-          {/* Sell + Delete Buttons */}
           <div className="flex gap-2">
             <button
-              onClick={() => setShowDeleteMode(!showDeleteMode)}
+              onClick={() => setHideMode(!hideMode)}
               className={`px-[16px] py-[10px] text-sm rounded-[8px] ${
-                showDeleteMode
-                  ? "bg-red-600 text-white"
+                hideMode
+                  ? "bg-yellow-600 text-white"
                   : "bg-[#325082] text-white"
               } hover:opacity-90`}
             >
-              {showDeleteMode ? "Cancel Delete" : "Delete Post"}
+              {hideMode ? "Cancel Hide/Unhide" : "Hide/Unhide Your Posts"}
             </button>
+
             <Link href="/sell">
               <button className="bg-[#325082] text-white px-[16px] py-[10px] text-sm rounded-[8px] hover:opacity-90">
                 + Sell Your Items
@@ -115,6 +133,7 @@ export default function BuySellPage() {
           {showFilter && (
             <div className="absolute top-[60px] left-[18%] w-[64%] bg-white border border-[#ccc] rounded-lg p-4 shadow-md z-50">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {/* Filter controls */}
                 <select
                   value={filters.category}
                   onChange={(e) =>
@@ -129,7 +148,6 @@ export default function BuySellPage() {
                   <option value="clothing">Clothing</option>
                   <option value="others">Others</option>
                 </select>
-
                 <input
                   type="number"
                   placeholder="Min Price"
@@ -148,7 +166,6 @@ export default function BuySellPage() {
                   }
                   className="border p-2 rounded-md text-sm"
                 />
-
                 <select
                   value={filters.condition}
                   onChange={(e) =>
@@ -162,7 +179,6 @@ export default function BuySellPage() {
                   <option value="used">Used</option>
                   <option value="poor">Poor</option>
                 </select>
-
                 <input
                   type="text"
                   placeholder="Meetup Location"
@@ -202,77 +218,89 @@ export default function BuySellPage() {
           )}
         </div>
 
-        {/* Product Grid */}
+        {/* --- Own Products --- */}
+        {ownProducts.length > 0 && (
+          <section className="max-w-[1200px] mx-auto mb-10">
+            <h3 className="text-lg font-semibold mb-3">What you're selling</h3>
+            <div className="relative">
+              {/* Left Arrow */}
+              <button
+                onClick={() => {
+                  document.getElementById("ownProductsScroll").scrollBy({
+                    left: -256,
+                    behavior: "smooth",
+                  });
+                }}
+                className="absolute left-[-20px] top-1/2 transform -translate-y-1/2 w-10 h-10 bg-[#325082] text-white rounded-full flex items-center justify-center z-10 hover:opacity-90 shadow"
+              >
+                ◀
+              </button>
+
+              {/* Scrollable Container */}
+              <div
+                id="ownProductsScroll"
+                className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar"
+              >
+                {ownProducts.map((product) => (
+                  <ProductCard
+                    key={product._id}
+                    product={product}
+                    isOwner
+                    showHideMode={hideMode}
+                    onToggleHide={(id, newStatus) =>
+                      setConfirmModal({ open: true, productId: id, newStatus })
+                    }
+                  />
+                ))}
+              </div>
+
+              {/* Right Arrow */}
+              <button
+                onClick={() => {
+                  document.getElementById("ownProductsScroll").scrollBy({
+                    left: 256,
+                    behavior: "smooth",
+                  });
+                }}
+                className="absolute right-[-20px] top-1/2 transform -translate-y-1/2 w-10 h-10 bg-[#325082] text-white rounded-full flex items-center justify-center z-10 hover:opacity-90 shadow"
+              >
+                ▶
+              </button>
+            </div>
+          </section>
+        )}
+
+        {/* --- Other Products --- */}
         <section className="max-w-[1200px] mx-auto mb-5">
-          {products.length === 0 ? (
+          <h3 className="text-lg font-semibold mb-3">What you can buy</h3>
+          {otherProducts.length === 0 ? (
             <p className="text-center text-gray-500">No products found.</p>
           ) : (
-            <div className="grid grid-cols-3 gap-[20px]">
-              {products.map((product) => {
-                const isOwner = product.owner?.email === userEmail;
-
-                return (
-                  <div
-                    key={product._id}
-                    className="relative flex flex-col justify-end h-[300px] bg-[#e2e2e2] rounded-[10px] p-[10px] hover:shadow-md transition"
-                  >
-                    {showDeleteMode && isOwner && (
-                      <button
-                        onClick={() => setConfirmDeleteId(product._id)}
-                        className="absolute top-2 right-2 bg-white rounded-full border border-gray-300 p-1 hover:bg-red-500 hover:text-white"
-                      >
-                        <XMarkIcon className="w-4 h-4" />
-                      </button>
-                    )}
-
-                    <Link
-                      href={`/buy-sell/${product._id}`}
-                      className="flex flex-col flex-1"
-                    >
-                      <div className="h-[90%] bg-[#ccc] rounded-[8px] mb-[10px]" />
-                      <div className="px-[6px] py-[4px] text-[14px] text-black">
-                        <h4 className="m-0 font-semibold">{product.title}</h4>
-                        <p className="m-0 text-[12px] text-[#555]">
-                          {product.category}
-                        </p>
-                      </div>
-                    </Link>
-
-                    <button className="w-full bg-[#325082] text-white text-[12px] py-[6px] px-[8px] rounded-[6px] hover:opacity-90">
-                      Add To Cart
-                    </button>
-                  </div>
-                );
-              })}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-[20px]">
+              {otherProducts.map((product) => (
+                <ProductCard
+                  key={product._id}
+                  product={product}
+                  isOwner={false}
+                />
+              ))}
             </div>
           )}
         </section>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      {confirmDeleteId && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-[9999]">
-          <div className="bg-white p-6 rounded-lg shadow-md w-[350px]">
-            <h3 className="text-lg font-semibold mb-4">
-              Are you sure you want to delete this post?
-            </h3>
-            <div className="flex justify-center gap-3">
-              <button
-                onClick={() => setConfirmDeleteId(null)}
-                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(confirmDeleteId)}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:opacity-90"
-              >
-                Confirm Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={confirmModal.open}
+        message={
+          confirmModal.newStatus
+            ? "Are you sure you want to unhide this post?"
+            : "Are you sure you want to hide this post?"
+        }
+        onConfirm={handleConfirmToggle}
+        onCancel={() =>
+          setConfirmModal({ open: false, productId: null, newStatus: null })
+        }
+      />
     </>
   );
 }
