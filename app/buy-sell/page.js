@@ -153,7 +153,7 @@ export default function BuySellPage() {
         {/* --- Own Products --- */}
         {ownProducts.length > 0 && (
           <section className="max-w-[1200px] mx-auto mb-10">
-            <h3 className="text-lg font-semibold mb-3">What you're selling</h3>
+            <h3 className="text-lg font-semibold mb-3">What you are selling</h3>
 
             <div className="relative">
               {/* Left Arrow */}
