@@ -35,16 +35,16 @@ export default function ConfirmModal({ isOpen, message, onConfirm, onCancel }) {
         <p className="mb-6">{message}</p>
         <div className="flex justify-center gap-4">
           <button
-            onClick={handleConfirm}
-            className="bg-blue-600 px-4 py-2 rounded-md hover:bg-blue-700"
-          >
-            OK
-          </button>
-          <button
             onClick={handleCancel}
-            className="bg-gray-600 px-4 py-2 rounded-md hover:bg-gray-700"
+            className="bg-gray-600 w-[80px] py-2 rounded-md hover:bg-gray-700"
           >
             Cancel
+          </button>
+          <button
+            onClick={handleConfirm}
+            className="bg-blue-600 w-[80px] py-2 rounded-md hover:bg-blue-700"
+          >
+            Confirm
           </button>
         </div>
       </div>
