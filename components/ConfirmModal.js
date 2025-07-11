@@ -1,17 +1,36 @@
 "use client";
 import { useEffect, useState } from "react";
 
-export default function ConfirmModal({ isOpen, message, onConfirm, onCancel }) {
+export default function ConfirmModal({
+  isOpen,
+  message,
+  onConfirm,
+  onCancel,
+  variant = "default", // "default" | "danger"
+}) {
   const [show, setShow] = useState(false);
+  const [countdown, setCountdown] = useState(0);
 
   useEffect(() => {
-    if (isOpen) setShow(true);
-  }, [isOpen]);
+    if (isOpen) {
+      setShow(true);
+      if (variant === "danger") {
+        setCountdown(3); // 5-second delay for delete
+      }
+    }
+  }, [isOpen, variant]);
+
+  // Countdown effect
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
 
   const handleCancel = () => {
-    // trigger fade out
     setShow(false);
-    setTimeout(() => onCancel(), 500); // wait for fade-out animation
+    setTimeout(() => onCancel(), 500);
   };
 
   const handleConfirm = () => {
@@ -20,6 +39,13 @@ export default function ConfirmModal({ isOpen, message, onConfirm, onCancel }) {
   };
 
   if (!isOpen && !show) return null;
+
+  const confirmBtnClass =
+    variant === "danger"
+      ? "bg-red-600 hover:bg-red-700"
+      : "bg-blue-600 hover:bg-blue-700";
+
+  const confirmDisabled = variant === "danger" && countdown > 0;
 
   return (
     <div
@@ -42,9 +68,12 @@ export default function ConfirmModal({ isOpen, message, onConfirm, onCancel }) {
           </button>
           <button
             onClick={handleConfirm}
-            className="bg-blue-600 w-[80px] py-2 rounded-md hover:bg-blue-700"
+            disabled={confirmDisabled}
+            className={`${confirmBtnClass} w-[80px] py-2 rounded-md ${
+              confirmDisabled ? "opacity-60 cursor-not-allowed" : ""
+            }`}
           >
-            Confirm
+            {confirmDisabled ? `Wait (${countdown})` : "Confirm"}
           </button>
         </div>
       </div>

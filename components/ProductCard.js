@@ -30,9 +30,9 @@ export default function ProductCard({
         onClick={handleClick}
         className={`relative flex flex-col justify-between h-[300px] min-w-[240px] ${
           isHidden ? "bg-gray-200 opacity-60" : "bg-[#e2e2e2]"
-        } rounded-[10px] p-[10px] transition-all duration-500 ease-out will-change-transform cursor-pointer ${
+        } rounded-[10px] p-[10px] transition-all duration-500 linear will-change-transform cursor-pointer ${
           isOwner
-            ? "hover:scale-[0.96] active:scale-[0.92] hover:brightness-105 hover:shadow-lg hover:shadow-gray-400"
+            ? "hover:scale-[0.96] active:scale-[0.92] hover:brightness-105 hover:shadow-md hover:shadow-gray-400"
             : "hover:-translate-y-2 active:scale-[0.95] hover:shadow-lg hover:shadow-gray-400"
         }`}
       >

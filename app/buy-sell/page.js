@@ -8,6 +8,7 @@ import FilterDropdown from "@/components/FilterDropdown";
 import ProductCard from "@/components/ProductCard";
 import ConfirmModal from "@/components/ConfirmModal";
 import { AdjustmentsHorizontalIcon } from "@heroicons/react/24/outline";
+import ActionButton from "@/components/ActionButton";
 
 export default function BuySellPage() {
   const [products, setProducts] = useState([]);
@@ -111,22 +112,15 @@ export default function BuySellPage() {
             </button>
           </div>
 
-          <div className="flex gap-2">
-            <button
+          <div className="flex gap-3">
+            <ActionButton
+              text="Hide/Unhide Selling"
+              variant={hideMode ? "outlineClick" : "primaryClick"}
               onClick={() => setHideMode(!hideMode)}
-              className={`w-[125px] h-[42px] px-[6px] py-[4px] text-sm rounded-[8px] border transition duration-500 ${
-                hideMode
-                  ? "border-[2px] border-[#325082] text-[#325082] bg-white hover:bg-[#f1f5f9]"
-                  : "border-[2px] border-transparent text-white bg-[#325082] hover:opacity-90"
-              }`}
-            >
-              {hideMode ? "Hide/Unhide Selling" : "Hide/Unhide Selling"}
-            </button>
+            />
 
             <Link href="/sell">
-              <button className="h-[42px] bg-[#325082] text-white px-[16px] py-[4px] text-sm rounded-[8px] hover:opacity-90">
-                + Sell Your Items
-              </button>
+              <ActionButton text="+ Sell Your Items" variant="primaryClick" />
             </Link>
           </div>
 
