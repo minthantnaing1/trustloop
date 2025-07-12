@@ -12,7 +12,8 @@ const ProductSchema = new mongoose.Schema(
     title: { type: String, required: true },
     description: { type: String, default: "" },
     category: { type: String, required: true },
-    images: [{ type: String }],
+    images: [String],
+    defaultImage: String,
     condition: {
       type: String,
       enum: ["new", "like new", "used", "poor"],

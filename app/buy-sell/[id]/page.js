@@ -7,10 +7,11 @@ import {
   EyeIcon,
   EyeSlashIcon,
   PencilIcon,
-  TrashIcon,
+  ChevronLeftIcon,
 } from "@heroicons/react/24/solid";
 import ActionButton from "@/components/ActionButton";
 import ProductDeleteButton from "@/components/ProductDeleteButton";
+import ProductImages from "@/components/ProductImages";
 
 export default async function ProductDetailPage({ params }) {
   const { id } = await params;
@@ -43,22 +44,9 @@ export default async function ProductDetailPage({ params }) {
           {/* Back Button */}
           <Link
             href="/buy-sell"
-            className="flex items-center gap-1 text-[#325082] text-sm font-medium hover:underline hover:opacity-80"
+            className="text-[#325082] text-sm hover:underline flex items-center gap-1"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-4 h-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
+            <ChevronLeftIcon className="h-4 w-4" />
             Back to Buy & Sell
           </Link>
 
@@ -102,19 +90,7 @@ export default async function ProductDetailPage({ params }) {
 
         <div className="flex gap-[30px]">
           {/* Left: Product Images */}
-          <div className="flex-1">
-            <div className="h-[300px] bg-[#ddd] rounded-[10px]" />
-            <div className="flex gap-2 mt-2">
-              {Array(5)
-                .fill(0)
-                .map((_, idx) => (
-                  <div
-                    key={idx}
-                    className="w-[60px] h-[60px] bg-[#ccc] rounded-[6px]"
-                  />
-                ))}
-            </div>
-          </div>
+          <ProductImages images={product.images} />
 
           {/* Right: Product Info */}
           <div className="flex-1 flex flex-col gap-3">
@@ -156,7 +132,7 @@ export default async function ProductDetailPage({ params }) {
 
                   {/* Tooltip Overlay */}
                   <div className="absolute top-[-32px] left-[180px] w-max bg-red-600 text-white text-xs px-3 py-1 rounded-md opacity-0 group-hover:opacity-100 transition duration-300 z-10">
-                    You cannot buy, like, or cart your own item!
+                    You cannot like, buy or cart your own item!
                   </div>
                 </>
               ) : (
