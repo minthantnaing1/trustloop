@@ -150,20 +150,18 @@ export default function BuySellPage() {
         </div>
 
         {/* --- Own Products --- */}
-        {loading ? (
-          <section className="max-w-[1200px] mx-auto mb-10">
-            <h3 className="text-lg font-semibold mb-3">
-              Items you are selling
-            </h3>
+        <section className="max-w-[1200px] mx-auto mb-10">
+          <h3 className="text-lg font-semibold mb-3">Items you are selling</h3>
+
+          {loading ? (
             <p className="text-center text-gray-400">
               Loading your products...
             </p>
-          </section>
-        ) : ownProducts.length > 0 ? (
-          <section className="max-w-[1200px] mx-auto mb-10">
-            <h3 className="text-lg font-semibold mb-3">
-              Items you are selling
-            </h3>
+          ) : ownProducts.length === 0 ? (
+            <p className="text-center text-gray-500">
+              You are not selling any items right now.
+            </p>
+          ) : (
             <div className="relative">
               {/* Left Arrow */}
               <button
@@ -209,8 +207,8 @@ export default function BuySellPage() {
                 ▶
               </button>
             </div>
-          </section>
-        ) : null}
+          )}
+        </section>
 
         {/* --- Other Products --- */}
         <section className="max-w-[1200px] mx-auto mb-5">
