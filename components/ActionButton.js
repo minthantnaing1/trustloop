@@ -7,7 +7,7 @@ export default function ActionButton({
   type = "button",
 }) {
   const baseStyle =
-    "h-[42px] w-30 px-[6px] text-sm rounded-[8px] border shadow-md hover:scale-[1.1] active:scale-[0.95] transition duration-400 flex items-center justify-center gap-2";
+    "h-[42px] w-30 px-[4px] text-sm rounded-[8px] border shadow-md hover:scale-[1.1] active:scale-[0.95] transition duration-400 flex items-center justify-center gap-2";
 
   const variants = {
     primaryHover:

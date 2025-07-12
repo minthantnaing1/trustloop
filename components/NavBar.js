@@ -25,37 +25,42 @@ function NavBar() {
   const pathname = usePathname();
 
   return (
-    <header className="fixed top-0 left-0 w-full h-[90px] bg-gradient-to-r from-[#2b446a] to-[#325082] shadow-md flex justify-between items-center px-8 z-[10000]">
+    <header className="fixed top-0 left-0 w-full h-[90px] bg-gradient-to-r from-[#2b446a] to-[#325082] shadow-md shadow-gray-900/30 flex justify-between items-center px-8 z-[10000]">
       {/* Left - Logo */}
       <div className="flex items-center">
         <Image src="/TrustLoopLogoW.png" alt="Logo" width={100} height={75} />
       </div>
 
       {/* Middle - Welcome & Nav Links */}
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col items-center gap-y-[8px]">
         <p className="text-white font-semibold text-lg tracking-wide">
           Welcome to TrustLoop
         </p>
-        <ul className="flex gap-[70px] mt-[10px]">
+        <ul className="flex gap-[65px]">
           {[
             { label: "HOME", href: "/home" },
             { label: "BUY & SELL", href: "/buy-sell" },
             { label: "AUCTION", href: "/auction" },
-            { label: "DONATION", href: "/donation" },
+            { label: "GIVEAWAY", href: "/giveaway" },
           ].map((item) => {
-            const isActive = pathname === item.href;
+            const isActive =
+              pathname === item.href ||
+              (item.href === "/buy-sell" &&
+                pathname.startsWith("/buy-sell/")) ||
+              (item.href === "/buy-sell" && pathname === "/sell");
 
             return (
               <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={`text-white text-[14px] font-medium px-2 py-1 border-b-2 transition-all duration-200 ${
-                    isActive
-                      ? "border-white"
-                      : "border-transparent hover:border-white"
-                  }`}
-                >
-                  {item.label}
+                <Link href={item.href}>
+                  <span
+                    className={`inline-block text-white text-[14px] font-medium px-2 py-1 border-b-2 transition-all duration-200 active:scale-[0.95] ${
+                      isActive
+                        ? "border-white"
+                        : "border-transparent hover:border-white"
+                    }`}
+                  >
+                    {item.label}
+                  </span>
                 </Link>
               </li>
             );

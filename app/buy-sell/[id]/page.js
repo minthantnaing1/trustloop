@@ -90,7 +90,10 @@ export default async function ProductDetailPage({ params }) {
 
         <div className="flex gap-[30px]">
           {/* Left: Product Images */}
-          <ProductImages images={product.images} />
+          <ProductImages
+            images={product.images}
+            defaultImage={product.defaultImage}
+          />
 
           {/* Right: Product Info */}
           <div className="flex-1 flex flex-col gap-3">
@@ -131,7 +134,7 @@ export default async function ProductDetailPage({ params }) {
                   </button>
 
                   {/* Tooltip Overlay */}
-                  <div className="absolute top-[-32px] left-[180px] w-max bg-red-600 text-white text-xs px-3 py-1 rounded-md opacity-0 group-hover:opacity-100 transition duration-300 z-10">
+                  <div className="absolute top-[-32px] left-[175px] w-max bg-[#325082] text-white text-xs px-3 py-1 rounded-md opacity-0 group-hover:opacity-100 transition duration-700 z-10">
                     You cannot like, buy or cart your own item!
                   </div>
                 </>

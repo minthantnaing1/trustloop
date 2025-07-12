@@ -16,6 +16,7 @@ export default function BuySellPage() {
   const [showFilter, setShowFilter] = useState(false);
   const [hideMode, setHideMode] = useState(false);
   const [userEmail, setUserEmail] = useState("");
+  const [loading, setLoading] = useState(true);
   const [confirmModal, setConfirmModal] = useState({
     open: false,
     productId: null,
@@ -31,6 +32,8 @@ export default function BuySellPage() {
   });
 
   const fetchProducts = async () => {
+    setLoading(true); // Start loading
+
     const query = new URLSearchParams({
       search,
       category: filters.category,
@@ -44,6 +47,8 @@ export default function BuySellPage() {
     const data = await res.json();
     setProducts(data.products);
     setUserEmail(data.userEmail);
+
+    setLoading(false); // Done loading
   };
 
   useEffect(() => {
@@ -87,7 +92,7 @@ export default function BuySellPage() {
       <div>
         {/* Header & Search */}
         <div className="flex justify-between items-center mt-[110px] mb-6 max-w-[1200px] mx-auto w-full gap-3 relative">
-          <h2 className="text-lg font-semibold text-black">Items</h2>
+          <h2 className="text-lg font-semibold text-black">Products</h2>
 
           <div className="flex items-center border border-gray-400 rounded-[8px] w-[50%] px-0.5 ml-[160px]">
             <input
@@ -114,7 +119,7 @@ export default function BuySellPage() {
 
           <div className="flex gap-3">
             <ActionButton
-              text="Hide/Unhide Selling"
+              text={hideMode ? "Cancel Hide/Unhide" : "Hide/Unhide Selling"}
               variant={hideMode ? "outlineClick" : "primaryClick"}
               onClick={() => setHideMode(!hideMode)}
             />
@@ -145,10 +150,20 @@ export default function BuySellPage() {
         </div>
 
         {/* --- Own Products --- */}
-        {ownProducts.length > 0 && (
+        {loading ? (
           <section className="max-w-[1200px] mx-auto mb-10">
-            <h3 className="text-lg font-semibold mb-3">What you are selling</h3>
-
+            <h3 className="text-lg font-semibold mb-3">
+              Items you are selling
+            </h3>
+            <p className="text-center text-gray-400">
+              Loading your products...
+            </p>
+          </section>
+        ) : ownProducts.length > 0 ? (
+          <section className="max-w-[1200px] mx-auto mb-10">
+            <h3 className="text-lg font-semibold mb-3">
+              Items you are selling
+            </h3>
             <div className="relative">
               {/* Left Arrow */}
               <button
@@ -195,12 +210,14 @@ export default function BuySellPage() {
               </button>
             </div>
           </section>
-        )}
+        ) : null}
 
         {/* --- Other Products --- */}
         <section className="max-w-[1200px] mx-auto mb-5">
           <h3 className="text-lg font-semibold mb-3">What you can buy</h3>
-          {otherProducts.length === 0 ? (
+          {loading ? (
+            <p className="text-center text-gray-400">Loading products...</p>
+          ) : otherProducts.length === 0 ? (
             <p className="text-center text-gray-500">No products found.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-[20px]">

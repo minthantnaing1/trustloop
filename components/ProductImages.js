@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -8,37 +8,43 @@ import {
   ArrowsPointingInIcon,
 } from "@heroicons/react/24/solid";
 
-export default function ProductImages({ images = [] }) {
+export default function ProductImages({ images = [], defaultImage }) {
+  // ✅ Ensure defaultImage is shown first
+  const orderedImages = useMemo(() => {
+    if (!defaultImage || !images.includes(defaultImage)) return images;
+    return [defaultImage, ...images.filter((img) => img !== defaultImage)];
+  }, [images, defaultImage]);
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isVertical, setIsVertical] = useState(false);
 
   const handlePrev = () => {
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
+    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : orderedImages.length - 1));
   };
 
   const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % images.length);
+    setCurrentIndex((prev) => (prev + 1) % orderedImages.length);
   };
 
   return (
     <div className="flex-1 w-full">
-      {/* Image Container with fixed dimensions per view */}
+      {/* Image Container */}
       <div
         className={`relative mx-auto overflow-hidden rounded-[10px] border border-gray-300 bg-[#f1f1f1]
-          transition-all duration-800 ease-in-out ${
-            isVertical
-              ? "aspect-[3/4] max-h-[500px] max-w-[500px]" // ← change these for vertical
-              : "aspect-video max-w-[600px] max-h-[500px]" // ← change these for horizontal
-          }`}
+        transition-all duration-800 ease-in-out ${
+          isVertical
+            ? "aspect-[3/4] max-h-[500px] max-w-[500px]"
+            : "aspect-video max-w-[600px] max-h-[500px]"
+        }`}
       >
-        {/* Overlay Switch View Button */}
+        {/* Switch Orientation Button */}
         <div className="absolute top-2 right-2 z-20">
           <button
             onClick={(e) => {
               e.stopPropagation();
               setIsVertical(!isVertical);
             }}
-            className="flex items-center gap-1 text-sm text-[#325082] bg-white/80 hover:bg-white transition duration-300 px-1 py-1 rounded-md shadow-sm hover:underline"
+            className="flex items-center gap-1 text-sm text-[#325082] bg-white/80 hover:bg-white transition duration-800 px-1 py-1 rounded-md shadow-sm hover:underline"
           >
             {isVertical ? (
               <>
@@ -54,12 +60,12 @@ export default function ProductImages({ images = [] }) {
           </button>
         </div>
 
-        {/* Image Carousel */}
+        {/* Carousel */}
         <div
-          className="flex transition-transform duration-500 ease-in-out w-full h-full"
+          className="flex transition-transform duration-800 ease-in-out w-full h-full"
           style={{ transform: `translateX(-${currentIndex * 100}%)` }}
         >
-          {images.map((img, idx) => (
+          {orderedImages.map((img, idx) => (
             <img
               key={idx}
               src={img}
@@ -87,7 +93,7 @@ export default function ProductImages({ images = [] }) {
 
       {/* Thumbnails */}
       <div className="flex gap-3 mt-4 overflow-x-auto">
-        {images.map((img, idx) => (
+        {orderedImages.map((img, idx) => (
           <button
             key={idx}
             onClick={() => setCurrentIndex(idx)}

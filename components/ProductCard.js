@@ -56,12 +56,12 @@ export default function ProductCard({
 
         {/* Product Image Container */}
         <div className="relative h-[200px] bg-[#ccc] rounded-[8px] mb-[10px] overflow-hidden">
-          {/* Always show image */}
-          {product.images?.[0] && (
+          {/* Show default image */}
+          {product.defaultImage && (
             <img
-              src={product.images[0]}
+              src={product.defaultImage}
               alt={product.title}
-              className={`w-full h-full object-cover transition-all duration-300 ${
+              className={`absolute inset-0 w-full h-full object-cover transition-all duration-300 ${
                 isHidden ? "opacity-50" : ""
               }`}
             />
@@ -69,9 +69,11 @@ export default function ProductCard({
 
           {/* Subtle label only */}
           {isHidden && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-sm text-white font-semibold bg-black bg-opacity-60 px-3 py-1 rounded">
+            <div className="absolute inset-0 flex items-center justify-center text-center">
+              <span className="text-m text-white font-semibold bg-black bg-opacity-60 px-3 py-2 rounded leading-tight">
                 This post is hidden
+                <br />
+                to public from selling
               </span>
             </div>
           )}
