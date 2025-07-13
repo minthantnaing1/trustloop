@@ -11,3 +11,9 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+@custom-variant hover {
+  &:hover {
+    @slot;
+  }
+}

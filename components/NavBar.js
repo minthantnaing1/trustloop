@@ -53,7 +53,7 @@ function NavBar() {
               <li key={item.href}>
                 <Link href={item.href}>
                   <span
-                    className={`inline-block text-white text-[14px] font-medium px-2 py-1 border-b-2 transition-all duration-200 active:scale-[0.95] ${
+                    className={`inline-block text-white text-[14px] font-medium px-2 py-1 border-b-2 transition-all duration-500 active:scale-[0.95] ${
                       isActive
                         ? "border-white"
                         : "border-transparent hover:border-white"

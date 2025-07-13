@@ -164,17 +164,19 @@ export default function BuySellPage() {
           ) : (
             <div className="relative">
               {/* Left Arrow */}
-              <button
-                onClick={() => {
-                  document.getElementById("ownProductsScroll").scrollBy({
-                    left: -256,
-                    behavior: "smooth",
-                  });
-                }}
-                className="absolute left-[-20px] top-1/2 transform -translate-y-1/2 w-9 h-9 bg-[#325082] text-white rounded-full flex items-center justify-center z-10 hover:opacity-90 shadow"
-              >
-                ◀
-              </button>
+              {ownProducts.length > 4 && (
+                <button
+                  onClick={() => {
+                    document.getElementById("ownProductsScroll").scrollBy({
+                      left: -256,
+                      behavior: "smooth",
+                    });
+                  }}
+                  className="absolute left-[-20px] top-1/2 transform -translate-y-1/2 w-9 h-9 bg-[#325082] text-white rounded-full flex items-center justify-center z-10 transition-all duration-500 ease-in-out hover:scale-[1.1] active:scale-[0.8] shadow-lg shadow-gray-600"
+                >
+                  ◀
+                </button>
+              )}
 
               {/* Scrollable Container */}
               <div
@@ -195,17 +197,19 @@ export default function BuySellPage() {
               </div>
 
               {/* Right Arrow */}
-              <button
-                onClick={() => {
-                  document.getElementById("ownProductsScroll").scrollBy({
-                    left: 256,
-                    behavior: "smooth",
-                  });
-                }}
-                className="absolute right-[-20px] top-1/2 transform -translate-y-1/2 w-9 h-9 bg-[#325082] text-white rounded-full flex items-center justify-center z-10 hover:opacity-90 shadow"
-              >
-                ▶
-              </button>
+              {ownProducts.length > 4 && (
+                <button
+                  onClick={() => {
+                    document.getElementById("ownProductsScroll").scrollBy({
+                      left: 256,
+                      behavior: "smooth",
+                    });
+                  }}
+                  className="absolute right-[-20px] top-1/2 transform -translate-y-1/2 w-9 h-9 bg-[#325082] text-white rounded-full flex items-center justify-center z-10 transition-all duration-500 ease-in-out hover:scale-[1.1] active:scale-[0.8] shadow-lg shadow-gray-600"
+                >
+                  ▶
+                </button>
+              )}
             </div>
           )}
         </section>

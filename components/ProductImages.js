@@ -76,19 +76,23 @@ export default function ProductImages({ images = [], defaultImage }) {
         </div>
 
         {/* Arrows */}
-        <button
-          onClick={handlePrev}
-          className="absolute top-1/2 left-2 transform -translate-y-1/2 bg-[#325082] bg-opacity-80 hover:bg-opacity-100 p-1 rounded-full shadow-md z-10"
-        >
-          <ChevronLeftIcon className="w-6 h-6 text-white" />
-        </button>
+        {orderedImages.length > 1 && (
+          <>
+            <button
+              onClick={handlePrev}
+              className="absolute top-1/2 left-2 transform -translate-y-1/2 p-1 bg-[#325082] text-white rounded-full flex items-center justify-center z-10 transition-all duration-500 ease-in-out hover:scale-[1.1] active:scale-[0.8] shadow-md shadow-gray-700"
+            >
+              <ChevronLeftIcon className="w-6 h-6 text-white" />
+            </button>
 
-        <button
-          onClick={handleNext}
-          className="absolute top-1/2 right-2 transform -translate-y-1/2 bg-[#325082] bg-opacity-80 hover:bg-opacity-100 p-1 rounded-full shadow-md z-10"
-        >
-          <ChevronRightIcon className="w-6 h-6 text-white" />
-        </button>
+            <button
+              onClick={handleNext}
+              className="absolute top-1/2 right-2 transform -translate-y-1/2 p-1 bg-[#325082] text-white rounded-full flex items-center justify-center z-10 transition-all duration-500 ease-in-out hover:scale-[1.1] active:scale-[0.8] shadow-md shadow-gray-700"
+            >
+              <ChevronRightIcon className="w-6 h-6 text-white" />
+            </button>
+          </>
+        )}
       </div>
 
       {/* Thumbnails */}
