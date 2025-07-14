@@ -49,7 +49,7 @@ export default function ConfirmModal({
 
   return (
     <div
-      className={`fixed inset-0 z-[10001] flex items-center justify-center bg-black/30 backdrop-blur-[1px] transition-opacity duration-500 ${
+      className={`fixed inset-0 z-[30000] flex items-center justify-center bg-black/30 backdrop-blur-[1px] transition-opacity duration-500 ${
         show ? "opacity-100" : "opacity-0"
       }`}
     >

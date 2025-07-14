@@ -1,113 +1,101 @@
-import { auth } from "@/auth";
-import { connectDB } from "@/lib/db";
-import User from "@/models/User";
-import Image from "next/image";
 import NavBar from "@/components/NavBar";
+import Image from "next/image";
+import Link from "next/link";
+import HeroCarousel from "@/components/HeroCarousel";
+import {
+  UserGroupIcon,
+  BoltIcon,
+  ShieldCheckIcon,
+} from "@heroicons/react/24/solid";
 
-export default async function HomePage() {
-  const session = await auth();
-  await connectDB();
-
-  let user = await User.findOne({ email: session.user.email });
-
-  if (!user) {
-    const isAdmin = session.user.email === "u6530233@au.edu";
-
-    user = await User.create({
-      name: session.user.name,
-      email: session.user.email,
-      image: session.user.image || "/default-profile.jpg",
-      role: isAdmin ? "admin" : "user",
-    });
-  }
-
+export default function HomePage() {
   return (
     <>
       <NavBar />
-      <main className="max-w-[1200px] mx-auto mt-[110px] mb-5 px-5">
-        {/* Top Section */}
-        <section className="flex flex-wrap gap-5 mb-5">
-          {/* Profile Box */}
-          <div className="flex-1 min-w-[250px] bg-white rounded-[10px] p-5 flex flex-col items-center gap-3">
-            {/* Profile Image */}
-            {user.image ? (
-              <Image
-                src={user.image}
-                width={100}
-                height={100}
-                alt="Profile"
-                className="rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-[100px] h-[100px] bg-[#ddd] rounded-full"></div>
-            )}
+      <main className="mt-[90px] bg-white">
+        {/* Hero Section */}
+        <section className="bg-[#1a2d48]">
+          {" "}
+          {/* Dark background removes white space */}
+          <HeroCarousel />
+        </section>
 
-            {/* Profile Info */}
-            <div className="text-center">
-              <p className="font-bold text-[18px]">{user.name}</p>
-              <p>{user.email.split("@")[0]}</p>
-              <p>{user.faculty || "Faculty not set"}</p>
-            </div>
-          </div>
+        {/* About Us */}
+        <section className="bg-[#f9fafb] py-16 px-5 text-center">
+          <h2 className="text-2xl font-bold text-[#325082] mb-4">
+            About TrustLoop
+          </h2>
+          <p className="text-gray-600 max-w-[800px] mx-auto">
+            Built exclusively for AU students, TrustLoop ensures secure
+            peer-to-peer trades within your university community using Microsoft
+            student login. List your items, find deals, and trade confidently.
+          </p>
+        </section>
 
-          {/* Stats Box */}
-          <div className="flex-1 min-w-[300px] flex flex-wrap gap-3 items-start">
-            <div className="flex-1 min-w-[140px] bg-white p-4 rounded-[10px] text-center">
-              <p>Free Post</p>
-              <strong>{user.postingCredits} Left</strong>
-            </div>
-            <div className="flex-1 min-w-[140px] bg-white p-4 rounded-[10px] text-center">
-              <p>Rating</p>
-              <div className="text-[#ffcc00] text-[18px]">
-                {"★".repeat(Math.round(user.rating)) +
-                  "☆".repeat(5 - Math.round(user.rating))}
+        {/* Features */}
+        <section className="bg-white py-16">
+          <div className="max-w-[1100px] mx-auto px-5 grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
+            {[
+              {
+                title: "AU Students Only",
+                desc: "Microsoft Entra ID login guarantees trusted AU members only.",
+                icon: (
+                  <UserGroupIcon className="w-10 h-10 text-[#325082] mb-4" />
+                ),
+              },
+              {
+                title: "Easy & Convenient",
+                desc: "List items or browse deals easily in a student-focused interface designed for quick, hassle-free trades.",
+                icon: <BoltIcon className="w-10 h-10 text-[#325082] mb-4" />,
+              },
+              {
+                title: "Secure & Trusted",
+                desc: "Trade safely with fellow students on campus or nearby.",
+                icon: (
+                  <ShieldCheckIcon className="w-10 h-10 text-[#325082] mb-4" />
+                ),
+              },
+            ].map((item, index) => (
+              <div
+                key={index}
+                className="bg-[#f8fafc] rounded-xl shadow-md hover:shadow-lg transition p-6 flex flex-col items-center"
+              >
+                {item.icon}
+                <h3 className="font-semibold text-[#325082] mb-2">
+                  {item.title}
+                </h3>
+                <p className="text-gray-600 text-sm">{item.desc}</p>
               </div>
-            </div>
-            <div className="flex-1 min-w-[140px] bg-white p-4 rounded-[10px] text-center">
-              <p>Badge</p>
-              <strong>{user.badges?.[0] || "None"}</strong>
-            </div>
-            <div className="flex-1 min-w-[140px] bg-white p-4 rounded-[10px] text-center">
-              <p>Spending</p>
-              <strong>฿{user.expenses}</strong>
-            </div>
-            <div className="flex-1 min-w-[140px] bg-white p-4 rounded-[10px] text-center">
-              <p>Revenue</p>
-              <strong>฿{user.revenue}</strong>
-            </div>
-            <div className="flex-1 min-w-[140px] bg-white p-4 rounded-[10px] text-center">
-              <a href="#" className="text-blue-800 underline">
-                More Transactions
-              </a>
-            </div>
-          </div>
-        </section>
-
-        {/* Bought Items */}
-        <section className="mb-8">
-          <h2 className="text-[16px] mb-2">Your Bought Items</h2>
-          <div className="flex flex-wrap gap-[15px]">
-            {[...Array(4)].map((_, i) => (
-              <div
-                key={`bought-${i}`}
-                className="flex-1 min-w-[150px] h-[150px] bg-[#e2e2e2] rounded-[10px]"
-              />
             ))}
           </div>
         </section>
 
-        {/* Sold Items */}
-        <section>
-          <h2 className="text-[16px] mb-2">Your Sold Items</h2>
-          <div className="flex flex-wrap gap-[15px]">
-            {[...Array(4)].map((_, i) => (
-              <div
-                key={`sold-${i}`}
-                className="flex-1 min-w-[150px] h-[150px] bg-[#e2e2e2] rounded-[10px]"
-              />
+        {/* Quick Links */}
+        <section className="bg-[#f9fafb] py-16 text-center">
+          <h2 className="text-2xl font-bold text-[#325082] mb-6">
+            Get Started Easily
+          </h2>
+          <div className="flex flex-wrap justify-center gap-6">
+            {[
+              { label: "Buy & Sell", href: "/buy-sell" },
+              { label: "Auction", href: "/auction" },
+              { label: "Giveaway", href: "/giveaway" },
+            ].map((item) => (
+              <Link
+                href={item.href}
+                key={item.href}
+                className="bg-[#325082] hover:bg-[#2b446a] text-white px-8 py-4 rounded-xl font-semibold transition min-w-[160px]"
+              >
+                {item.label}
+              </Link>
             ))}
           </div>
         </section>
+
+        {/* Footer */}
+        <footer className="bg-[#2b446a] text-white text-center py-4 text-sm">
+          &copy; {new Date().getFullYear()} TrustLoop. AU Student Marketplace.
+        </footer>
       </main>
     </>
   );
