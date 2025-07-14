@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 const images = ["/AU_ABAC.jpg", "/AU_ABAC2.jpg", "/AU_ABAC3.jpg"];
 
@@ -51,12 +52,11 @@ export default function HeroCarousel() {
           Assumption University’s exclusive marketplace. Buy, sell, auction, or
           donate securely among AU students.
         </p>
-        <a
-          href="/buy-sell"
-          className="bg-white text-[#325082] font-semibold rounded-full px-6 py-3 hover:bg-gray-200 transition"
-        >
-          Start Exploring
-        </a>
+        <Link href="/buy-sell">
+          <span className="bg-white text-[#325082] font-semibold rounded-full px-6 py-3 hover:bg-gray-200 transition">
+            Start Exploring
+          </span>
+        </Link>
       </div>
 
       {/* Left Arrow */}
