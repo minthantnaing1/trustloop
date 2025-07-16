@@ -11,12 +11,12 @@ export default function FilterDropdown({
   if (!show) return null;
 
   return (
-    <div className="absolute top-[55px] left-[300px] w-[45%] bg-white border border-[#ccc] rounded-lg p-4 shadow-md z-50">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div className="absolute top-[55px] left-4 sm:left-[300px] w-[90%] sm:w-[45%] bg-white border border-[#ccc] rounded-lg p-4 shadow-md z-50">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         <select
           value={filters.category}
           onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-          className="border p-2 rounded-md text-sm"
+          className="border p-2 rounded-md text-sm w-full"
         >
           <option value="">All Categories</option>
           <option value="electronics">Electronics</option>
@@ -31,7 +31,7 @@ export default function FilterDropdown({
           placeholder="Min Price"
           value={filters.minPrice}
           onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })}
-          className="border p-2 rounded-md text-sm"
+          className="border p-2 rounded-md text-sm w-full"
         />
 
         <input
@@ -39,7 +39,7 @@ export default function FilterDropdown({
           placeholder="Max Price"
           value={filters.maxPrice}
           onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })}
-          className="border p-2 rounded-md text-sm"
+          className="border p-2 rounded-md text-sm w-full"
         />
 
         <select
@@ -47,7 +47,7 @@ export default function FilterDropdown({
           onChange={(e) =>
             setFilters({ ...filters, condition: e.target.value })
           }
-          className="border p-2 rounded-md text-sm"
+          className="border p-2 rounded-md text-sm w-full"
         >
           <option value="">Any Condition</option>
           <option value="new">New</option>
@@ -61,7 +61,7 @@ export default function FilterDropdown({
           placeholder="Meetup Location"
           value={filters.location}
           onChange={(e) => setFilters({ ...filters, location: e.target.value })}
-          className="border p-2 rounded-md col-span-2 md:col-span-1 text-sm"
+          className="border p-2 rounded-md text-sm w-full col-span-1 sm:col-span-2 md:col-span-4"
         />
       </div>
 
@@ -70,13 +70,13 @@ export default function FilterDropdown({
           onClick={onClear}
           className="px-4 py-2 border border-[#ccc] rounded-md hover:bg-gray-100 text-sm"
         >
-          Clear
+          Reset
         </button>
         <button
           onClick={onApply}
           className="px-4 py-2 bg-[#325082] text-white rounded-md hover:opacity-90 text-sm"
         >
-          Apply
+          Close
         </button>
       </div>
     </div>

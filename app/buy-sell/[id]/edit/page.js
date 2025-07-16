@@ -145,9 +145,9 @@ export default function EditProductPage() {
           />
         </div>
 
-        <div className="flex flex-wrap gap-[30px] items-start h-[364px]">
+        <div className="flex flex-col lg:flex-row flex-wrap gap-[30px] items-start">
           {/* Upload Section */}
-          <div className="flex-1 min-w-[300px] h-full bg-[#f1f1f1] rounded-[12px] p-4 flex flex-col justify-start">
+          <div className="flex-1 w-full sm:h-[364px] min-w-[250px] bg-[#f1f1f1] rounded-[12px] p-4 flex flex-col justify-start">
             <label className="block text-[#325082] font-semibold mb-3">
               Change Product Images (max 5)
             </label>
@@ -229,7 +229,7 @@ export default function EditProductPage() {
           </div>
 
           {/* Form Section */}
-          <div className="flex-1 min-w-[600px] flex flex-col gap-[15px] overflow-y-auto h-full">
+          <div className="flex-1 w-full lg:min-w-[600px] flex flex-col gap-[15px]">
             <input
               name="title"
               placeholder="Product Name *"
@@ -258,7 +258,7 @@ export default function EditProductPage() {
                 name="category"
                 value={form.category}
                 onChange={handleChange}
-                className="flex-1 bg-[#f1f1f1] p-3 rounded-[8px] outline-none"
+                className="bg-[#f1f1f1] p-3 max-sm:px-1 rounded-[8px] outline-none w-1/2"
               >
                 <option value="" disabled>
                   Select Category *
@@ -273,7 +273,7 @@ export default function EditProductPage() {
                 name="condition"
                 value={form.condition}
                 onChange={handleChange}
-                className="flex-1 bg-[#f1f1f1] p-3 rounded-[8px] outline-none"
+                className="bg-[#f1f1f1] p-3 max-sm:px-1 rounded-[8px] outline-none w-1/2"
               >
                 <option value="" disabled>
                   Select Condition *

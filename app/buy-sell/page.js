@@ -53,7 +53,7 @@ export default function BuySellPage() {
 
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [filters]);
 
   const handleConfirmToggle = async () => {
     const { productId, newStatus } = confirmModal;
@@ -77,7 +77,17 @@ export default function BuySellPage() {
   };
 
   const handleApplyFilters = () => {
-    fetchProducts();
+    setShowFilter(false);
+  };
+
+  const handleClearFilters = () => {
+    setFilters({
+      category: "",
+      minPrice: "",
+      maxPrice: "",
+      condition: "",
+      location: "",
+    });
     setShowFilter(false);
   };
 
@@ -152,17 +162,7 @@ export default function BuySellPage() {
             filters={filters}
             setFilters={setFilters}
             onApply={handleApplyFilters}
-            onClear={() => {
-              setFilters({
-                category: "",
-                minPrice: "",
-                maxPrice: "",
-                condition: "",
-                location: "",
-              });
-              fetchProducts();
-              setShowFilter(false);
-            }}
+            onClear={handleClearFilters}
           />
         </div>
 
@@ -222,7 +222,7 @@ export default function BuySellPage() {
                       behavior: "smooth",
                     });
                   }}
-                  className="absolute right-[-20px] top-1/2 transform -translate-y-1/2 w-9 h-9 bg-[#325082] text-white rounded-full flex items-center justify-center z-10 transition-all duration-500 ease-in-out hover:scale-[1.1] active:scale-[0.8] shadow-lg shadow-gray-600"
+                  className="absolute right-[-20px] top-1/2 transform -translate-y-1/2 w-9 h-9 max-md:mr-3 bg-[#325082] text-white rounded-full flex items-center justify-center z-10 transition-all duration-500 ease-in-out hover:scale-[1.1] active:scale-[0.8] shadow-lg shadow-gray-600"
                 >
                   ▶
                 </button>
