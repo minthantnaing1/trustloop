@@ -101,7 +101,7 @@ export default function BuySellPage() {
       <NavBar />
       <div>
         {/* Header & Search */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center max-md:ml-2 mt-[110px] mb-6 max-w-[1200px] mx-auto w-full gap-3 relative">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center max-md:ml-2 max-[1025px]:ml-8 mt-[110px] mb-6 max-w-[1200px] mx-auto w-full gap-3 relative">
           {/* Title + Buttons (Only affected in mobile) */}
           <div className="flex justify-between items-center w-full sm:w-auto">
             <h2 className="text-lg font-semibold text-black">Products</h2>
@@ -144,7 +144,7 @@ export default function BuySellPage() {
           </div>
 
           {/* Desktop Buttons */}
-          <div className="hidden sm:flex flex-row gap-3 w-full sm:w-auto justify-end items-end">
+          <div className="hidden sm:flex flex-row gap-3 w-full sm:w-auto justify-end items-end max-[1025px]:mr-6">
             <ActionButton
               text={hideMode ? "Cancel Hide/Unhide" : "Hide/Unhide Selling"}
               variant={hideMode ? "outlineClick" : "primaryClick"}
@@ -167,7 +167,7 @@ export default function BuySellPage() {
         </div>
 
         {/* --- Own Products --- */}
-        <section className="max-w-[1200px] max-md:ml-2 max-md:mr-[-8px] mx-auto mb-10">
+        <section className="max-w-[1200px] max-[1025px]:ml-8 max-[1025px]:mr-[-10px] max-md:ml-2 max-md:mr-[-8px] mx-auto mb-10">
           <h3 className="text-lg font-semibold mb-3">Items you are selling</h3>
 
           {loading ? (
@@ -232,14 +232,14 @@ export default function BuySellPage() {
         </section>
 
         {/* --- Other Products --- */}
-        <section className="max-w-[1200px] max-md:ml-2 mx-auto mb-5">
+        <section className="max-w-[1200px] max-[1025px]:ml-8 max-[1025px]:mr-[-20px] max-md:ml-2 mx-auto mb-5">
           <h3 className="text-lg font-semibold mb-3">What you can buy</h3>
           {loading ? (
             <p className="text-center text-gray-400">Loading products...</p>
           ) : otherProducts.length === 0 ? (
             <p className="text-center text-gray-500">No products found.</p>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-[18px]">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-[16px] max-[1025px]:gap-[4px]">
               {otherProducts.map((product) => (
                 <ProductCard
                   key={product._id}
