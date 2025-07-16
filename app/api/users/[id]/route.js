@@ -19,7 +19,7 @@ export async function GET(_, { params }) {
   }
 }
 
-// ✅ Delete User (Probably not used, but for admin)
+// ✅ Delete User (Admin only)
 export async function DELETE(_, { params }) {
   try {
     const session = await auth();
@@ -28,10 +28,13 @@ export async function DELETE(_, { params }) {
     }
 
     await connectDB();
-
     const user = await User.findById(params.id);
     if (!user) {
       return new Response("User not found", { status: 404 });
+    }
+
+    if (session.user.role !== "admin") {
+      return new Response("Forbidden", { status: 403 });
     }
 
     await User.findByIdAndDelete(params.id);
@@ -42,20 +45,35 @@ export async function DELETE(_, { params }) {
   }
 }
 
-// ✅ Update User
+// ✅ Update User (Owner or Admin)
 export async function PATCH(req, { params }) {
   try {
+    const session = await auth();
+    if (!session?.user?.email) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
     const body = await req.json();
     await connectDB();
-
     const user = await User.findById(params.id);
+
     if (!user) {
       return new Response("User not found", { status: 404 });
     }
 
-    Object.assign(user, body);
-    await user.save();
+    // Allow only owner or admin
+    if (session.user.email !== user.email && session.user.role !== "admin") {
+      return new Response("Forbidden", { status: 403 });
+    }
 
+    const allowedFields = ["name", "image", "phone", "faculty", "year"];
+    allowedFields.forEach((field) => {
+      if (body[field] !== undefined) {
+        user[field] = body[field];
+      }
+    });
+
+    await user.save();
     return new Response(JSON.stringify(user), { status: 200 });
   } catch (err) {
     console.error("❌ User PATCH error:", err);

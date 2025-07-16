@@ -2,10 +2,10 @@ import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
 const protectedRoutes = [
-  /^\/home$/,
-  /^\/profile$/,
-  /^\/sell$/,
   /^\/admin(\/.*)?$/, // Protect /admin and its subroutes
+  /^\/home$/,
+  /^\/profile(\/.*)?$/,
+  /^\/sell$/,
   /^\/buy-sell(\/.*)?$/, // Protect all buy-sell subroutes
 ];
 

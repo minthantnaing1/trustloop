@@ -1,8 +1,10 @@
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
+import Link from "next/link"; // add this import
 import User from "@/models/User";
 import Image from "next/image";
 import NavBar from "@/components/NavBar";
+import ActionButton from "@/components/ActionButton";
 
 export default async function ProfilePage() {
   const session = await auth();
@@ -14,11 +16,16 @@ export default async function ProfilePage() {
     <>
       <NavBar />
       <main className="max-w-[1200px] mx-auto mt-[110px] mb-5 px-5">
+        {/* Edit Button - Top Right */}
+        <div className="flex justify-end mb-4">
+          <Link href="/profile/edit">
+            <ActionButton text="Edit Profile" variant="primaryClick" />
+          </Link>
+        </div>
         {/* Top Section */}
         <section className="flex flex-wrap gap-5 mb-5">
           {/* Profile Box */}
           <div className="flex-1 min-w-[250px] bg-white rounded-[10px] p-5 flex flex-col items-center gap-3">
-            {/* Profile Image */}
             {user.image ? (
               <Image
                 src={user.image}
@@ -31,7 +38,6 @@ export default async function ProfilePage() {
               <div className="w-[100px] h-[100px] bg-[#ddd] rounded-full"></div>
             )}
 
-            {/* Profile Info */}
             <div className="text-center">
               <p className="font-bold text-[18px]">{user.name}</p>
               <p>{user.email.split("@")[0]}</p>
@@ -86,7 +92,7 @@ export default async function ProfilePage() {
         </section>
 
         {/* Sold Items */}
-        <section>
+        <section className="mb-8">
           <h2 className="text-[16px] mb-2">Your Sold Items</h2>
           <div className="flex flex-wrap gap-[15px]">
             {[...Array(4)].map((_, i) => (

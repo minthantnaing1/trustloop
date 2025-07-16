@@ -3,7 +3,7 @@ import { useState } from "react";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 
 export default function AdminLayout({ children }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   return (
     <div className="flex h-screen">
