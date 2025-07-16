@@ -39,8 +39,9 @@ export default async function ProductDetailPage({ params }) {
   return (
     <>
       <NavBar />
-      <main className="max-w-[1200px] mx-auto mt-[120px] mb-[40px] px-5">
-        <div className="flex justify-between items-start mb-4">
+      <main className="max-w-[1200px] mx-auto mt-[120px] mb-[40px] px-5 w-full max-[321px]:px-2 max-[321px]:w-[100vw] max-[321px]:overflow-x-hidden">
+        {/* Top Section */}
+        <div className="flex justify-between items-start mb-4 flex-col sm:flex-row gap-4">
           {/* Back Button */}
           <Link
             href="/buy-sell"
@@ -50,10 +51,9 @@ export default async function ProductDetailPage({ params }) {
             Back to Buy & Sell
           </Link>
 
-          {/* Owner Action Buttons */}
+          {/* Owner Action Buttons (Moved below back button on mobile) */}
           {isOwner && (
-            <div className="flex gap-3 items-center">
-              {/* Status Badge */}
+            <div className="flex gap-3 items-center sm:ml-auto sm:flex-row flex-wrap">
               <span
                 className={`inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full transition-transform duration-500 ease-in-out transform group hover:scale-[1.1] ${
                   product.isAvailable
@@ -74,7 +74,6 @@ export default async function ProductDetailPage({ params }) {
                 )}
               </span>
 
-              {/* Edit & Delete Button */}
               <Link href={`/buy-sell/${product._id}/edit`}>
                 <ActionButton
                   text="Edit"
@@ -88,14 +87,15 @@ export default async function ProductDetailPage({ params }) {
           )}
         </div>
 
-        <div className="flex gap-[30px]">
+        {/* Main Content */}
+        <div className="flex gap-[30px] flex-col sm:flex-row">
           {/* Left: Product Images */}
           <ProductImages
             images={product.images}
             defaultImage={product.defaultImage}
           />
 
-          {/* Right: Product Info */}
+          {/* Right: Product Info (below images on mobile) */}
           <div className="flex-1 flex flex-col gap-3">
             <h2 className="text-xl font-bold text-[#325082]">
               {product.title}
@@ -105,35 +105,27 @@ export default async function ProductDetailPage({ params }) {
               {Number(product.price).toLocaleString()} ฿
             </p>
 
-            {/* Buttons */}
             <div className="flex gap-2 relative group">
               {isOwner ? (
                 <>
-                  {/* Disabled Add to Cart */}
                   <button
                     disabled
                     className="flex-1 flex items-center justify-center gap-2 bg-gray-200 text-gray-500 px-4 py-2 rounded-md cursor-not-allowed border border-gray-300"
                   >
                     🛒 Add to Cart
                   </button>
-
-                  {/* Disabled Buy Now */}
                   <button
                     disabled
                     className="flex-1 flex items-center justify-center gap-2 bg-white text-gray-400 border-2 border-gray-300 px-4 py-2 rounded-md cursor-not-allowed"
                   >
                     🏷️ Buy Now
                   </button>
-
-                  {/* Disabled Heart */}
                   <button
                     disabled
                     className="flex items-center justify-center text-gray-400 text-[25px] px-4 border-[1.5px] border-gray-300 rounded-md cursor-not-allowed"
                   >
                     ♡
                   </button>
-
-                  {/* Tooltip Overlay */}
                   <div className="absolute top-[-32px] left-[175px] w-max bg-[#325082] text-white text-xs px-3 py-1 rounded-md opacity-0 group-hover:opacity-100 transition duration-700 z-10">
                     You cannot like, buy or cart your own item!
                   </div>
@@ -153,7 +145,6 @@ export default async function ProductDetailPage({ params }) {
               )}
             </div>
 
-            {/* Description */}
             <div className="bg-[#e2e2e2] p-3 rounded-md">
               Description: {product.description || "-"}
             </div>
@@ -164,7 +155,6 @@ export default async function ProductDetailPage({ params }) {
               Meetup Location: {product.location || "-"}
             </div>
 
-            {/* Comment */}
             {!isOwner && (
               <div>
                 <p>Comment</p>
@@ -176,7 +166,6 @@ export default async function ProductDetailPage({ params }) {
               </div>
             )}
 
-            {/* Seller Info */}
             <div className="flex items-center gap-4 mt-3 p-3 rounded-md bg-[#f0f0f0] border border-[#ccc]">
               <Image
                 src={product.owner?.image || "/default-profile.png"}

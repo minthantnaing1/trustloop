@@ -99,28 +99,37 @@ export default function BuySellPage() {
   return (
     <>
       <NavBar />
-      <div>
-        {/* Header & Search */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center max-md:ml-2 max-[1025px]:ml-8 mt-[110px] mb-6 max-w-[1200px] mx-auto w-full gap-3 relative">
-          {/* Title + Buttons (Only affected in mobile) */}
-          <div className="flex justify-between items-center w-full sm:w-auto">
-            <h2 className="text-lg font-semibold text-black">Products</h2>
 
-            <div className="flex gap-2 ml-auto sm:hidden">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-2 lg:px-4">
+        {/* Header & Search */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-[110px] mb-6 w-full gap-3 relative">
+          {/* Title + Buttons */}
+          <div className="w-full sm:w-auto">
+            {/* Title for Desktop */}
+            <h2 className="text-lg font-semibold text-black hidden sm:block">
+              Products
+            </h2>
+
+            {/* Buttons (Mobile Layout) */}
+            <div className="flex justify-between items-center sm:hidden w-full mt-2">
               <ActionButton
                 text={hideMode ? "Cancel Hide/Unhide" : "Hide/Unhide Selling"}
                 variant={hideMode ? "outlineClick" : "primaryClick"}
                 onClick={() => setHideMode(!hideMode)}
+                className="text-sm px-2 py-1 min-w-[80px]"
               />
-
               <Link href="/sell">
-                <ActionButton text="+ Sell Your Items" variant="primaryClick" />
+                <ActionButton
+                  text="+ Sell Your Items"
+                  variant="primaryClick"
+                  className="text-sm px-2 py-1 min-w-[80px]"
+                />
               </Link>
             </div>
           </div>
 
           {/* Search Bar */}
-          <div className="flex items-center border border-gray-400 shadow-md rounded-[8px] w-full sm:w-[50%] px-0.5 sm:ml-[160px] mt-3 sm:mt-0">
+          <div className="flex sm:mr-12 items-center border border-gray-400 shadow-md rounded-[8px] w-full sm:w-[50%] px-[2.5px] mx-auto">
             <input
               className="flex-1 px-2 py-[10px] text-sm outline-none"
               placeholder="Search for anything..."
@@ -144,19 +153,17 @@ export default function BuySellPage() {
           </div>
 
           {/* Desktop Buttons */}
-          <div className="hidden sm:flex flex-row gap-3 w-full sm:w-auto justify-end items-end max-[1025px]:mr-6">
+          <div className="hidden sm:flex flex-row gap-3 w-full sm:w-auto justify-end items-end">
             <ActionButton
               text={hideMode ? "Cancel Hide/Unhide" : "Hide/Unhide Selling"}
               variant={hideMode ? "outlineClick" : "primaryClick"}
               onClick={() => setHideMode(!hideMode)}
             />
-
             <Link href="/sell" className="w-full sm:w-auto">
               <ActionButton text="+ Sell Your Items" variant="primaryClick" />
             </Link>
           </div>
 
-          {/* Filter Dropdown */}
           <FilterDropdown
             show={showFilter}
             filters={filters}
@@ -166,10 +173,9 @@ export default function BuySellPage() {
           />
         </div>
 
-        {/* --- Own Products --- */}
-        <section className="max-w-[1200px] max-[1025px]:ml-8 max-[1025px]:mr-[-10px] max-md:ml-2 max-md:mr-[-8px] mx-auto mb-10">
+        {/* Own Products Section */}
+        <section className="mb-10">
           <h3 className="text-lg font-semibold mb-3">Items you are selling</h3>
-
           {loading ? (
             <p className="text-center text-gray-400">
               Loading your products...
@@ -179,7 +185,7 @@ export default function BuySellPage() {
               You are not selling any items right now.
             </p>
           ) : (
-            <div className="relative">
+            <div className="relative w-full">
               {/* Left Arrow */}
               {ownProducts.length > 4 && (
                 <button
@@ -189,7 +195,8 @@ export default function BuySellPage() {
                       behavior: "smooth",
                     });
                   }}
-                  className="absolute left-[-20px] top-1/2 transform -translate-y-1/2 w-9 h-9 max-md:ml-3 bg-[#325082] text-white rounded-full flex items-center justify-center z-10 transition-all duration-500 ease-in-out hover:scale-[1.1] active:scale-[0.8] shadow-lg shadow-gray-600"
+                  className="absolute left-1 top-1/2 transform -translate-y-1/2 -translate-x-1/2
+                         w-9 h-9 bg-[#325082] text-white rounded-full flex items-center justify-center z-10 transition-all duration-500 ease-in-out hover:scale-[1.1] active:scale-[0.8] shadow-lg shadow-gray-600"
                 >
                   ◀
                 </button>
@@ -198,7 +205,7 @@ export default function BuySellPage() {
               {/* Scrollable Container */}
               <div
                 id="ownProductsScroll"
-                className="flex gap-4 overflow-x-auto scroll-smooth no-scrollbar overflow-visible"
+                className="flex w-full gap-3 overflow-x-auto scroll-smooth no-scrollbar overflow-visible"
               >
                 {ownProducts.map((product) => (
                   <ProductCard
@@ -222,7 +229,8 @@ export default function BuySellPage() {
                       behavior: "smooth",
                     });
                   }}
-                  className="absolute right-[-20px] top-1/2 transform -translate-y-1/2 w-9 h-9 max-md:mr-3 bg-[#325082] text-white rounded-full flex items-center justify-center z-10 transition-all duration-500 ease-in-out hover:scale-[1.1] active:scale-[0.8] shadow-lg shadow-gray-600"
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 translate-x-1/2
+                         w-9 h-9 bg-[#325082] text-white rounded-full flex items-center justify-center z-10 transition-all duration-500 ease-in-out hover:scale-[1.1] active:scale-[0.8] shadow-lg shadow-gray-600"
                 >
                   ▶
                 </button>
@@ -231,15 +239,15 @@ export default function BuySellPage() {
           )}
         </section>
 
-        {/* --- Other Products --- */}
-        <section className="max-w-[1200px] max-[1025px]:ml-8 max-[1025px]:mr-[-20px] max-md:ml-2 mx-auto mb-5">
+        {/* Other Products Section */}
+        <section className="mb-5">
           <h3 className="text-lg font-semibold mb-3">What you can buy</h3>
           {loading ? (
             <p className="text-center text-gray-400">Loading products...</p>
           ) : otherProducts.length === 0 ? (
             <p className="text-center text-gray-500">No products found.</p>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-[16px] max-[1025px]:gap-[4px]">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-[426px]:gap-[12px]">
               {otherProducts.map((product) => (
                 <ProductCard
                   key={product._id}

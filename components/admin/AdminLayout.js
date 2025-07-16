@@ -6,7 +6,7 @@ export default function AdminLayout({ children }) {
   const [collapsed, setCollapsed] = useState(true);
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-full">
       {/* Sidebar */}
       <AdminSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
 

@@ -28,26 +28,27 @@ export default function ProductCard({
     >
       <div
         onClick={handleClick}
-        className={`relative flex flex-col justify-between h-[300px] ${
+        className={`relative flex flex-col justify-between 
+        ${
           isOwner
-            ? "w-[240px] max-md:w-[200px]"
-            : "w-[288px] h-[340px] max-[1025px]:w-[240px] max-[1025px]:h-[300px] max-[426px]:w-[208px] max-[426px]:h-[300px] max-[376px]:w-[184px] max-[376px]:h-[260px] max-[321px]:w-[154px] max-[321px]:h-[230px]"
-        } ${
-          isHidden ? "bg-gray-200 opacity-60" : "bg-[#e2e2e2]"
-        } rounded-[10px] p-[10px] transition-all duration-500 cursor-pointer ${
+            ? "w-[240px] h-[300px] max-md:w-[200px]"
+            : "w-full h-[340px] max-[1025px]:h-[320px] max-[426px]:h-[280px] max-[376px]:h-[260px] max-[321px]:h-[230px]"
+        }
+        ${isHidden ? "bg-gray-200 opacity-60" : "bg-[#e2e2e2]"}
+        rounded-[10px] p-3 transition-all duration-500 cursor-pointer
+        ${
           isOwner
-            ? "hover:scale-[0.96] active:scale-[0.92]"
-            : "hover:-translate-y-2 active:scale-[0.95]"
+            ? "hover:scale-[0.96] active:scale-[0.92] hover:shadow-md shadow-gray-300"
+            : "hover:-translate-y-2 active:scale-[0.95] shadow-md shadow-gray-400 hover:shadow-gray-500"
         }`}
       >
-        {/* Eye toggle button for owner in hide mode */}
         {showHideMode && isOwner && (
           <button
             onClick={(e) => {
               e.preventDefault();
               onToggleHide(product._id, !product.isAvailable);
             }}
-            className="absolute top-1 right-1 p-1 bg-transparent border-[1.5px] border-gray-300 rounded-full shadow-lg hover:bg-white z-10"
+            className="absolute top-1 right-1 p-1 bg-transparent border border-gray-300 rounded-full shadow hover:bg-white z-10"
             title={title}
           >
             {isHidden ? (
@@ -58,8 +59,7 @@ export default function ProductCard({
           </button>
         )}
 
-        {/* Product Image Container */}
-        <div className="relative h-[70%] bg-[#ccc] rounded-[8px] mb-[5px] overflow-hidden">
+        <div className="relative h-[70%] bg-[#ccc] rounded-[8px] mb-2 overflow-hidden">
           {product.defaultImage && (
             <img
               src={product.defaultImage}
@@ -69,29 +69,31 @@ export default function ProductCard({
               }`}
             />
           )}
-
           {isHidden && (
-            <div className="absolute inset-0 flex items-center justify-center text-center">
-              <span className="text-m text-white font-semibold bg-black bg-opacity-60 px-3 py-2 rounded leading-tight">
+            <div className="absolute inset-0 flex items-center justify-center text-center px-2">
+              <span className="text-sm text-white font-semibold bg-black bg-opacity-60 px-3 py-2 rounded">
                 This post is hidden
                 <br />
-                to public from selling
+                from public
               </span>
             </div>
           )}
         </div>
 
-        {/* Product Text */}
-        <div className="h-[30%] flex flex-col justify-center text-[13px] text-black leading-tight">
-          <h4 className="m-0 font-semibold truncate">{product.title}</h4>
-          <p className="m-0 text-[11px] text-[#555]">{product.category}</p>
+        <div className="h-[30%] flex flex-col justify-center text-[14px] gap-y-1 text-black leading-tight">
+          <h4 className="font-semibold truncate max-sm:text-[11px]">
+            {product.title}
+          </h4>
+          <p className="text-[12px] text-[#555] truncate max-sm:text-[10px]">
+            {product.category}
+          </p>
           {product.price && (
-            <p className="m-0 text-[13px] text-[#222] font-semibold">
+            <p className="text-[14px] text-[#222] font-semibold max-sm:text-[11px]">
               {Number(product.price).toLocaleString()} ฿
             </p>
           )}
-          <p className="m-0 text-[11px] text-gray-600">
-            {timeAgo(product.createdAt)}
+          <p className="text-[13px] text-gray-600 max-sm:text-[9px]">
+            Posted: {timeAgo(product.createdAt)}
           </p>
         </div>
       </div>
