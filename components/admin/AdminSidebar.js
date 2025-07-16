@@ -38,7 +38,7 @@ export default function AdminSidebar({ collapsed, setCollapsed }) {
 
   return (
     <div
-      className={`bg-[#1e293b] text-white fixed top-0 left-0 min-h-screen h-full z-[20000] ${
+      className={`bg-[#1e293b] text-white fixed top-0 left-0 h-screen overflow-hidden z-[20000] ${
         collapsed ? "w-[60px]" : "w-[200px]"
       } transition-all duration-500 flex flex-col`}
     >
