@@ -239,7 +239,7 @@ export default function BuySellPage() {
           ) : otherProducts.length === 0 ? (
             <p className="text-center text-gray-500">No products found.</p>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-[20px]">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-[18px]">
               {otherProducts.map((product) => (
                 <ProductCard
                   key={product._id}

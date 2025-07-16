@@ -28,12 +28,16 @@ export default function ProductCard({
     >
       <div
         onClick={handleClick}
-        className={`relative flex flex-col justify-between h-[300px] w-[240px] max-md:w-[200px] ${
-          isHidden ? "bg-gray-200 opacity-60" : "bg-[#e2e2e2]"
-        } rounded-[10px] p-[10px] transition-all duration-500 linear will-change-transform cursor-pointer ${
+        className={`relative flex flex-col justify-between h-[300px] ${
           isOwner
-            ? "hover:scale-[0.96] active:scale-[0.92] hover:brightness-105 hover:shadow-md hover:shadow-gray-400"
-            : "hover:-translate-y-2 active:scale-[0.95] hover:shadow-lg hover:shadow-gray-400"
+            ? "w-[240px] max-md:w-[200px]"
+            : "w-[288px] h-[340px] max-sm:w-[208px] max-sm:h-[280px]"
+        } ${
+          isHidden ? "bg-gray-200 opacity-60" : "bg-[#e2e2e2]"
+        } rounded-[10px] p-[10px] transition-all duration-500 cursor-pointer ${
+          isOwner
+            ? "hover:scale-[0.96] active:scale-[0.92]"
+            : "hover:-translate-y-2 active:scale-[0.95]"
         }`}
       >
         {/* Eye toggle button for owner in hide mode */}
@@ -55,7 +59,7 @@ export default function ProductCard({
         )}
 
         {/* Product Image Container */}
-        <div className="relative h-[200px] bg-[#ccc] rounded-[8px] mb-[10px] overflow-hidden">
+        <div className="relative h-[240px] bg-[#ccc] rounded-[8px] mb-[10px] overflow-hidden">
           {/* Show default image */}
           {product.defaultImage && (
             <img
