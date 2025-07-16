@@ -38,7 +38,7 @@ export default function AdminSidebar({ collapsed, setCollapsed }) {
 
   return (
     <div
-      className={`bg-[#1e293b] text-white fixed top-0 left-0 h-screen overflow-hidden z-[20000] ${
+      className={`bg-[#1e293b] text-white fixed top-0 left-0 h-full overflow-hidden z-[20000] ${
         collapsed ? "w-[60px]" : "w-[200px]"
       } transition-all duration-500 flex flex-col`}
     >
@@ -95,7 +95,7 @@ export default function AdminSidebar({ collapsed, setCollapsed }) {
       </div>
 
       {/* Bottom Buttons */}
-      <div className="mt-auto mb-4 flex flex-col gap-2 px-2">
+      <div className="mt-auto mb-5 flex flex-col gap-2 px-2">
         {/* Back to User Home */}
         <Link href="/home">
           <div className="flex items-center justify-start px-2 py-2 rounded text-sm cursor-pointer hover:bg-[#2d3a50] transition-colors duration-500">

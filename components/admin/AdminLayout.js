@@ -12,7 +12,7 @@ export default function AdminLayout({ children }) {
 
       {/* Main Content */}
       <main
-        className={`transition-all duration-500 px-6 pt-10 flex-1 ${
+        className={`transition-all duration-500 px-6 pt-10 w-full overflow-auto ${
           collapsed ? "ml-[60px]" : "ml-[200px]"
         }`}
         style={{
