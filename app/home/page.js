@@ -1,3 +1,4 @@
+import { auth } from "@/auth";
 import NavBar from "@/components/NavBar";
 import Image from "next/image";
 import Link from "next/link";
@@ -8,15 +9,29 @@ import {
   ShieldCheckIcon,
 } from "@heroicons/react/24/solid";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const session = await auth();
+
+  if (session) {
+    // Call API to ensure user exists in DB
+    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/users`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: session.user.name,
+        email: session.user.email,
+        image: session.user.image || "/default-profile.jpg",
+      }),
+      cache: "no-store",
+    });
+  }
+
   return (
     <>
       <NavBar />
       <main className="mt-[90px] bg-white">
         {/* Hero Section */}
         <section className="bg-[#1a2d48]">
-          {" "}
-          {/* Dark background removes white space */}
           <HeroCarousel />
         </section>
 

@@ -28,7 +28,7 @@ export default function ProductCard({
     >
       <div
         onClick={handleClick}
-        className={`relative flex flex-col justify-between h-[300px] min-w-[240px] ${
+        className={`relative flex flex-col justify-between h-[300px] w-[240px] max-md:w-[200px] ${
           isHidden ? "bg-gray-200 opacity-60" : "bg-[#e2e2e2]"
         } rounded-[10px] p-[10px] transition-all duration-500 linear will-change-transform cursor-pointer ${
           isOwner

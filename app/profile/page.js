@@ -10,17 +10,6 @@ export default async function ProfilePage() {
 
   let user = await User.findOne({ email: session.user.email });
 
-  if (!user) {
-    const isAdmin = session.user.email === "u6530233@au.edu";
-
-    user = await User.create({
-      name: session.user.name,
-      email: session.user.email,
-      image: session.user.image || "/default-profile.jpg",
-      role: isAdmin ? "admin" : "user",
-    });
-  }
-
   return (
     <>
       <NavBar />

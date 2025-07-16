@@ -91,10 +91,26 @@ export default function BuySellPage() {
       <NavBar />
       <div>
         {/* Header & Search */}
-        <div className="flex justify-between items-center mt-[110px] mb-6 max-w-[1200px] mx-auto w-full gap-3 relative">
-          <h2 className="text-lg font-semibold text-black">Products</h2>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center max-md:ml-2 mt-[110px] mb-6 max-w-[1200px] mx-auto w-full gap-3 relative">
+          {/* Title + Buttons (Only affected in mobile) */}
+          <div className="flex justify-between items-center w-full sm:w-auto">
+            <h2 className="text-lg font-semibold text-black">Products</h2>
 
-          <div className="flex items-center border border-gray-400 rounded-[8px] w-[50%] px-0.5 ml-[160px]">
+            <div className="flex gap-2 ml-auto sm:hidden">
+              <ActionButton
+                text={hideMode ? "Cancel Hide/Unhide" : "Hide/Unhide Selling"}
+                variant={hideMode ? "outlineClick" : "primaryClick"}
+                onClick={() => setHideMode(!hideMode)}
+              />
+
+              <Link href="/sell">
+                <ActionButton text="+ Sell Your Items" variant="primaryClick" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Search Bar */}
+          <div className="flex items-center border border-gray-400 shadow-md rounded-[8px] w-full sm:w-[50%] px-0.5 sm:ml-[160px] mt-3 sm:mt-0">
             <input
               className="flex-1 px-2 py-[10px] text-sm outline-none"
               placeholder="Search for anything..."
@@ -117,14 +133,15 @@ export default function BuySellPage() {
             </button>
           </div>
 
-          <div className="flex gap-3">
+          {/* Desktop Buttons */}
+          <div className="hidden sm:flex flex-row gap-3 w-full sm:w-auto justify-end items-end">
             <ActionButton
               text={hideMode ? "Cancel Hide/Unhide" : "Hide/Unhide Selling"}
               variant={hideMode ? "outlineClick" : "primaryClick"}
               onClick={() => setHideMode(!hideMode)}
             />
 
-            <Link href="/sell">
+            <Link href="/sell" className="w-full sm:w-auto">
               <ActionButton text="+ Sell Your Items" variant="primaryClick" />
             </Link>
           </div>
@@ -150,7 +167,7 @@ export default function BuySellPage() {
         </div>
 
         {/* --- Own Products --- */}
-        <section className="max-w-[1200px] mx-auto mb-10">
+        <section className="max-w-[1200px] max-md:ml-2 max-md:mr-[-8px] mx-auto mb-10">
           <h3 className="text-lg font-semibold mb-3">Items you are selling</h3>
 
           {loading ? (
@@ -172,7 +189,7 @@ export default function BuySellPage() {
                       behavior: "smooth",
                     });
                   }}
-                  className="absolute left-[-20px] top-1/2 transform -translate-y-1/2 w-9 h-9 bg-[#325082] text-white rounded-full flex items-center justify-center z-10 transition-all duration-500 ease-in-out hover:scale-[1.1] active:scale-[0.8] shadow-lg shadow-gray-600"
+                  className="absolute left-[-20px] top-1/2 transform -translate-y-1/2 w-9 h-9 max-md:ml-3 bg-[#325082] text-white rounded-full flex items-center justify-center z-10 transition-all duration-500 ease-in-out hover:scale-[1.1] active:scale-[0.8] shadow-lg shadow-gray-600"
                 >
                   ◀
                 </button>
@@ -215,14 +232,14 @@ export default function BuySellPage() {
         </section>
 
         {/* --- Other Products --- */}
-        <section className="max-w-[1200px] mx-auto mb-5">
+        <section className="max-w-[1200px] max-md:ml-2 mx-auto mb-5">
           <h3 className="text-lg font-semibold mb-3">What you can buy</h3>
           {loading ? (
             <p className="text-center text-gray-400">Loading products...</p>
           ) : otherProducts.length === 0 ? (
             <p className="text-center text-gray-500">No products found.</p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-[20px]">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-[20px]">
               {otherProducts.map((product) => (
                 <ProductCard
                   key={product._id}

@@ -3,52 +3,74 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
+import { useState, useEffect } from "react";
+
+import ConfirmModal from "@/components/ConfirmModal";
+
 import {
+  Bars3Icon,
   ShoppingCartIcon,
   HeartIcon,
-  Cog6ToothIcon,
 } from "@heroicons/react/24/outline";
+
 import {
   ShoppingCartIcon as CartSolid,
   HeartIcon as HeartSolid,
-  Cog6ToothIcon as CogSolid,
 } from "@heroicons/react/24/solid";
-import { useState } from "react";
-import { signOut } from "next-auth/react";
-import ConfirmModal from "@/components/ConfirmModal";
 
 function NavBar() {
   const [hover, setHover] = useState({
     cart: false,
     heart: false,
-    setting: false,
   });
 
-  const [showSettings, setShowSettings] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const pathname = usePathname();
 
+  useEffect(() => {
+    fetch("/api/me")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.role === "admin") {
+          setIsAdmin(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const navLinks = [
+    { label: "HOME", href: "/home" },
+    { label: "BUY & SELL", href: "/buy-sell" },
+    { label: "AUCTION", href: "/auction" },
+    { label: "GIVEAWAY", href: "/giveaway" },
+  ];
+
   return (
     <>
-      <header className="fixed top-0 left-0 w-full h-[90px] bg-gradient-to-r from-[#2b446a] to-[#325082] shadow-md shadow-gray-900/30 flex justify-between items-center px-8 z-[10000]">
+      <header className="fixed top-0 left-0 w-full h-[90px] bg-gradient-to-r from-[#2b446a] to-[#325082] shadow-md shadow-gray-900/30 flex justify-between items-center px-4 md:px-8 z-[10000]">
         {/* Left - Logo */}
         <div className="flex items-center">
-          <Image src="/TrustLoopLogoW.png" alt="Logo" width={100} height={75} />
+          <Image
+            src="/TrustLoopLogoW.png"
+            alt="Logo"
+            width={100}
+            height={75}
+            priority
+          />
         </div>
 
-        {/* Middle - Welcome & Nav Links */}
-        <div className="flex flex-col items-center gap-y-[8px]">
+        {/* Middle - Welcome & Nav Links (Desktop Only) */}
+        <div className="hidden md:flex flex-col items-center gap-y-[8px]">
           <p className="text-white font-semibold text-lg tracking-wide">
             Welcome to TrustLoop
           </p>
+
           <ul className="flex gap-[65px]">
-            {[
-              { label: "HOME", href: "/home" },
-              { label: "BUY & SELL", href: "/buy-sell" },
-              { label: "AUCTION", href: "/auction" },
-              { label: "GIVEAWAY", href: "/giveaway" },
-            ].map((item) => {
+            {navLinks.map((item) => {
               const isActive =
                 pathname === item.href ||
                 (item.href === "/buy-sell" &&
@@ -102,61 +124,81 @@ function NavBar() {
             )}
           </div>
 
-          {/* Settings */}
+          {/* Menu Icon */}
           <div
-            onMouseEnter={() => setHover({ ...hover, setting: true })}
-            onMouseLeave={() => setHover({ ...hover, setting: false })}
-            onClick={() => setShowSettings(!showSettings)}
+            onClick={() => setShowMenu(!showMenu)}
             className="cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
           >
-            {hover.setting || showSettings ? (
-              <CogSolid className="w-7 h-7" />
-            ) : (
-              <Cog6ToothIcon className="w-7 h-7" />
-            )}
+            <Bars3Icon className="w-7 h-7" />
           </div>
         </div>
       </header>
 
       {/* Overlay */}
-      {showSettings && (
+      {showMenu && (
         <div
-          onClick={() => setShowSettings(false)}
-          className="fixed inset-0 bg-black/40 z-[9998]"
+          onClick={() => setShowMenu(false)}
+          className="fixed inset-0 bg-black/40 z-[20000]"
         ></div>
       )}
 
-      {/* Sliding Setting Panel */}
+      {/* Sliding Menu Panel */}
       <div
         className={`fixed top-0 right-0 h-full w-[250px] bg-[#1e293b] text-white transform ${
-          showSettings ? "translate-x-0" : "translate-x-full"
+          showMenu ? "translate-x-0" : "translate-x-full"
         } transition-transform duration-300 z-[20000] shadow-lg`}
       >
         <div className="p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">Settings</h2>
+            <h2 className="text-2xl font-bold">Menu</h2>
             <button
-              onClick={() => setShowSettings(false)}
+              onClick={() => setShowMenu(false)}
               className="text-white text-2xl leading-none hover:text-gray-400"
             >
               ×
             </button>
           </div>
 
-          <Link href="/profile" onClick={() => setShowSettings(false)}>
+          {/* Admin Dashboard (Always First if Admin) */}
+          {isAdmin && (
+            <Link href="/admin" onClick={() => setShowMenu(false)}>
+              <div className="mb-4 hover:underline cursor-pointer font-semibold text-[#facc15]">
+                Admin Dashboard
+              </div>
+            </Link>
+          )}
+
+          {/* Profile (Always Show) */}
+          <Link href="/profile" onClick={() => setShowMenu(false)}>
             <div className="mb-4 hover:underline cursor-pointer">Profile</div>
           </Link>
 
+          {/* Nav Links (Mobile Only) */}
+          <div className="md:hidden">
+            {navLinks.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setShowMenu(false)}
+              >
+                <div className="mb-4 hover:underline cursor-pointer">
+                  {item.label}
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {/* Logout Button */}
           <button
             onClick={() => setShowLogoutConfirm(true)}
-            className="w-full bg-white text-[#1e293b] font-semibold py-2 rounded hover:bg-gray-200"
+            className="mt-4 w-full bg-white text-[#1e293b] font-semibold py-2 rounded hover:bg-gray-200"
           >
             Logout
           </button>
         </div>
       </div>
 
-      {/* Move modal here - OUTSIDE the panel */}
+      {/* Logout Confirmation */}
       <ConfirmModal
         isOpen={showLogoutConfirm}
         message="Are you sure you want to sign out?"

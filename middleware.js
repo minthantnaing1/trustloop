@@ -4,8 +4,11 @@ import { NextResponse } from "next/server";
 const protectedRoutes = [
   /^\/home$/,
   /^\/profile$/,
-  /^\/buy-sell(\/.*)?$/, // protect all buy-sell subroutes
+  /^\/sell$/,
+  /^\/admin(\/.*)?$/, // Protect /admin and its subroutes
+  /^\/buy-sell(\/.*)?$/, // Protect all buy-sell subroutes
 ];
+
 const authPageRoutes = ["/"];
 const apiAuthPrefix = "/api/auth";
 
