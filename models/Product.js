@@ -60,6 +60,15 @@ const ProductSchema = new mongoose.Schema(
     // Engagement
     views: { type: Number, default: 0 },
     likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    comments: [
+      {
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        username: String, // For easy display
+        userImage: String, // Optional, for profile pics
+        message: String,
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   { timestamps: true }
 );

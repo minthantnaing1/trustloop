@@ -12,6 +12,7 @@ import {
 import ActionButton from "@/components/ActionButton";
 import ProductDeleteButton from "@/components/ProductDeleteButton";
 import ProductImages from "@/components/ProductImages";
+import CommentSection from "@/components/CommentSection";
 
 export default async function ProductDetailPage({ params }) {
   const { id } = await params;
@@ -155,24 +156,13 @@ export default async function ProductDetailPage({ params }) {
               Meetup Location: {product.location || "-"}
             </div>
 
-            {!isOwner && (
-              <div>
-                <p>Comment</p>
-                <input
-                  type="text"
-                  placeholder="Ask Questions about Products..."
-                  className="w-full p-[12px] border border-[#ccc] rounded-[6px] outline-none"
-                />
-              </div>
-            )}
-
             <div className="flex items-center gap-4 mt-3 p-3 rounded-md bg-[#f0f0f0] border border-[#ccc]">
               <Image
                 src={product.owner?.image || "/default-profile.png"}
                 alt="Seller Image"
-                width={50}
-                height={50}
-                className="rounded-full object-cover border-2 border-[#325082]"
+                width={60}
+                height={60}
+                className="rounded-full object-cover border-2 border-[#325082] w-[60px] h-[60px]"
               />
               <div className="flex flex-col">
                 <h3 className="font-normal">Seller:</h3>
@@ -184,6 +174,13 @@ export default async function ProductDetailPage({ params }) {
                 </p>
               </div>
             </div>
+            {/* Public Comments Section */}
+            <CommentSection
+              productId={product._id}
+              initialComments={product.comments || []}
+              userId={session?.user?.id} // This must be ObjectId string from session
+              productOwnerId={product.owner?._id} // Should already be ObjectId string
+            />
           </div>
         </div>
       </main>
