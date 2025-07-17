@@ -100,17 +100,16 @@ export default function BuySellPage() {
     <>
       <NavBar />
 
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-2 lg:px-4">
+      <div className="max-w-[1200px] mx-auto px-4 w-full">
         {/* Header & Search */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-[110px] mb-6 w-full gap-3 relative">
-          {/* Title + Buttons */}
-          <div className="w-full sm:w-auto">
-            {/* Title for Desktop */}
+        <div className="flex flex-col sm:flex-row justify-between items-center mt-[110px] mb-6 w-full gap-4">
+          {/* Left: Title & Mobile Buttons */}
+          <div className="flex flex-col w-full sm:w-auto">
             <h2 className="text-lg font-semibold text-black hidden sm:block">
               Products
             </h2>
 
-            {/* Buttons (Mobile Layout) */}
+            {/* Mobile Buttons */}
             <div className="flex justify-between items-center sm:hidden w-full mt-2">
               <ActionButton
                 text={hideMode ? "Cancel Hide/Unhide" : "Hide/Unhide Selling"}
@@ -129,21 +128,19 @@ export default function BuySellPage() {
           </div>
 
           {/* Search Bar */}
-          <div className="flex sm:mr-12 items-center border border-gray-400 shadow-md rounded-[8px] w-full sm:w-[50%] px-[2.5px] mx-auto">
+          <div className="flex items-center w-full sm:w-[50%] border border-gray-400 shadow-md rounded-[8px] px-[2.5px]">
             <input
               className="flex-1 px-2 py-[10px] text-sm outline-none"
               placeholder="Search for anything..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-
             <button
               onClick={() => setShowFilter(!showFilter)}
               className="p-2 hover:bg-gray-100 rounded-md"
             >
               <AdjustmentsHorizontalIcon className="w-5 h-5 text-gray-700" />
             </button>
-
             <button
               onClick={fetchProducts}
               className="bg-[#325082] text-white px-4 py-[6px] rounded-md hover:opacity-90"
@@ -153,17 +150,18 @@ export default function BuySellPage() {
           </div>
 
           {/* Desktop Buttons */}
-          <div className="hidden sm:flex flex-row gap-3 w-full sm:w-auto justify-end items-end">
+          <div className="hidden sm:flex gap-3 w-full sm:w-auto justify-end">
             <ActionButton
               text={hideMode ? "Cancel Hide/Unhide" : "Hide/Unhide Selling"}
               variant={hideMode ? "outlineClick" : "primaryClick"}
               onClick={() => setHideMode(!hideMode)}
             />
-            <Link href="/sell" className="w-full sm:w-auto">
+            <Link href="/sell">
               <ActionButton text="+ Sell Your Items" variant="primaryClick" />
             </Link>
           </div>
 
+          {/* Filter Dropdown */}
           <FilterDropdown
             show={showFilter}
             filters={filters}
@@ -196,7 +194,7 @@ export default function BuySellPage() {
                     });
                   }}
                   className="absolute left-1 top-1/2 transform -translate-y-1/2 -translate-x-1/2
-                         w-9 h-9 bg-[#325082] text-white rounded-full flex items-center justify-center z-10 transition-all duration-500 ease-in-out hover:scale-[1.1] active:scale-[0.8] shadow-lg shadow-gray-600"
+                         w-9 h-9 bg-[#325082] text-white rounded-full flex items-center justify-center z-10 transition-all duration-500 ease-in-out hover:scale-[1.08] active:scale-[0.8] shadow-lg shadow-gray-600"
                 >
                   ◀
                 </button>
@@ -230,7 +228,7 @@ export default function BuySellPage() {
                     });
                   }}
                   className="absolute right-1 top-1/2 transform -translate-y-1/2 translate-x-1/2
-                         w-9 h-9 bg-[#325082] text-white rounded-full flex items-center justify-center z-10 transition-all duration-500 ease-in-out hover:scale-[1.1] active:scale-[0.8] shadow-lg shadow-gray-600"
+                         w-9 h-9 bg-[#325082] text-white rounded-full flex items-center justify-center z-10 transition-all duration-500 ease-in-out hover:scale-[1.08] active:scale-[0.8] shadow-lg shadow-gray-600"
                 >
                   ▶
                 </button>

@@ -26,22 +26,22 @@ export default async function ProfilePage() {
         <section className="flex flex-wrap justify-between items-start gap-5 mb-5">
           {/* Profile Box */}
           <div className="flex-1 min-w-[300px]">
-            <div className="flex items-center gap-8 bg-white rounded-[10px] p-2 max-w-[450px] ml-[120px]">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 bg-white rounded-[10px] p-4 max-w-[450px] sm:ml-[120px] mx-auto">
               {/* Profile Image */}
               {user.image ? (
                 <Image
                   src={user.image}
-                  width={140}
-                  height={140}
+                  width={120}
+                  height={120}
                   alt="Profile"
-                  className="rounded-full object-cover w-[140px] h-[140px]"
+                  className="rounded-full object-cover w-[120px] h-[120px]"
                 />
               ) : (
-                <div className="w-[140px] h-[140px] bg-[#ddd] rounded-full"></div>
+                <div className="w-[120px] h-[120px] bg-[#ddd] rounded-full"></div>
               )}
 
               {/* User Info */}
-              <div className="flex flex-col gap-2 text-left">
+              <div className="flex flex-col gap-2 text-center sm:text-left">
                 <p className="font-bold text-[18px]">{user.name}</p>
                 <p>{user.email.split("@")[0]}</p>
                 <p>{user.faculty || "Faculty not set"}</p>

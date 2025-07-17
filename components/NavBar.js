@@ -101,21 +101,6 @@ function NavBar() {
 
         {/* Right - Action Icons */}
         <div className="flex items-center gap-6 text-white">
-          {/* Profile Icon */}
-          <div
-            onMouseEnter={() => setHover({ ...hover, profile: true })}
-            onMouseLeave={() => setHover({ ...hover, profile: false })}
-            className="cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
-          >
-            <Link href="/profile">
-              {hover.profile ? (
-                <UserIconSolid className="w-7 h-7" /> // solid icon when hovered
-              ) : (
-                <UserIcon className="w-7 h-7" /> // outline icon otherwise
-              )}
-            </Link>
-          </div>
-
           {/* Cart */}
           <div
             onMouseEnter={() => setHover({ ...hover, cart: true })}
@@ -140,6 +125,21 @@ function NavBar() {
             ) : (
               <HeartIcon className="w-7 h-7" />
             )}
+          </div>
+
+          {/* Profile Icon */}
+          <div
+            onMouseEnter={() => setHover({ ...hover, profile: true })}
+            onMouseLeave={() => setHover({ ...hover, profile: false })}
+            className="cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
+          >
+            <Link href="/profile">
+              {hover.profile ? (
+                <UserIconSolid className="w-7 h-7" /> // solid icon when hovered
+              ) : (
+                <UserIcon className="w-7 h-7" /> // outline icon otherwise
+              )}
+            </Link>
           </div>
 
           {/* Menu Icon */}

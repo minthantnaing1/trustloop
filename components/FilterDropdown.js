@@ -11,7 +11,7 @@ export default function FilterDropdown({
   if (!show) return null;
 
   return (
-    <div className="absolute top-[55px] left-[300px] w-[45%] max-[426px]:left-[158px] max-[426px]:top-[110px] bg-white border border-[#ccc] rounded-lg p-4 shadow-md z-50">
+    <div className="absolute left-1/2 transform -translate-x-1/2 mt-[220px] max-w-[95%] w-[500px] bg-white border border-[#ccc] rounded-lg p-4 shadow-md z-50 max-[768px]:w-[50%] max-[768px]:mt-[110px]">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         <select
           value={filters.category}
@@ -65,7 +65,7 @@ export default function FilterDropdown({
         />
       </div>
 
-      <div className="flex justify-end max-[376px]:flex-col gap-4 mt-3">
+      <div className="flex justify-between max-[376px]:flex-col gap-y-2 mt-3">
         <button
           onClick={onClear}
           className="px-4 py-2 border border-[#ccc] rounded-md hover:bg-gray-100 text-sm"

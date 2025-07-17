@@ -39,7 +39,7 @@ export default async function ProductDetailPage({ params }) {
   return (
     <>
       <NavBar />
-      <main className="max-w-[1200px] mx-auto mt-[120px] mb-[40px] px-5 w-full max-[321px]:px-2 max-[321px]:w-[100vw] max-[321px]:overflow-x-hidden">
+      <main className="max-w-[1200px] mx-auto mt-[120px] mb-[40px] px-5 w-full overflow-x-hidden">
         {/* Top Section */}
         <div className="flex justify-between items-start mb-4 flex-col sm:flex-row gap-4">
           {/* Back Button */}
@@ -105,7 +105,7 @@ export default async function ProductDetailPage({ params }) {
               {Number(product.price).toLocaleString()} ฿
             </p>
 
-            <div className="flex gap-2 relative group">
+            <div className="flex flex-wrap justify-center gap-2 relative group w-full">
               {isOwner ? (
                 <>
                   <button
