@@ -71,9 +71,14 @@ export default function ProfileEditPage() {
             Profile Image
           </label>
 
-          <div className="relative mb-4">
-            {/* Upload Button */}
+          {/* Upload Box with Preview Inside */}
+          <div
+            onClick={() => document.getElementById("profileImageInput").click()}
+            className="border border-dashed border-[#325082] rounded-md h-[160px] flex flex-col items-center justify-center text-[#325082] hover:bg-[#e6ecf5] transition duration-200 text-sm relative cursor-pointer px-4"
+          >
+            {/* Hidden File Input */}
             <input
+              id="profileImageInput"
               type="file"
               accept="image/*"
               onChange={(e) => {
@@ -86,49 +91,47 @@ export default function ProfileEditPage() {
                   reader.readAsDataURL(file);
                 }
               }}
-              className="mb-3 block w-full p-2 rounded-md bg-[#f1f1f1] outline-none"
+              className="hidden"
             />
 
-            {/* Image Preview Box */}
-            <div className="border border-dashed border-[#325082] rounded-md h-[140px] flex items-center justify-center text-[#325082] hover:bg-[#e6ecf5] transition duration-200 text-sm relative">
-              {user.image && user.image !== "/default-profile.jpg" ? (
-                <>
-                  <img
-                    src={user.image}
-                    alt="Profile Preview"
-                    className="w-[100px] h-[100px] object-cover rounded-full"
-                  />
-                  {/* Cancel Button */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation(); // Prevent any accidental bubbling
-                      setUser({ ...user, image: "/default-profile.jpg" });
-                    }}
-                    className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1 hover:bg-red-700"
-                  >
-                    <XMarkIcon className="w-4 h-4" />
-                  </button>
-                </>
-              ) : (
-                <span className="flex items-center justify-center text-[#325082]">
-                  <svg
-                    className="w-5 h-5 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 16V8m0 0L8 12m4-4l4 4M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1"
-                    />
-                  </svg>
-                  No image selected
-                </span>
-              )}
+            {/* Upload Text Always Visible */}
+            <div className="flex items-center justify-center text-[#325082] mb-2">
+              <svg
+                className="w-5 h-5 mr-2"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 16V8m0 0L8 12m4-4l4 4M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1"
+                />
+              </svg>
+              Upload Image
             </div>
+
+            {/* Image Preview */}
+            {user.image && user.image !== "/default-profile.jpg" && (
+              <div className="relative">
+                <img
+                  src={user.image}
+                  alt="Profile Preview"
+                  className="w-[100px] h-[100px] object-cover rounded-full"
+                />
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setUser({ ...user, image: "/default-profile.jpg" });
+                  }}
+                  className="absolute top-[0px] right-[0px] bg-red-600 text-white rounded-full p-1 hover:bg-red-700"
+                >
+                  <XMarkIcon className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
 
           <input
@@ -147,13 +150,20 @@ export default function ProfileEditPage() {
             className="w-full p-3 rounded-md bg-[#f1f1f1] outline-none"
           />
 
-          <input
+          <select
             name="year"
             value={user.year || ""}
             onChange={handleChange}
-            placeholder="Academic Year"
             className="w-full p-3 rounded-md bg-[#f1f1f1] outline-none"
-          />
+          >
+            <option value="" disabled>
+              Select Academic Year
+            </option>
+            <option value="Freshman">Freshman</option>
+            <option value="Sophomore">Sophomore</option>
+            <option value="Junior">Junior</option>
+            <option value="Senior">Senior</option>
+          </select>
 
           <div className="flex justify-between gap-3">
             <ActionButton

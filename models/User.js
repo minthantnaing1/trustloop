@@ -9,7 +9,10 @@ const UserSchema = new mongoose.Schema({
   // Contact & Academic Info
   phone: String,
   faculty: String,
-  year: String,
+  year: {
+    type: String,
+    enum: ["Freshman", "Sophomore", "Junior", "Senior"],
+  },
 
   // Role & Permissions
   role: { type: String, enum: ["user", "admin"], default: "user" },

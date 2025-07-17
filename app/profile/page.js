@@ -23,30 +23,35 @@ export default async function ProfilePage() {
           </Link>
         </div>
         {/* Top Section */}
-        <section className="flex flex-wrap gap-5 mb-5">
+        <section className="flex flex-wrap justify-between items-start gap-5 mb-5">
           {/* Profile Box */}
-          <div className="flex-1 min-w-[250px] bg-white rounded-[10px] p-5 flex flex-col items-center gap-3">
-            {user.image ? (
-              <Image
-                src={user.image}
-                width={100}
-                height={100}
-                alt="Profile"
-                className="rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-[100px] h-[100px] bg-[#ddd] rounded-full"></div>
-            )}
+          <div className="flex-1 min-w-[300px]">
+            <div className="flex items-center gap-8 bg-white rounded-[10px] p-2 max-w-[450px] ml-[120px]">
+              {/* Profile Image */}
+              {user.image ? (
+                <Image
+                  src={user.image}
+                  width={140}
+                  height={140}
+                  alt="Profile"
+                  className="rounded-full object-cover w-[140px] h-[140px]"
+                />
+              ) : (
+                <div className="w-[140px] h-[140px] bg-[#ddd] rounded-full"></div>
+              )}
 
-            <div className="text-center">
-              <p className="font-bold text-[18px]">{user.name}</p>
-              <p>{user.email.split("@")[0]}</p>
-              <p>{user.faculty || "Faculty not set"}</p>
+              {/* User Info */}
+              <div className="flex flex-col gap-2 text-left">
+                <p className="font-bold text-[18px]">{user.name}</p>
+                <p>{user.email.split("@")[0]}</p>
+                <p>{user.faculty || "Faculty not set"}</p>
+                <p>{user.year || "Year not set"}</p>
+              </div>
             </div>
           </div>
 
           {/* Stats Box */}
-          <div className="flex-1 min-w-[300px] flex flex-wrap gap-3 items-start">
+          <div className="flex-1 min-w-[300px] flex flex-wrap gap-3 items-start justify-end">
             <div className="flex-1 min-w-[140px] bg-white p-4 rounded-[10px] text-center">
               <p>Free Post</p>
               <strong>{user.postingCredits} Left</strong>

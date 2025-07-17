@@ -12,17 +12,20 @@ import {
   Bars3Icon,
   ShoppingCartIcon,
   HeartIcon,
+  UserIcon,
 } from "@heroicons/react/24/outline";
 
 import {
   ShoppingCartIcon as CartSolid,
   HeartIcon as HeartSolid,
+  UserIcon as UserIconSolid,
 } from "@heroicons/react/24/solid";
 
 function NavBar() {
   const [hover, setHover] = useState({
     cart: false,
     heart: false,
+    profile: false,
   });
 
   const [showMenu, setShowMenu] = useState(false);
@@ -98,6 +101,21 @@ function NavBar() {
 
         {/* Right - Action Icons */}
         <div className="flex items-center gap-6 text-white">
+          {/* Profile Icon */}
+          <div
+            onMouseEnter={() => setHover({ ...hover, profile: true })}
+            onMouseLeave={() => setHover({ ...hover, profile: false })}
+            className="cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
+          >
+            <Link href="/profile">
+              {hover.profile ? (
+                <UserIconSolid className="w-7 h-7" /> // solid icon when hovered
+              ) : (
+                <UserIcon className="w-7 h-7" /> // outline icon otherwise
+              )}
+            </Link>
+          </div>
+
           {/* Cart */}
           <div
             onMouseEnter={() => setHover({ ...hover, cart: true })}
