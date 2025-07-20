@@ -62,9 +62,9 @@ const ProductSchema = new mongoose.Schema(
     likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     comments: [
       {
-        userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-        username: String, // For easy display
-        userImage: String, // Optional, for profile pics
+        userEmail: { type: String, required: true }, // ✅ Add this
+        username: String,
+        userImage: String, // ✅ Add this
         message: String,
         createdAt: { type: Date, default: Date.now },
       },

@@ -3,9 +3,10 @@ import Product from "@/models/Product";
 import { auth } from "@/auth";
 import mongoose from "mongoose";
 
+// ✅ POST a comment
 export async function POST(req, context) {
   try {
-    const { id } = await context.params; // ✅ Await required
+    const { id } = await context.params;
     const { message } = await req.json();
 
     if (!message?.trim()) {
@@ -13,7 +14,7 @@ export async function POST(req, context) {
     }
 
     const session = await auth();
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return new Response("Unauthorized", { status: 401 });
     }
 
@@ -25,8 +26,8 @@ export async function POST(req, context) {
     }
 
     const newComment = {
-      _id: new mongoose.Types.ObjectId(), // For the comment itself
-      userId: new mongoose.Types.ObjectId(session.user.id), // Ensuring ObjectId
+      _id: new mongoose.Types.ObjectId(),
+      userEmail: session.user.email,
       username: session.user.name,
       userImage: session.user.image || "",
       message,
@@ -46,7 +47,7 @@ export async function POST(req, context) {
   }
 }
 
-// ✅ DELETE a comment (product owner or comment author can delete)
+// ✅ DELETE a comment
 export async function DELETE(req, { params }) {
   try {
     const { id } = await params;
@@ -57,7 +58,7 @@ export async function DELETE(req, { params }) {
     }
 
     const session = await auth();
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return new Response("Unauthorized", { status: 401 });
     }
 
@@ -78,9 +79,7 @@ export async function DELETE(req, { params }) {
       return new Response("Comment not found.", { status: 404 });
     }
 
-    const isCommentOwner =
-      existingComment.userId &&
-      existingComment.userId.toString() === session.user.id;
+    const isCommentOwner = existingComment.userEmail === session.user.email;
 
     if (!isProductOwner && !isCommentOwner) {
       return new Response("Unauthorized to delete this comment.", {

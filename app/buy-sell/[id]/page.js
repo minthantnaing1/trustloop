@@ -176,10 +176,10 @@ export default async function ProductDetailPage({ params }) {
             </div>
             {/* Public Comments Section */}
             <CommentSection
-              productId={product._id}
+              productId={product._id.toString()}
               initialComments={product.comments || []}
-              userId={session?.user?.id} // This must be ObjectId string from session
-              productOwnerId={product.owner?._id} // Should already be ObjectId string
+              userEmail={session?.user?.email}
+              productOwnerEmail={product.owner?.email}
             />
           </div>
         </div>
