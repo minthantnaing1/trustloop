@@ -102,7 +102,7 @@ export default function BuySellPage() {
 
       <div className="max-w-[1200px] mx-auto px-4 w-full">
         {/* Header & Search */}
-        <div className="flex flex-col sm:flex-row justify-between items-center mt-[110px] mb-6 w-full gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-center mt-[98px] mb-6 w-full gap-4">
           {/* Left: Title & Mobile Buttons */}
           <div className="flex flex-col w-full sm:w-auto">
             <h2 className="text-lg font-semibold text-black hidden sm:block">
@@ -128,7 +128,7 @@ export default function BuySellPage() {
           </div>
 
           {/* Search Bar */}
-          <div className="flex items-center w-full sm:w-[50%] border border-gray-400 shadow-md rounded-[8px] px-[2.5px]">
+          <div className="flex items-center w-full sm:w-[50%] sm:ml-30 border border-gray-400 shadow-md rounded-[8px] px-[2.5px]">
             <input
               className="flex-1 px-2 py-[10px] text-sm outline-none"
               placeholder="Search for anything..."

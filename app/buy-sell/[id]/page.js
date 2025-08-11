@@ -40,7 +40,7 @@ export default async function ProductDetailPage({ params }) {
   return (
     <>
       <NavBar />
-      <main className="max-w-[1200px] mx-auto mt-[120px] mb-[40px] px-5 w-full overflow-x-hidden">
+      <main className="max-w-[1200px] mx-auto mt-[120px] mb-[40px] px-5 w-full">
         {/* Top Section */}
         <div className="flex justify-between items-start mb-4 flex-col sm:flex-row gap-4">
           {/* Back Button */}
@@ -106,42 +106,27 @@ export default async function ProductDetailPage({ params }) {
               {Number(product.price).toLocaleString()} ฿
             </p>
 
-            <div className="flex flex-wrap justify-center gap-2 relative group w-full">
-              {isOwner ? (
+            <div className="flex flex-wrap justify-center gap-2 w-full">
+              {!isOwner && (
                 <>
-                  <button
-                    disabled
-                    className="flex-1 flex items-center justify-center gap-2 bg-gray-200 text-gray-500 px-4 py-2 rounded-md cursor-not-allowed border border-gray-300"
+                  <ActionButton
+                    text="🛒 Add to Cart"
+                    variant="cartPrimaryClick"
+                    className="flex-[1]"
+                  />
+
+                  <Link
+                    href={`/buy-sell/${product._id}/checkout`}
+                    className="flex-[1.1]"
                   >
-                    🛒 Add to Cart
-                  </button>
-                  <button
-                    disabled
-                    className="flex-1 flex items-center justify-center gap-2 bg-white text-gray-400 border-2 border-gray-300 px-4 py-2 rounded-md cursor-not-allowed"
-                  >
-                    🏷️ Buy Now
-                  </button>
-                  <button
-                    disabled
-                    className="flex items-center justify-center text-gray-400 text-[25px] px-4 border-[1.5px] border-gray-300 rounded-md cursor-not-allowed"
-                  >
-                    ♡
-                  </button>
-                  <div className="absolute top-[-32px] left-[175px] w-max bg-[#325082] text-white text-xs px-3 py-1 rounded-md opacity-0 group-hover:opacity-100 transition duration-700 z-10">
-                    You cannot like, buy or cart your own item!
-                  </div>
-                </>
-              ) : (
-                <>
-                  <button className="flex-1 bg-[#325082] text-white px-4 py-2 rounded-md hover:opacity-90">
-                    🛒 Add to Cart
-                  </button>
-                  <button className="flex-1 bg-white border-[2px] border-[#325082] text-[#325082] px-4 py-2 rounded-md hover:opacity-90">
-                    🏷️ Buy Now
-                  </button>
-                  <button className="bg-white text-[#325082] text-[25px] border-[1.5px] border-gray-400 px-4 rounded-md hover:opacity-90">
-                    ♡
-                  </button>
+                    <ActionButton
+                      text="🏷️ Buy Now"
+                      variant="buyOutlineClick"
+                      className="w-full"
+                    />
+                  </Link>
+
+                  <ActionButton text="♡" variant="iconOutlineHover" />
                 </>
               )}
             </div>

@@ -54,20 +54,20 @@ function NavBar() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 w-full h-[90px] bg-gradient-to-r from-[#2b446a] to-[#325082] shadow-md shadow-gray-900/30 flex justify-between items-center px-4 md:px-8 z-[10000]">
+      <header className="fixed top-0 left-0 w-full h-[80px] bg-gradient-to-r from-[#2b446a] to-[#325082] shadow-md shadow-gray-900/30 flex justify-between items-center px-4 md:px-8 z-[10000]">
         {/* Left - Logo */}
         <div className="flex items-center">
           <Image
             src="/TrustLoopLogoW.png"
             alt="Logo"
-            width={100}
-            height={75}
+            width={80}
+            height={55}
             priority
           />
         </div>
 
         {/* Middle - Welcome & Nav Links (Desktop Only) */}
-        <div className="hidden md:flex flex-col items-center gap-y-[8px]">
+        <div className="hidden md:flex flex-col items-center gap-y-[3px] ml-[70px]">
           <p className="text-white font-semibold text-lg tracking-wide">
             Welcome to TrustLoop
           </p>
@@ -108,9 +108,9 @@ function NavBar() {
             className="cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
           >
             {hover.cart ? (
-              <CartSolid className="w-7 h-7" />
+              <CartSolid className="w-6 h-6" />
             ) : (
-              <ShoppingCartIcon className="w-7 h-7" />
+              <ShoppingCartIcon className="w-6 h-6" />
             )}
           </div>
 
@@ -121,9 +121,9 @@ function NavBar() {
             className="cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
           >
             {hover.heart ? (
-              <HeartSolid className="w-7 h-7" />
+              <HeartSolid className="w-6 h-6" />
             ) : (
-              <HeartIcon className="w-7 h-7" />
+              <HeartIcon className="w-6 h-6" />
             )}
           </div>
 
@@ -135,9 +135,9 @@ function NavBar() {
           >
             <Link href="/profile">
               {hover.profile ? (
-                <UserIconSolid className="w-7 h-7" /> // solid icon when hovered
+                <UserIconSolid className="w-6 h-6" /> // solid icon when hovered
               ) : (
-                <UserIcon className="w-7 h-7" /> // outline icon otherwise
+                <UserIcon className="w-6 h-6" /> // outline icon otherwise
               )}
             </Link>
           </div>
@@ -147,7 +147,7 @@ function NavBar() {
             onClick={() => setShowMenu(!showMenu)}
             className="cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
           >
-            <Bars3Icon className="w-7 h-7" />
+            <Bars3Icon className="w-6 h-6" />
           </div>
         </div>
       </header>
