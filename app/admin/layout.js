@@ -1,23 +1,20 @@
+// app/admin/layout.js
 "use client";
+
 import { useState } from "react";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 
-export default function AdminLayout({ children }) {
-  const [collapsed, setCollapsed] = useState(true);
+export default function AdminRouteLayout({ children }) {
+  const [collapsed, setCollapsed] = useState(true); // start expanded (or true if you prefer)
 
   return (
     <div className="flex h-full">
-      {/* Sidebar */}
       <AdminSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
-
-      {/* Main Content */}
       <main
         className={`transition-all duration-500 px-6 pt-10 w-full overflow-auto ${
           collapsed ? "ml-[60px]" : "ml-[200px]"
         }`}
-        style={{
-          marginLeft: collapsed ? "60px" : "200px",
-        }}
+        style={{ marginLeft: collapsed ? "60px" : "200px" }}
       >
         {children}
       </main>

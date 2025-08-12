@@ -8,6 +8,8 @@ import {
   Bars3Icon,
   HomeIcon,
   UsersIcon,
+  CubeIcon,
+  BanknotesIcon,
   Cog6ToothIcon,
   ArrowLeftOnRectangleIcon,
   ArrowUturnLeftIcon,
@@ -30,6 +32,16 @@ export default function AdminSidebar({ collapsed, setCollapsed }) {
       icon: <UsersIcon className="w-5 h-5" />,
     },
     {
+      label: "Products",
+      href: "/admin/products",
+      icon: <CubeIcon className="w-5 h-5" />,
+    },
+    {
+      label: "Transactions",
+      href: "/admin/transactions",
+      icon: <BanknotesIcon className="w-5 h-5" />,
+    },
+    {
       label: "Settings",
       href: "/admin/settings",
       icon: <Cog6ToothIcon className="w-5 h-5" />,
@@ -39,7 +51,7 @@ export default function AdminSidebar({ collapsed, setCollapsed }) {
   return (
     <div
       className={`bg-[#1e293b] text-white fixed top-0 left-0 h-full overflow-hidden z-[20000] ${
-        collapsed ? "w-[60px]" : "w-[200px]"
+        collapsed ? "w-[60px]" : "w-[180px]"
       } transition-all duration-500 flex flex-col`}
     >
       <div className="mt-4 flex flex-col gap-2 px-2">

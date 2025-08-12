@@ -3,9 +3,11 @@ import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
 import Transaction from "@/models/Transaction";
 import User from "@/models/User";
+import mongoose from "mongoose";
 
-// GET /api/transactions/:id  -> fetch one
+// GET /api/transactions/:id
 export async function GET(_req, { params }) {
+  const { id } = await params; // 👈 await params
   const session = await auth();
   if (!session) return new Response("Unauthorized", { status: 401 });
 
@@ -16,7 +18,11 @@ export async function GET(_req, { params }) {
   );
   if (!me) return new Response("User not found", { status: 404 });
 
-  const txn = await Transaction.findById(params.id)
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return new Response("Invalid id", { status: 400 });
+  }
+
+  const txn = await Transaction.findById(id)
     .populate({ path: "product", select: "title images defaultImage price" })
     .populate({ path: "seller", select: "name email" })
     .populate({ path: "buyer", select: "name email" });
@@ -33,8 +39,9 @@ export async function GET(_req, { params }) {
   return Response.json(JSON.parse(JSON.stringify(txn)));
 }
 
-// PATCH /api/transactions/:id  -> { action: "upload_receipt" | "cancel", ...payload }
+// PATCH /api/transactions/:id
 export async function PATCH(req, { params }) {
+  const { id } = await params; // 👈 await params
   const session = await auth();
   if (!session) return new Response("Unauthorized", { status: 401 });
 
@@ -45,24 +52,25 @@ export async function PATCH(req, { params }) {
   );
   if (!me) return new Response("User not found", { status: 404 });
 
-  const txn = await Transaction.findById(params.id);
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return new Response("Invalid id", { status: 400 });
+  }
+
+  const txn = await Transaction.findById(id);
   if (!txn) return new Response("Not found", { status: 404 });
 
   const body = await req.json().catch(() => ({}));
   const { action } = body || {};
 
-  // ROUTE actions
   if (action === "upload_receipt") {
     const { imageBase64 } = body || {};
     if (!imageBase64)
       return new Response("imageBase64 required", { status: 400 });
 
-    // only buyer or admin
     const canUpload =
       String(txn.buyer) === String(me._id) || me.role === "admin";
     if (!canUpload) return new Response("Forbidden", { status: 403 });
 
-    // not expired
     if (txn.expiresAt && txn.expiresAt.getTime() < Date.now()) {
       return new Response("Order expired", { status: 410 });
     }
@@ -77,7 +85,6 @@ export async function PATCH(req, { params }) {
 
   if (action === "cancel") {
     const { reason = "cancelled" } = body || {};
-    // only buyer or admin
     const canCancel =
       String(txn.buyer) === String(me._id) || me.role === "admin";
     if (!canCancel) return new Response("Forbidden", { status: 403 });

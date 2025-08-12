@@ -67,7 +67,7 @@ function NavBar() {
         </div>
 
         {/* Middle - Welcome & Nav Links (Desktop Only) */}
-        <div className="hidden md:flex flex-col items-center gap-y-[3px] ml-[70px]">
+        <div className="hidden md:flex flex-col items-center gap-y-[3px] mb-0.5 ml-[70px]">
           <p className="text-white font-semibold text-lg tracking-wide">
             Welcome to TrustLoop
           </p>
