@@ -13,9 +13,12 @@ export async function GET(req) {
     return new Response("Forbidden", { status: 403 });
 
   const { searchParams } = new URL(req.url);
-  const status = searchParams.get("status") || "AWAITING_ADMIN_REVIEW";
+  const raw = searchParams.get("status") || "ALL";
+  const status = String(raw).toUpperCase();
 
-  const txns = await Transaction.find({ status })
+  const match = status === "ALL" ? {} : { status };
+
+  const txns = await Transaction.find(match)
     .sort({ updatedAt: -1 })
     .limit(200)
     .populate({ path: "product", select: "title price defaultImage" })
@@ -23,5 +26,6 @@ export async function GET(req) {
     .populate({ path: "seller", select: "email name" })
     .lean();
 
-  return Response.json(JSON.parse(JSON.stringify(txns)));
+  // Return directly; Next can JSON this fine.
+  return Response.json(txns, { status: 200 });
 }
