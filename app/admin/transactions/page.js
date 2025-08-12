@@ -8,6 +8,11 @@ import AdminTxnRowActions from "@/components/admin/AdminTxnRowActions";
 import AdminReceiptLink from "@/components/admin/AdminReceiptLink";
 import Link from "next/link";
 
+export const runtime = "nodejs"; // force Node (not Edge)
+export const dynamic = "force-dynamic"; // never statically optimize
+export const revalidate = 0; // no ISR cache
+export const fetchCache = "default-no-store"; // avoid route cache
+
 const LABELS = {
   AWAITING_ADMIN_REVIEW: "Awaiting Review",
   ESCROW_FUNDED: "Escrow Funded",
@@ -38,6 +43,7 @@ function StatusPill({ status }) {
 function Tabs({ active }) {
   const tab = (label, val) => (
     <Link
+      prefetch={false}
       href={`/admin/transactions${val ? `?status=${val}` : ""}`}
       className={`px-4 py-1.5 rounded-md text-sm border ${
         active === (val || "ALL")
@@ -83,7 +89,7 @@ export default async function AdminTransactionsPage({ searchParams }) {
   return (
     <>
       <h1 className="text-2xl font-bold mb-2 text-[#325082]">Transactions</h1>
-      <Tabs active={statusParam} />
+      <Tabs active={(statusParam || "ALL").toUpperCase()} />
 
       <div className="bg-white p-5 rounded-xl shadow-md">
         <div className="overflow-x-auto">
