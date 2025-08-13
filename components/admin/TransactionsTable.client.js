@@ -103,9 +103,13 @@ export default function TransactionsTable({ labels }) {
                     {new Date(t.updatedAt || t.createdAt).toLocaleString()}
                   </td>
                   <td className="p-2">
-                    <AdminReceiptLink
-                      dataUrl={t.buyerPaymentReceiptB64 || ""}
-                    />
+                    {t.hasReceipt ? (
+                      <AdminReceiptLink
+                        url={`/api/admin/transactions/${t._id}/receipt`}
+                      />
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    )}
                   </td>
                   <td className="p-2">
                     <StatusPill status={t.status} labels={labels} />

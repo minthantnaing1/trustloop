@@ -1,13 +1,14 @@
+// components/AdminReceiptLink.js
 "use client";
 
 import { useEffect, useRef, useState } from "react";
 import ActionButton from "@/components/ActionButton";
 
-export default function AdminReceiptLink({ dataUrl }) {
+export default function AdminReceiptLink({ dataUrl, url }) {
+  const src = dataUrl || url; // ← accept either
   const [open, setOpen] = useState(false);
   const closeBtnRef = useRef(null);
 
-  // Close on ESC
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => e.key === "Escape" && setOpen(false);
@@ -15,50 +16,48 @@ export default function AdminReceiptLink({ dataUrl }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  // Focus the close button when modal opens
   useEffect(() => {
     if (open) closeBtnRef.current?.focus();
   }, [open]);
 
-  if (!dataUrl) return <span className="text-gray-400">—</span>;
+  if (!src) return <span className="text-gray-400">—</span>;
 
   function openInNewTab() {
-    try {
-      const [header, b64] = dataUrl.split(",");
-      const mime =
-        header?.match(/^data:(.*?);base64$/)?.[1] || "application/octet-stream";
-
-      // base64 → Uint8Array
-      const bin = atob(b64 || "");
-      const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-
-      const blob = new Blob([bytes], { type: mime });
-      const url = URL.createObjectURL(blob);
-
-      // Open via a temporary anchor to avoid popup/fallback issues
-      const a = document.createElement("a");
-      a.href = url;
-      a.target = "_blank";
-      a.rel = "noopener,noreferrer";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-
-      // Cleanup + close
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      setOpen(false);
-    } catch {
-      // Fallback: open the data URL itself
-      const a = document.createElement("a");
-      a.href = dataUrl;
-      a.target = "_blank";
-      a.rel = "noopener,noreferrer";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setOpen(false);
+    // If it's a data URL, keep your current blob logic; if it's an HTTP URL, just open it.
+    if (/^data:/.test(src)) {
+      try {
+        const [header, b64] = src.split(",");
+        const mime =
+          header?.match(/^data:(.*?);base64$/)?.[1] ||
+          "application/octet-stream";
+        const bin = atob(b64 || "");
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        const blob = new Blob([bytes], { type: mime });
+        const localUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = localUrl;
+        a.target = "_blank";
+        a.rel = "noopener,noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(localUrl), 60_000);
+        setOpen(false);
+        return;
+      } catch {
+        /* fall through */
+      }
     }
+    // HTTP URL
+    const a = document.createElement("a");
+    a.href = src;
+    a.target = "_blank";
+    a.rel = "noopener,noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setOpen(false);
   }
 
   return (
@@ -84,7 +83,6 @@ export default function AdminReceiptLink({ dataUrl }) {
             className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[88vh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header (no divider line) */}
             <div className="flex items-center justify-between px-5 pt-4">
               <h3 className="text-lg font-semibold text-[#325082]">
                 Payment Receipt
@@ -96,7 +94,7 @@ export default function AdminReceiptLink({ dataUrl }) {
                   onClick={openInNewTab}
                   className="h-[36px]"
                 />
-                <a href={dataUrl} download="receipt.png">
+                <a href={src} download="receipt.png">
                   <ActionButton
                     text="Download"
                     variant="outlineClick"
@@ -113,11 +111,10 @@ export default function AdminReceiptLink({ dataUrl }) {
               </div>
             </div>
 
-            {/* Image area */}
             <div className="px-5 pb-5">
               <div className="mt-3 bg-gray-50 rounded-xl p-3 max-h-[72vh] overflow-auto">
                 <img
-                  src={dataUrl}
+                  src={src}
                   alt="Buyer payment receipt"
                   className="block max-w-full h-auto rounded-md shadow"
                 />
