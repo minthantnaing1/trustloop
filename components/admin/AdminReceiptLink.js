@@ -3,24 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import ActionButton from "@/components/ActionButton";
 
-/**
- * Props:
- * - dataUrl?: string            // if provided (local dev), used directly
- * - receiptId?: string          // if provided, will fetch /api/admin/transactions?receipt=<id> on open
- * - hasReceipt?: boolean        // used by parent to decide to render link or "—"
- */
-export default function AdminReceiptLink({
-  dataUrl,
-  receiptId,
-  hasReceipt = true,
-}) {
+export default function AdminReceiptLink({ dataUrl, receiptId }) {
   const [open, setOpen] = useState(false);
   const [src, setSrc] = useState(dataUrl || "");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const closeBtnRef = useRef(null);
 
-  // Close on ESC
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => e.key === "Escape" && setOpen(false);
@@ -28,21 +17,18 @@ export default function AdminReceiptLink({
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  // Focus when modal opens
   useEffect(() => {
     if (open) closeBtnRef.current?.focus();
   }, [open]);
 
   async function ensureLoaded() {
-    if (src || !receiptId) return; // already have it or nothing to load
+    if (src || !receiptId) return;
     try {
       setLoading(true);
       setErr("");
       const res = await fetch(
         `/api/admin/transactions?receipt=${encodeURIComponent(receiptId)}`,
-        {
-          cache: "no-store",
-        }
+        { cache: "no-store" }
       );
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
@@ -57,15 +43,13 @@ export default function AdminReceiptLink({
 
   function openModal() {
     setOpen(true);
-    // lazy fetch if needed
     if (!src && receiptId) ensureLoaded();
   }
 
   function openInNewTab() {
-    const data = src;
-    if (!data) return;
+    if (!src) return;
     try {
-      const [header, b64] = data.split(",");
+      const [header, b64] = src.split(",");
       const mime =
         header?.match(/^data:(.*?);base64$/)?.[1] || "application/octet-stream";
       const bin = atob(b64 || "");
@@ -83,9 +67,8 @@ export default function AdminReceiptLink({
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
       setOpen(false);
     } catch {
-      // Fallback: open the data URL itself
       const a = document.createElement("a");
-      a.href = data;
+      a.href = src;
       a.target = "_blank";
       a.rel = "noopener,noreferrer";
       document.body.appendChild(a);
@@ -95,7 +78,8 @@ export default function AdminReceiptLink({
     }
   }
 
-  if (!hasReceipt) return <span className="text-gray-400">—</span>;
+  // If neither dataUrl nor receiptId, show dash
+  if (!dataUrl && !receiptId) return <span className="text-gray-400">—</span>;
 
   return (
     <>
@@ -103,7 +87,6 @@ export default function AdminReceiptLink({
         type="button"
         onClick={openModal}
         className="text-[#325082] underline underline-offset-2 hover:text-[#274066] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#325082]/40 rounded"
-        title="View payment receipt"
       >
         View Receipt
       </button>
@@ -114,13 +97,11 @@ export default function AdminReceiptLink({
           onClick={() => setOpen(false)}
           role="dialog"
           aria-modal="true"
-          aria-label="Payment receipt"
         >
           <div
             className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[88vh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
             <div className="flex items-center justify-between px-5 pt-4">
               <h3 className="text-lg font-semibold text-[#325082]">
                 Payment Receipt
@@ -151,8 +132,6 @@ export default function AdminReceiptLink({
                 />
               </div>
             </div>
-
-            {/* Image area */}
             <div className="px-5 pb-5">
               <div className="mt-3 bg-gray-50 rounded-xl p-3 max-h-[72vh] overflow-auto">
                 {loading && <p className="text-gray-500">Loading receipt…</p>}
