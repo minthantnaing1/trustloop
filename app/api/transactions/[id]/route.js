@@ -1,4 +1,3 @@
-// app/api/transactions/[id]/route.js
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -18,16 +17,15 @@ export async function GET(_req, { params }) {
     return new Response("Unauthorized", { status: 401 });
 
   await connectDB();
-
-  if (!mongoose.Types.ObjectId.isValid(id)) {
+  if (!mongoose.Types.ObjectId.isValid(id))
     return new Response("Invalid id", { status: 400 });
-  }
 
   const me = await User.findOne({ email: session.user.email }).select(
     "_id role"
   );
   if (!me) return new Response("User not found", { status: 404 });
 
+  // include product id so we can release it on expiry
   const txn = await Transaction.findById(id)
     .populate({ path: "product", select: "title images defaultImage price" })
     .populate({ path: "seller", select: "name email" })
@@ -41,7 +39,7 @@ export async function GET(_req, { params }) {
     me.role === "admin";
   if (!isParty) return new Response("Forbidden", { status: 403 });
 
-  // auto-cancel expired pending orders
+  // Auto-cancel expired pending orders AND release product
   if (
     txn.status === "PENDING_UPLOAD" &&
     txn.expiresAt &&
@@ -56,6 +54,13 @@ export async function GET(_req, { params }) {
       meta: { source: "pay_get" },
     });
     await txn.save();
+
+    if (txn.product?._id) {
+      await Product.updateOne(
+        { _id: txn.product._id },
+        { $set: { isAvailable: true } }
+      );
+    }
   }
 
   return Response.json(JSON.parse(JSON.stringify(txn)));
@@ -69,10 +74,8 @@ export async function PATCH(req, { params }) {
     return new Response("Unauthorized", { status: 401 });
 
   await connectDB();
-
-  if (!mongoose.Types.ObjectId.isValid(id)) {
+  if (!mongoose.Types.ObjectId.isValid(id))
     return new Response("Invalid id", { status: 400 });
-  }
 
   const me = await User.findOne({ email: session.user.email }).select(
     "_id role"
@@ -113,7 +116,7 @@ export async function PATCH(req, { params }) {
     return Response.json({ success: true, status: txn.status });
   }
 
-  // Cancel (buyer or admin)
+  // Cancel (buyer or admin) -> release the product
   if (action === "cancel") {
     const { reason = "cancelled" } = body || {};
     const canCancel =
@@ -127,6 +130,13 @@ export async function PATCH(req, { params }) {
     txn.status = "CANCELLED";
     txn.timeline.push({ by: me._id, action: "CANCELLED", meta: { reason } });
     await txn.save();
+
+    if (txn.product) {
+      await Product.updateOne(
+        { _id: txn.product },
+        { $set: { isAvailable: true } }
+      );
+    }
 
     return Response.json({ success: true });
   }

@@ -43,9 +43,8 @@ const TransactionSchema = new mongoose.Schema({
   // timing / proofs
   expiresAt: { type: Date }, // 5-min deadline for upload
 
-  // 🔽 NEW: store Cloudinary URL (preferred) + optional publicId (for deletions)
+  // 🔽 NEW: store Cloudinary URL (preferred)
   buyerReceiptUrl: { type: String, default: "" },
-  buyerReceiptPublicId: { type: String, default: "" },
 
   // payout proof uploaded by admin (can also move this to Cloudinary if not already)
   adminPayoutReceiptUrl: String,
