@@ -118,13 +118,11 @@ export default function AdminTransactionsPage() {
                         {new Date(t.updatedAt || t.createdAt).toLocaleString()}
                       </td>
                       <td className="p-2">
-                        {t.buyerPaymentReceiptB64 ? (
-                          <AdminReceiptLink
-                            dataUrl={t.buyerPaymentReceiptB64}
-                          />
-                        ) : (
-                          <span className="text-gray-400">—</span>
-                        )}
+                        <AdminReceiptLink
+                          // dataUrl={t.buyerPaymentReceiptB64}   // ❌ no longer in list
+                          receiptId={t._id} // ✅ lazy-load by id
+                          hasReceipt={t.hasReceipt} // ✅ show link only if exists
+                        />
                       </td>
                       <td className="p-2">
                         <StatusPill status={t.status} />
