@@ -1,8 +1,10 @@
-"use client";
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
+import { connectDB } from "@/lib/db";
 
-import { useEffect, useState } from "react";
+import User from "@/models/User";
+import Transaction from "@/models/Transaction";
 import AdminTxnRowActions from "@/components/admin/AdminTxnRowActions";
-import AdminReceiptLink from "@/components/admin/AdminReceiptLink";
 
 const LABELS = {
   AWAITING_ADMIN_REVIEW: "Awaiting Review",
@@ -31,124 +33,85 @@ function StatusPill({ status }) {
   );
 }
 
-export default function AdminTransactionsPage() {
-  const [txns, setTxns] = useState(null);
-  const [err, setErr] = useState("");
+export default async function AdminTransactionsPage() {
+  const session = await auth();
+  await connectDB();
 
-  useEffect(() => {
-    let mounted = true;
-    const ctrl = new AbortController();
+  const me = await User.findOne({ email: session?.user?.email }).lean();
+  if (!me || me.role !== "admin") redirect("/home");
 
-    fetch("/api/admin/transactions", {
-      signal: ctrl.signal,
-      cache: "no-store",
-    })
-      .then(async (r) => {
-        if (r.status === 401 || r.status === 403) {
-          if (typeof window !== "undefined") window.location.href = "/home";
-          return;
-        }
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        const data = await r.json();
-        if (mounted) setTxns(Array.isArray(data) ? data : []);
-      })
-      .catch(
-        (e) => mounted && setErr(e.message || "Failed to load transactions")
-      );
-
-    return () => {
-      mounted = false;
-      ctrl.abort();
-    };
-  }, []);
-
-  // 🔑 instant row update after verify/reject (no full page reload)
-  function handleTxnDone({ id, newStatus }) {
-    setTxns((prev) =>
-      prev?.map((t) => (t._id === id ? { ...t, status: newStatus } : t))
-    );
-  }
+  // IMPORTANT: fetch like dashboard — no heavy fields
+  const txns = await Transaction.find({}, "-buyerPaymentReceiptB64") // ⬅ exclude the big base64
+    .populate({ path: "product", select: "title price" })
+    .populate({ path: "buyer", select: "email name" })
+    .populate({ path: "seller", select: "email name" })
+    .sort({ updatedAt: -1 })
+    .limit(200)
+    .lean();
 
   return (
     <>
       <h1 className="text-2xl font-bold mb-4 text-[#325082]">Transactions</h1>
 
-      <div className="bg-white p-5 rounded-xl shadow-md">
-        {err && <p className="text-red-600 mb-2">Error: {String(err)}</p>}
-        {!txns && !err && (
-          <p className="text-gray-500">Loading transactions…</p>
-        )}
-
-        {txns && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr>
-                  <th className="p-2 border-b font-medium">Product</th>
-                  <th className="p-2 border-b font-medium">Buyer</th>
-                  <th className="p-2 border-b font-medium">Seller</th>
-                  <th className="p-2 border-b font-medium">Total</th>
-                  <th className="p-2 border-b font-medium">Uploaded</th>
-                  <th className="p-2 border-b font-medium">Receipt</th>
-                  <th className="p-2 border-b font-medium">Status</th>
-                  <th className="p-2 border-b font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {txns.map((t) => {
-                  const txnId = t._id?.toString?.() || t._id;
-                  const showActions = t.status === "AWAITING_ADMIN_REVIEW";
-                  return (
-                    <tr key={txnId} className="hover:bg-gray-50 align-top">
-                      <td className="p-2">
-                        <div className="font-medium">
-                          {t.product?.title || "-"}
-                        </div>
-                      </td>
-                      <td className="p-2">
-                        {t.buyer?.email || t.buyer?.name || "-"}
-                      </td>
-                      <td className="p-2">
-                        {t.seller?.email || t.seller?.name || "-"}
-                      </td>
-                      <td className="p-2">
-                        ฿{Number(t.total).toLocaleString()}
-                      </td>
-                      <td className="p-2">
-                        {new Date(t.updatedAt || t.createdAt).toLocaleString()}
-                      </td>
-                      <td className="p-2">
-                        <AdminReceiptLink receiptId={t._id} />
-                      </td>
-                      <td className="p-2">
-                        <StatusPill status={t.status} />
-                      </td>
-                      <td className="p-2">
-                        {showActions ? (
-                          <AdminTxnRowActions
-                            txnId={txnId}
-                            onDone={handleTxnDone} // ← instant UI update
-                          />
-                        ) : (
-                          <span className="text-gray-400">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-
-                {!txns.length && (
-                  <tr>
-                    <td colSpan={8} className="p-4 text-center text-gray-500">
-                      No transactions found.
+      <section className="bg-white p-5 rounded-xl shadow-md">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr>
+                <th className="p-2 border-b font-medium">Product</th>
+                <th className="p-2 border-b font-medium">Buyer</th>
+                <th className="p-2 border-b font-medium">Seller</th>
+                <th className="p-2 border-b font-medium">Total</th>
+                <th className="p-2 border-b font-medium">Updated</th>
+                <th className="p-2 border-b font-medium">Status</th>
+                <th className="p-2 border-b font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {txns.map((t) => {
+                const txnId = t._id?.toString();
+                const showActions = t.status === "AWAITING_ADMIN_REVIEW";
+                return (
+                  <tr key={txnId} className="hover:bg-gray-50 align-top">
+                    <td className="p-2">
+                      <div className="font-medium">
+                        {t.product?.title || "-"}
+                      </div>
+                    </td>
+                    <td className="p-2">
+                      {t.buyer?.email || t.buyer?.name || "-"}
+                    </td>
+                    <td className="p-2">
+                      {t.seller?.email || t.seller?.name || "-"}
+                    </td>
+                    <td className="p-2">฿{Number(t.total).toLocaleString()}</td>
+                    <td className="p-2">
+                      {new Date(t.updatedAt || t.createdAt).toLocaleString()}
+                    </td>
+                    <td className="p-2">
+                      <StatusPill status={t.status} />
+                    </td>
+                    <td className="p-2">
+                      {showActions ? (
+                        <AdminTxnRowActions txnId={txnId} />
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
                     </td>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                );
+              })}
+              {!txns.length && (
+                <tr>
+                  <td colSpan={7} className="p-4 text-center text-gray-500">
+                    No transactions found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </>
   );
 }
