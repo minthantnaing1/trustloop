@@ -1,4 +1,3 @@
-// app/admin/transactions/page.js
 "use client";
 
 import { useEffect, useState } from "react";
@@ -109,12 +108,8 @@ export default function AdminTransactionsPage() {
                         {new Date(t.updatedAt || t.createdAt).toLocaleString()}
                       </td>
                       <td className="p-2">
-                        {/* Prefer Cloudinary URL; legacy base64 fetched on demand via receiptId */}
-                        {t.buyerReceiptUrl || t.hasReceipt ? (
-                          <AdminReceiptLink
-                            url={t.buyerReceiptUrl}
-                            receiptId={txnId}
-                          />
+                        {t.buyerReceiptUrl ? (
+                          <AdminReceiptLink url={t.buyerReceiptUrl} />
                         ) : (
                           <span className="text-gray-400">—</span>
                         )}
@@ -127,7 +122,6 @@ export default function AdminTransactionsPage() {
                           <AdminTxnRowActions
                             txnId={txnId}
                             onDone={({ id, newStatus }) => {
-                              // optimistic update: change status and hide buttons for that row
                               setTxns((prev) =>
                                 prev.map((row) =>
                                   (row._id?.toString?.() || row._id) === id

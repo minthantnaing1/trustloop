@@ -7,7 +7,8 @@ import User from "@/models/User";
 
 export async function POST(req) {
   const session = await auth();
-  if (!session) return new Response("Unauthorized", { status: 401 });
+  if (!session?.user?.email)
+    return new Response("Unauthorized", { status: 401 });
 
   const { productId } = await req.json();
   if (!productId) return new Response("productId required", { status: 400 });
@@ -25,7 +26,6 @@ export async function POST(req) {
     return new Response("Cannot buy your own product", { status: 400 });
   }
 
-  // 👇 Idempotency: reuse existing active txn (not expired) if present
   const ACTIVE = [
     "PENDING_UPLOAD",
     "AWAITING_ADMIN_REVIEW",
@@ -40,20 +40,18 @@ export async function POST(req) {
     status: { $in: ACTIVE },
     $or: [
       { expiresAt: { $exists: false } },
-      { expiresAt: { $gt: new Date() } }, // not expired
+      { expiresAt: { $gt: new Date() } },
     ],
   });
 
   if (existing) {
-    // Return existing transaction so UI can jump to /pay
     return Response.json({ transactionId: existing._id, reused: true });
   }
 
-  // Create new one
   const fee = Number(process.env.PLATFORM_FEE || 10);
   const price = Number(product.price || 0);
   const total = price + fee;
-  const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
   const txn = await Transaction.create({
     product: product._id,

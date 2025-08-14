@@ -47,9 +47,6 @@ const TransactionSchema = new mongoose.Schema({
   buyerReceiptUrl: { type: String, default: "" },
   buyerReceiptPublicId: { type: String, default: "" },
 
-  // 🔽 LEGACY: keep base64 for old records, but hide by default so it won't bloat responses
-  buyerPaymentReceiptB64: { type: String, select: false },
-
   // payout proof uploaded by admin (can also move this to Cloudinary if not already)
   adminPayoutReceiptUrl: String,
 

@@ -1,6 +1,6 @@
 // app/api/transactions/[id]/route.js
-export const runtime = "nodejs"; // ensure Node (Mongoose/auth friendly)
-export const dynamic = "force-dynamic"; // no static caching
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 import { auth } from "@/auth";
@@ -9,7 +9,7 @@ import Transaction from "@/models/Transaction";
 import User from "@/models/User";
 import mongoose from "mongoose";
 
-// app/api/transactions/[id]/route.js (GET)
+// GET /api/transactions/:id
 export async function GET(_req, { params }) {
   const { id } = await params;
   const session = await auth();
@@ -18,13 +18,16 @@ export async function GET(_req, { params }) {
 
   await connectDB();
 
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return new Response("Invalid id", { status: 400 });
+  }
+
   const me = await User.findOne({ email: session.user.email }).select(
     "_id role"
   );
   if (!me) return new Response("User not found", { status: 404 });
 
-  // exclude base64
-  const txn = await Transaction.findById(id, "-buyerPaymentReceiptB64")
+  const txn = await Transaction.findById(id)
     .populate({ path: "product", select: "title images defaultImage price" })
     .populate({ path: "seller", select: "name email" })
     .populate({ path: "buyer", select: "name email" });
@@ -37,7 +40,7 @@ export async function GET(_req, { params }) {
     me.role === "admin";
   if (!isParty) return new Response("Forbidden", { status: 403 });
 
-  // 🔴 AUTO-CANCEL if already expired and still pending
+  // auto-cancel expired pending orders
   if (
     txn.status === "PENDING_UPLOAD" &&
     txn.expiresAt &&
@@ -47,7 +50,7 @@ export async function GET(_req, { params }) {
     txn.updatedAt = new Date();
     txn.timeline.push({
       at: new Date(),
-      by: me._id, // or omit if you prefer system action
+      by: me._id,
       action: "AUTO_CANCELLED_EXPIRED",
       meta: { source: "pay_get" },
     });
@@ -59,21 +62,21 @@ export async function GET(_req, { params }) {
 
 // PATCH /api/transactions/:id
 export async function PATCH(req, { params }) {
-  const { id } = params; // no await
+  const { id } = await params;
   const session = await auth();
   if (!session?.user?.email)
     return new Response("Unauthorized", { status: 401 });
 
   await connectDB();
 
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return new Response("Invalid id", { status: 400 });
+  }
+
   const me = await User.findOne({ email: session.user.email }).select(
     "_id role"
   );
   if (!me) return new Response("User not found", { status: 404 });
-
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    return new Response("Invalid id", { status: 400 });
-  }
 
   const txn = await Transaction.findById(id);
   if (!txn) return new Response("Not found", { status: 404 });
@@ -81,7 +84,7 @@ export async function PATCH(req, { params }) {
   const body = await req.json().catch(() => ({}));
   const { action } = body || {};
 
-  // ---- Buyer uploads receipt (now via Cloudinary URL) ----
+  // Buyer uploads receipt (Cloudinary URL only)
   if (action === "upload_receipt") {
     const { buyerReceiptUrl, buyerReceiptPublicId = "" } = body || {};
     if (!buyerReceiptUrl)
@@ -95,12 +98,9 @@ export async function PATCH(req, { params }) {
       return new Response("Order expired", { status: 410 });
     }
 
-    // Save URL (and optional publicId); remove legacy base64
     txn.buyerReceiptUrl = buyerReceiptUrl;
     if (buyerReceiptPublicId) txn.buyerReceiptPublicId = buyerReceiptPublicId;
-    txn.buyerPaymentReceiptB64 = undefined;
 
-    // Move to admin review
     txn.status = "AWAITING_ADMIN_REVIEW";
     txn.timeline.push({
       by: me._id,
@@ -112,7 +112,7 @@ export async function PATCH(req, { params }) {
     return Response.json({ success: true, status: txn.status });
   }
 
-  // ---- Cancel (buyer or admin) ----
+  // Cancel (buyer or admin)
   if (action === "cancel") {
     const { reason = "cancelled" } = body || {};
     const canCancel =
