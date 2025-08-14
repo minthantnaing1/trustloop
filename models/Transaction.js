@@ -42,8 +42,16 @@ const TransactionSchema = new mongoose.Schema({
 
   // timing / proofs
   expiresAt: { type: Date }, // 5-min deadline for upload
-  buyerPaymentReceiptB64: String, // store base64 image directly
-  adminPayoutReceiptUrl: String, // payout proof uploaded by admin (optional)
+
+  // 🔽 NEW: store Cloudinary URL (preferred) + optional publicId (for deletions)
+  buyerReceiptUrl: { type: String, default: "" },
+  buyerReceiptPublicId: { type: String, default: "" },
+
+  // 🔽 LEGACY: keep base64 for old records, but hide by default so it won't bloat responses
+  buyerPaymentReceiptB64: { type: String, select: false },
+
+  // payout proof uploaded by admin (can also move this to Cloudinary if not already)
+  adminPayoutReceiptUrl: String,
 
   // logistics (optional)
   shippingCarrier: String,
@@ -55,7 +63,7 @@ const TransactionSchema = new mongoose.Schema({
   timeline: [
     {
       at: { type: Date, default: Date.now },
-      by: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // who performed
+      by: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
       action: String, // e.g., "BUYER_UPLOADED_RECEIPT", "ADMIN_VERIFIED_PAYMENT"
       meta: Object,
     },

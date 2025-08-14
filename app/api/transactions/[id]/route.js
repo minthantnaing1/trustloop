@@ -1,15 +1,20 @@
 // app/api/transactions/[id]/route.js
+export const runtime = "nodejs"; // ensure Node (Mongoose/auth friendly)
+export const dynamic = "force-dynamic"; // no static caching
+export const revalidate = 0;
+
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
 import Transaction from "@/models/Transaction";
 import User from "@/models/User";
 import mongoose from "mongoose";
 
-// GET /api/transactions/:id
+// app/api/transactions/[id]/route.js (GET)
 export async function GET(_req, { params }) {
-  const { id } = await params; // 👈 await params
+  const { id } = await params;
   const session = await auth();
-  if (!session) return new Response("Unauthorized", { status: 401 });
+  if (!session?.user?.email)
+    return new Response("Unauthorized", { status: 401 });
 
   await connectDB();
 
@@ -18,11 +23,8 @@ export async function GET(_req, { params }) {
   );
   if (!me) return new Response("User not found", { status: 404 });
 
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    return new Response("Invalid id", { status: 400 });
-  }
-
-  const txn = await Transaction.findById(id)
+  // exclude base64
+  const txn = await Transaction.findById(id, "-buyerPaymentReceiptB64")
     .populate({ path: "product", select: "title images defaultImage price" })
     .populate({ path: "seller", select: "name email" })
     .populate({ path: "buyer", select: "name email" });
@@ -33,17 +35,34 @@ export async function GET(_req, { params }) {
     String(txn.buyer?._id) === String(me._id) ||
     String(txn.seller?._id) === String(me._id) ||
     me.role === "admin";
-
   if (!isParty) return new Response("Forbidden", { status: 403 });
+
+  // 🔴 AUTO-CANCEL if already expired and still pending
+  if (
+    txn.status === "PENDING_UPLOAD" &&
+    txn.expiresAt &&
+    txn.expiresAt.getTime() <= Date.now()
+  ) {
+    txn.status = "CANCELLED";
+    txn.updatedAt = new Date();
+    txn.timeline.push({
+      at: new Date(),
+      by: me._id, // or omit if you prefer system action
+      action: "AUTO_CANCELLED_EXPIRED",
+      meta: { source: "pay_get" },
+    });
+    await txn.save();
+  }
 
   return Response.json(JSON.parse(JSON.stringify(txn)));
 }
 
 // PATCH /api/transactions/:id
 export async function PATCH(req, { params }) {
-  const { id } = await params; // 👈 await params
+  const { id } = params; // no await
   const session = await auth();
-  if (!session) return new Response("Unauthorized", { status: 401 });
+  if (!session?.user?.email)
+    return new Response("Unauthorized", { status: 401 });
 
   await connectDB();
 
@@ -62,10 +81,11 @@ export async function PATCH(req, { params }) {
   const body = await req.json().catch(() => ({}));
   const { action } = body || {};
 
+  // ---- Buyer uploads receipt (now via Cloudinary URL) ----
   if (action === "upload_receipt") {
-    const { imageBase64 } = body || {};
-    if (!imageBase64)
-      return new Response("imageBase64 required", { status: 400 });
+    const { buyerReceiptUrl, buyerReceiptPublicId = "" } = body || {};
+    if (!buyerReceiptUrl)
+      return new Response("buyerReceiptUrl required", { status: 400 });
 
     const canUpload =
       String(txn.buyer) === String(me._id) || me.role === "admin";
@@ -75,14 +95,24 @@ export async function PATCH(req, { params }) {
       return new Response("Order expired", { status: 410 });
     }
 
-    txn.buyerPaymentReceiptB64 = imageBase64;
-    txn.status = "AWAITING_ADMIN_REVIEW";
-    txn.timeline.push({ by: me._id, action: "BUYER_UPLOADED_RECEIPT" });
-    await txn.save();
+    // Save URL (and optional publicId); remove legacy base64
+    txn.buyerReceiptUrl = buyerReceiptUrl;
+    if (buyerReceiptPublicId) txn.buyerReceiptPublicId = buyerReceiptPublicId;
+    txn.buyerPaymentReceiptB64 = undefined;
 
-    return Response.json({ success: true });
+    // Move to admin review
+    txn.status = "AWAITING_ADMIN_REVIEW";
+    txn.timeline.push({
+      by: me._id,
+      action: "BUYER_UPLOADED_RECEIPT",
+      meta: { url: buyerReceiptUrl },
+    });
+
+    await txn.save();
+    return Response.json({ success: true, status: txn.status });
   }
 
+  // ---- Cancel (buyer or admin) ----
   if (action === "cancel") {
     const { reason = "cancelled" } = body || {};
     const canCancel =

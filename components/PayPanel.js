@@ -83,30 +83,56 @@ export default function PayPanel({ txn }) {
 
   function clearFile() {
     setFile(null);
+    if (preview) URL.revokeObjectURL(preview);
     setPreview(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   useEffect(() => {
+    // cleanup preview URL when component unmounts
     return () => {
       if (preview) URL.revokeObjectURL(preview);
     };
   }, [preview]);
 
-  // ---- submit ----
+  // ---- submit (Cloudinary first, then PATCH with URL) ----
   async function handleUpload() {
-    if (!file) return setErr("Please choose an image of your receipt.");
+    if (!file) {
+      setErr("Please choose an image of your receipt.");
+      return;
+    }
+    if (timeLeft !== null && timeLeft <= 0) {
+      setErr("Payment window expired. Please create a new order.");
+      return;
+    }
+
     setErr("");
     setBusy(true);
     try {
-      const b64 = await toBase64(file);
+      // 1) Upload to Cloudinary via your existing /api/upload
+      const fd = new FormData();
+      fd.append("file", file);
+      const up = await fetch("/api/upload", { method: "POST", body: fd });
+      const upData = await up.json();
+      if (!up.ok || !upData?.url) {
+        throw new Error(upData?.error || "Upload failed");
+      }
+
+      // 2) Save URL to the transaction (no base64 in DB)
       const res = await fetch(`/api/transactions/${txn._id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "upload_receipt", imageBase64: b64 }),
+        body: JSON.stringify({
+          action: "upload_receipt",
+          buyerReceiptUrl: upData.url,
+          buyerReceiptPublicId: upData.publicId || "", // optional if your /api/upload returns it
+        }),
       });
-      if (!res.ok) throw new Error((await res.text()) || "Upload failed");
-      router.replace("/profile"); // success for now
+      if (!res.ok)
+        throw new Error((await res.text()) || "Failed to submit receipt");
+
+      // Success → go back to profile (or wherever you want)
+      router.replace("/profile");
     } catch (e) {
       setErr(e.message || "Something went wrong");
       setBusy(false);
@@ -218,7 +244,7 @@ export default function PayPanel({ txn }) {
                 onDragOver={onDragOver}
                 role="button"
                 tabIndex={0}
-                className="group relative flex flex-col items-center justify-center gap-2 w-full min-h-[140px] border-2 border-dashed rounded-xl px-4 py-5 cursor-pointer
+                className="group relative flex flex-col items-center justify-center gap-2 w/full min-h-[140px] border-2 border-dashed rounded-xl px-4 py-5 cursor-pointer
                            border-[#9fb3d6] hover:border-[#325082] bg-[#f7f9fc] hover:bg-[#f3f7ff] transition-colors"
               >
                 {!preview ? (
@@ -289,13 +315,4 @@ export default function PayPanel({ txn }) {
       </div>
     </div>
   );
-}
-
-function toBase64(file) {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result);
-    r.onerror = reject;
-    r.readAsDataURL(file);
-  });
 }
