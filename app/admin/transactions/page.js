@@ -220,7 +220,7 @@ export default function AdminTransactionsPage() {
                                 askDelete(txnId);
                               }}
                             >
-                              ×
+                              Delete
                             </button>
                           )}
                         </div>

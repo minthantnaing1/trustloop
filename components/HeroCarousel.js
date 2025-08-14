@@ -41,8 +41,8 @@ export default function HeroCarousel() {
           Welcome to TrustLoop
         </h1>
         <p className="max-w-[800px] text-sm sm:text-lg mb-6 drop-shadow-sm">
-          Assumption University&apos;s exclusive marketplace. Buy, sell,
-          auction, or donate securely among AU students.
+          Assumption University's exclusive marketplace. Buy, sell, auction, or
+          donate securely among AU students.
         </p>
         <Link href="/buy-sell">
           <span className="bg-white text-[#325082] font-semibold rounded-full px-6 py-3 hover:bg-gray-200 transition">
