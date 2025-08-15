@@ -4,9 +4,9 @@ export const revalidate = 0;
 
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
-import Transaction from "@/models/Transaction";
 import User from "@/models/User";
 import Product from "@/models/Product";
+import Transaction from "@/models/Transaction";
 import mongoose from "mongoose";
 
 // GET /api/transactions/:id

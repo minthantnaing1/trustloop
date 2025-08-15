@@ -35,7 +35,7 @@ export default function TxnToolbar({
             onChange={(e) => onChangeFilter(e.target.value)}
             // appearance-none removes native arrow; style removes any UA bg chevron (edge cases)
             className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm shadow-sm
-                       focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+                       focus:outline-none focus:ring-2 focus:ring-[#325082] focus:border-[#325082]
                        hover:border-gray-400 transition-colors pr-9 appearance-none"
             style={{ backgroundImage: "none" }}
           >
@@ -73,7 +73,7 @@ export default function TxnToolbar({
         />
         <ActionButton
           text="Delete"
-          variant="dangerHover"
+          variant={deleteMode ? "dangerPrimaryClick" : "dangerOutlineHover"}
           onClick={onToggleDelete}
           className="h-[36px] min-w-[90px]"
         />

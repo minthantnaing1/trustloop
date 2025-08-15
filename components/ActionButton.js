@@ -15,8 +15,10 @@ export default function ActionButton({
       "h-[42px] w-[115px] border-transparent text-white text-sm bg-[#325082] hover:bg-white hover:border-[#325082] hover:text-[#325082] hover:scale-[1.06] border-[2px]",
     outlineHover:
       "h-[42px] w-[115px] border-[#325082] text-[#325082] text-sm bg-white hover:bg-[#325082] hover:border-transparent hover:text-white hover:scale-[1.06] border-[2px]",
-    dangerHover:
+    dangerOutlineHover:
       "h-[42px] w-[115px] border-red-600 text-red-600 text-sm bg-white hover:bg-red-600 hover:border-transparent hover:text-white hover:scale-[1.06] border-[2px]",
+    dangerPrimaryClick:
+      "h-[42px] w-[115px] border-transparent text-white bg-red-600 text-sm hover:scale-[1.06] border-[2px]",
     primaryClick:
       "h-[42px] w-[115px] border-transparent text-white bg-[#325082] text-sm hover:scale-[1.06] border-[2px]",
     outlineClick:

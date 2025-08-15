@@ -49,7 +49,7 @@ export default function AdminTxnRowActions({ txnId, onDone }) {
       />
       <ActionButton
         text="Reject"
-        variant="dangerHover"
+        variant="dangerOutlineHover"
         onClick={() => call("reject")}
         disabled={busy}
         className="h-[34px] w-[90px]"

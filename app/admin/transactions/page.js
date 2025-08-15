@@ -5,6 +5,7 @@ import AdminTxnRowActions from "@/components/admin/AdminTxnRowActions";
 import AdminReceiptLink from "@/components/admin/AdminReceiptLink";
 import ConfirmModal from "@/components/ConfirmModal";
 import TxnToolbar from "@/components/admin/TxnToolbar";
+import { TrashIcon } from "@heroicons/react/24/solid";
 
 const LABELS = {
   AWAITING_ADMIN_REVIEW: "Awaiting Review",
@@ -186,44 +187,45 @@ export default function AdminTransactionsPage() {
                       <td className="p-2">
                         <StatusPill status={t.status} />
                       </td>
-                      <td className="p-2">
-                        <div className="flex items-center gap-2">
-                          {showActions ? (
-                            <AdminTxnRowActions
-                              txnId={txnId}
-                              onDone={({ id, newStatus }) => {
-                                setTxns((prev) =>
-                                  prev.map((row) =>
-                                    (row._id?.toString?.() || row._id) === id
-                                      ? {
-                                          ...row,
-                                          status: newStatus,
-                                          updatedAt: new Date().toISOString(),
-                                        }
-                                      : row
-                                  )
-                                );
-                                if (editMode) setEditMode(false);
-                              }}
-                            />
-                          ) : (
-                            <span className="text-gray-400">—</span>
-                          )}
 
-                          {deleteMode && (
-                            <button
-                              type="button"
-                              className="text-red-600 hover:text-red-700 text-lg leading-none px-2"
-                              title="Delete"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                askDelete(txnId);
-                              }}
-                            >
+                      {/* ✅ Actions cell: delete mode takes precedence */}
+                      <td className="p-2">
+                        {deleteMode ? (
+                          <button
+                            type="button"
+                            className="flex items-center gap-1 text-red-600 hover:text-red-700 p-1"
+                            title="Delete"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              askDelete(txnId);
+                            }}
+                          >
+                            <TrashIcon className="w-5 h-5" />
+                            <span className="text-sm font-semibold">
                               Delete
-                            </button>
-                          )}
-                        </div>
+                            </span>
+                          </button>
+                        ) : showActions ? (
+                          <AdminTxnRowActions
+                            txnId={txnId}
+                            onDone={({ id, newStatus }) => {
+                              setTxns((prev) =>
+                                prev.map((row) =>
+                                  (row._id?.toString?.() || row._id) === id
+                                    ? {
+                                        ...row,
+                                        status: newStatus,
+                                        updatedAt: new Date().toISOString(),
+                                      }
+                                    : row
+                                )
+                              );
+                              if (editMode) setEditMode(false);
+                            }}
+                          />
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
                       </td>
                     </tr>
                   );
@@ -249,12 +251,13 @@ export default function AdminTransactionsPage() {
         onCancel={() => {
           setConfirmOpen(false);
           setPendingDeleteId(null);
+          // stay in delete mode
         }}
         onConfirm={async () => {
           setConfirmOpen(false);
           if (pendingDeleteId) await deleteTxn(pendingDeleteId);
           setPendingDeleteId(null);
-          setDeleteMode(false);
+          // 🔴 Do NOT call setDeleteMode(false); stay in delete mode
         }}
       />
     </>

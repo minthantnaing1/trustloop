@@ -1,8 +1,8 @@
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
-import Transaction from "@/models/Transaction";
-import Product from "@/models/Product";
 import User from "@/models/User";
+import Product from "@/models/Product";
+import Transaction from "@/models/Transaction";
 
 export async function POST(req) {
   const session = await auth();
