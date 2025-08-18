@@ -30,7 +30,7 @@ export default function ProductDeleteButton({ productId }) {
     <>
       <ActionButton
         text="Delete"
-        variant="dangerHover"
+        variant="dangerOutlineHover"
         icon={<TrashIcon className="w-5 h-5" />}
         onClick={() => setShowModal(true)}
       />
