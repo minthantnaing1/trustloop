@@ -27,7 +27,7 @@ export default async function CheckoutPage({ params }) {
   return (
     <>
       <NavBar />
-      <main className="max-w-[1200px] mx-auto mt-[120px] mb-[40px] px-5 w-full overflow-x-hidden">
+      <main className="max-w-[1200px] mx-auto mt-[120px] mb-[40px] px-4 w-full overflow-x-hidden">
         {/* Header */}
         <h1 className="text-2xl font-bold text-[#325082] mb-4">Checkout</h1>
 

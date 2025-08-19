@@ -1,18 +1,12 @@
 "use client";
 
 import ActionButton from "@/components/ActionButton";
+import StatusPill, {
+  getStatusLabel,
+  STATUS_CODES,
+} from "@/components/StatusPill";
 
-const STATUS_OPTIONS = [
-  { v: "ALL", label: "All" },
-  { v: "PENDING_UPLOAD", label: "Pending Upload" },
-  { v: "AWAITING_ADMIN_REVIEW", label: "Awaiting Review" },
-  { v: "ESCROW_FUNDED", label: "Escrow Funded" },
-  { v: "DELIVERY_IN_PROGRESS", label: "Delivery" },
-  { v: "BUYER_CONFIRMED", label: "Buyer Confirmed" },
-  { v: "PAID_OUT", label: "Paid Out" },
-  { v: "REJECTED", label: "Rejected" },
-  { v: "CANCELLED", label: "Cancelled" },
-];
+const OPTIONS = ["ALL", ...STATUS_CODES]; // single source of truth
 
 export default function TxnToolbar({
   statusFilter,
@@ -25,28 +19,23 @@ export default function TxnToolbar({
 }) {
   return (
     <div className={`w-full flex items-center justify-between ${className}`}>
-      {/* Left: Filter */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <span className="text-sm font-medium text-gray-700">Filter:</span>
-
         <div className="relative">
           <select
             value={statusFilter}
             onChange={(e) => onChangeFilter(e.target.value)}
-            // appearance-none removes native arrow; style removes any UA bg chevron (edge cases)
             className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm shadow-sm
                        focus:outline-none focus:ring-2 focus:ring-[#325082] focus:border-[#325082]
                        hover:border-gray-400 transition-colors pr-9 appearance-none"
             style={{ backgroundImage: "none" }}
           >
-            {STATUS_OPTIONS.map((o) => (
-              <option key={o.v} value={o.v}>
-                {o.label}
+            {OPTIONS.map((code) => (
+              <option key={code} value={code}>
+                {code === "ALL" ? "All" : getStatusLabel(code)}
               </option>
             ))}
           </select>
-
-          {/* Custom chevron */}
           <svg
             className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500"
             viewBox="0 0 24 24"
@@ -63,7 +52,6 @@ export default function TxnToolbar({
         </div>
       </div>
 
-      {/* Right: Edit / Delete */}
       <div className="flex items-center gap-2">
         <ActionButton
           text="Edit"

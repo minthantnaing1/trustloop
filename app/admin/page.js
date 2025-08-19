@@ -5,6 +5,7 @@ import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 import Product from "@/models/Product";
 import Transaction from "@/models/Transaction";
+import StatusPill from "@/components/StatusPill";
 
 export default async function AdminPage() {
   const session = await auth();
@@ -204,7 +205,9 @@ export default async function AdminPage() {
                     {t.seller?.email || t.seller?.name || "-"}
                   </td>
                   <td className="p-2">฿{Number(t.total).toLocaleString()}</td>
-                  <td className="p-2">{t.status}</td>
+                  <td className="p-2">
+                    <StatusPill status={t.status} />
+                  </td>
                   <td className="p-2">
                     {new Date(t.createdAt).toLocaleString()}
                   </td>

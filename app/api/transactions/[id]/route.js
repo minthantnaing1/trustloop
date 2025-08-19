@@ -1,3 +1,4 @@
+// app/api/transactions/[id]/route.js
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -25,7 +26,7 @@ export async function GET(_req, { params }) {
   );
   if (!me) return new Response("User not found", { status: 404 });
 
-  // include product id so we can release it on expiry
+  // include product so we can release it on expiry
   const txn = await Transaction.findById(id)
     .populate({ path: "product", select: "title images defaultImage price" })
     .populate({ path: "seller", select: "name email" })
@@ -88,7 +89,7 @@ export async function PATCH(req, { params }) {
   const body = await req.json().catch(() => ({}));
   const { action } = body || {};
 
-  // Buyer uploads receipt (Cloudinary URL only)
+  // ---- Buyer uploads receipt (Cloudinary URL only) ----
   if (action === "upload_receipt") {
     const { buyerReceiptUrl, buyerReceiptPublicId = "" } = body || {};
     if (!buyerReceiptUrl)
@@ -116,7 +117,7 @@ export async function PATCH(req, { params }) {
     return Response.json({ success: true, status: txn.status });
   }
 
-  // Cancel (buyer or admin) -> release the product
+  // ---- Cancel (buyer or admin) -> release the product ----
   if (action === "cancel") {
     const { reason = "cancelled" } = body || {};
     const canCancel =
@@ -138,8 +139,55 @@ export async function PATCH(req, { params }) {
       );
     }
 
-    return Response.json({ success: true });
+    return Response.json({ success: true, status: txn.status });
   }
 
-  return new Response("Unknown action", { status: 400 });
+  // ---- Seller accepts after admin approved (ESCROW_FUNDED -> SELLER_ACCEPTED) ----
+  if (action === "seller_accept") {
+    const isSeller = String(txn.seller) === String(me._id);
+    if (!isSeller) return new Response("Forbidden", { status: 403 });
+
+    if (txn.status !== "ESCROW_FUNDED") {
+      return new Response("Not allowed in current state", { status: 409 });
+    }
+
+    txn.status = "SELLER_ACCEPTED"; // ✅ set the new status
+    txn.timeline.push({
+      by: me._id,
+      action: "SELLER_ACCEPTED",
+    });
+    await txn.save();
+
+    return Response.json({ success: true, status: txn.status });
+  }
+
+  // ---- Seller cancels after admin approved (allow from funded/accepted/in-delivery) ----
+  if (action === "seller_cancel") {
+    const isSeller = String(txn.seller) === String(me._id);
+    if (!isSeller) return new Response("Forbidden", { status: 403 });
+
+    if (
+      !["ESCROW_FUNDED", "SELLER_ACCEPTED", "DELIVERY_IN_PROGRESS"].includes(
+        txn.status
+      )
+    ) {
+      return new Response("Not allowed in current state", { status: 409 });
+    }
+
+    txn.status = "CANCELLED";
+    txn.timeline.push({
+      by: me._id,
+      action: "SELLER_CANCELLED",
+    });
+    await txn.save();
+
+    if (txn.product) {
+      await Product.updateOne(
+        { _id: txn.product },
+        { $set: { isAvailable: true } }
+      );
+    }
+
+    return Response.json({ success: true, status: txn.status });
+  }
 }

@@ -5,34 +5,8 @@ import AdminTxnRowActions from "@/components/admin/AdminTxnRowActions";
 import AdminReceiptLink from "@/components/admin/AdminReceiptLink";
 import ConfirmModal from "@/components/ConfirmModal";
 import TxnToolbar from "@/components/admin/TxnToolbar";
+import StatusPill from "@/components/StatusPill";
 import { TrashIcon } from "@heroicons/react/24/solid";
-
-const LABELS = {
-  AWAITING_ADMIN_REVIEW: "Awaiting Review",
-  ESCROW_FUNDED: "Escrow Funded",
-  REJECTED: "Rejected",
-  CANCELLED: "Cancelled",
-  PENDING_UPLOAD: "Pending Upload",
-  DELIVERY_IN_PROGRESS: "Delivery",
-  BUYER_CONFIRMED: "Buyer Confirmed",
-  PAID_OUT: "Paid Out",
-};
-
-function StatusPill({ status }) {
-  const color =
-    status === "AWAITING_ADMIN_REVIEW"
-      ? "bg-yellow-100 text-yellow-700"
-      : status === "ESCROW_FUNDED"
-      ? "bg-green-100 text-green-700"
-      : status === "REJECTED" || status === "CANCELLED"
-      ? "bg-red-100 text-red-700"
-      : "bg-gray-100 text-gray-700";
-  return (
-    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${color}`}>
-      {LABELS[status] || status}
-    </span>
-  );
-}
 
 export default function AdminTransactionsPage() {
   const [txns, setTxns] = useState(null);
@@ -96,10 +70,8 @@ export default function AdminTransactionsPage() {
 
   return (
     <>
-      {/* Title */}
       <h1 className="text-2xl font-bold text-[#325082] mb-2">Transactions</h1>
 
-      {/* Toolbar under the title */}
       <TxnToolbar
         className="mb-1"
         statusFilter={statusFilter}
@@ -133,7 +105,7 @@ export default function AdminTransactionsPage() {
                   <th className="p-2 border-b font-medium">Buyer</th>
                   <th className="p-2 border-b font-medium">Seller</th>
                   <th className="p-2 border-b font-medium">Total</th>
-                  <th className="p-2 border-b font-medium">Uploaded</th>
+                  <th className="p-2 border-b font-medium">Updated</th>
                   <th className="p-2 border-b font-medium">Receipt</th>
                   <th className="p-2 border-b font-medium">Status</th>
                   <th className="p-2 border-b font-medium">Actions</th>
@@ -165,12 +137,27 @@ export default function AdminTransactionsPage() {
                           {t.product?.title || "-"}
                         </div>
                       </td>
+
+                      {/* Buyer */}
                       <td className="p-2">
-                        {t.buyer?.email || t.buyer?.name || "-"}
+                        <div className="leading-tight">
+                          <div className="font-medium">{t.buyer.name}</div>
+                          <div className="text-xs text-gray-600">
+                            {t.buyer.email}
+                          </div>
+                        </div>
                       </td>
+
+                      {/* Seller */}
                       <td className="p-2">
-                        {t.seller?.email || t.seller?.name || "-"}
+                        <div className="leading-tight">
+                          <div className="font-medium">{t.seller.name}</div>
+                          <div className="text-xs text-gray-600">
+                            {t.seller.email}
+                          </div>
+                        </div>
                       </td>
+
                       <td className="p-2">
                         ฿{Number(t.total).toLocaleString()}
                       </td>
@@ -187,8 +174,6 @@ export default function AdminTransactionsPage() {
                       <td className="p-2">
                         <StatusPill status={t.status} />
                       </td>
-
-                      {/* ✅ Actions cell: delete mode takes precedence */}
                       <td className="p-2">
                         {deleteMode ? (
                           <button
@@ -251,13 +236,11 @@ export default function AdminTransactionsPage() {
         onCancel={() => {
           setConfirmOpen(false);
           setPendingDeleteId(null);
-          // stay in delete mode
         }}
         onConfirm={async () => {
           setConfirmOpen(false);
           if (pendingDeleteId) await deleteTxn(pendingDeleteId);
           setPendingDeleteId(null);
-          // 🔴 Do NOT call setDeleteMode(false); stay in delete mode
         }}
       />
     </>
