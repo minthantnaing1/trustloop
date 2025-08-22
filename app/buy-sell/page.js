@@ -55,13 +55,17 @@ export default function BuySellPage() {
     fetchProducts();
   }, [filters]);
 
+  // BuySellPage.jsx
   const handleConfirmToggle = async () => {
     const { productId, newStatus } = confirmModal;
+    // in your code, newStatus means "unhide?" in the modal message.
+    // let's derive the desired isHidden from it:
+    const wantHidden = !newStatus; // true => hide, false => unhide
 
     const res = await fetch(`/api/products/${productId}`, {
       method: "PATCH",
-      body: JSON.stringify({ isAvailable: newStatus, isHidden: !newStatus }),
       headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isHidden: wantHidden }),
     });
 
     if (res.ok) {
@@ -196,7 +200,7 @@ export default function BuySellPage() {
                   className="absolute left-1 top-1/2 transform -translate-y-1/2 -translate-x-1/2
                          w-9 h-9 bg-[#325082] text-white rounded-full flex items-center justify-center z-10 transition-all duration-500 ease-in-out hover:scale-[1.08] active:scale-[0.8] shadow-lg shadow-gray-600"
                 >
-                  ◀
+                  ❮
                 </button>
               )}
 
@@ -230,7 +234,7 @@ export default function BuySellPage() {
                   className="absolute right-1 top-1/2 transform -translate-y-1/2 translate-x-1/2
                          w-9 h-9 bg-[#325082] text-white rounded-full flex items-center justify-center z-10 transition-all duration-500 ease-in-out hover:scale-[1.08] active:scale-[0.8] shadow-lg shadow-gray-600"
                 >
-                  ▶
+                  ❯
                 </button>
               )}
             </div>

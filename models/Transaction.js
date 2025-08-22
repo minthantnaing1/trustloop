@@ -24,6 +24,7 @@ const TransactionSchema = new mongoose.Schema({
       "PENDING_UPLOAD",
       "AWAITING_ADMIN_REVIEW",
       "ESCROW_FUNDED",
+      "SELLER_ACCEPTED",
       "DELIVERY_IN_PROGRESS",
       "BUYER_CONFIRMED",
       "PAID_OUT",
@@ -43,9 +44,8 @@ const TransactionSchema = new mongoose.Schema({
   // timing / proofs
   expiresAt: { type: Date }, // 5-min deadline for upload
 
-  // 🔽 NEW: store Cloudinary URL (preferred) + optional publicId (for deletions)
+  // 🔽 NEW: store Cloudinary URL (preferred)
   buyerReceiptUrl: { type: String, default: "" },
-  buyerReceiptPublicId: { type: String, default: "" },
 
   // payout proof uploaded by admin (can also move this to Cloudinary if not already)
   adminPayoutReceiptUrl: String,
@@ -87,6 +87,7 @@ TransactionSchema.index(
           "PENDING_UPLOAD",
           "AWAITING_ADMIN_REVIEW",
           "ESCROW_FUNDED",
+          "SELLER_ACCEPTED",
           "DELIVERY_IN_PROGRESS",
           "BUYER_CONFIRMED",
         ],

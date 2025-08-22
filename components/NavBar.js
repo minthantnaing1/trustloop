@@ -193,6 +193,11 @@ function NavBar() {
             <div className="mb-4 hover:underline cursor-pointer">Profile</div>
           </Link>
 
+          {/* My Orders (Always Show) */}
+          <Link href="/my-orders" onClick={() => setShowMenu(false)}>
+            <div className="mb-4 hover:underline cursor-pointer">My Orders</div>
+          </Link>
+
           {/* Nav Links (Mobile Only) */}
           <div className="md:hidden">
             {navLinks.map((item) => (

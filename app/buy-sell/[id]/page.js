@@ -79,15 +79,15 @@ export default async function ProductDetailPage({ params }) {
             <div className="flex gap-3 items-center sm:ml-auto sm:flex-row flex-wrap">
               <span
                 className={`inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full transition-transform duration-500 ease-in-out transform group hover:scale-[1.1] ${
-                  product.isAvailable
+                  !product.isHidden
                     ? "bg-green-100 text-green-700"
                     : "bg-gray-200 text-gray-600"
                 } group`}
               >
-                {product.isAvailable ? (
+                {!product.isHidden ? (
                   <>
                     <EyeIcon className="h-4 w-4 taransform transition-transform duration-700 ease-in-out group-hover:rotate-[360deg]" />
-                    Available
+                    Unhidden
                   </>
                 ) : (
                   <>

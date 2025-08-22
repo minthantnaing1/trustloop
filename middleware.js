@@ -5,6 +5,7 @@ const protectedRoutes = [
   /^\/admin(\/.*)?$/, // Protect /admin and its subroutes
   /^\/home$/,
   /^\/profile(\/.*)?$/,
+  /^\/my-orders$/,
   /^\/sell$/,
   /^\/buy-sell(\/.*)?$/, // Protect all buy-sell subroutes
 ];
