@@ -167,15 +167,25 @@ export default function MyOrdersPage() {
                 </Link>
               );
 
-              const orderDetailsLink =
-                t.status === "SELLER_ACCEPTED" || "DELIVERY_PROGRESS" ? (
-                  <Link
-                    href={`/my-orders/${id}`}
-                    className="text-sm underline text-[#325082] underline-offset-2"
-                  >
-                    Order Details
-                  </Link>
-                ) : null;
+              const showDetailsStatuses = [
+                "SELLER_ACCEPTED",
+                "DELIVERY_IN_PROGRESS",
+                "SELLER_DELIVERED",
+                "MEETUP_COMPLETED",
+                "BUYER_CONFIRMED",
+                "PAID_OUT",
+              ];
+
+              const orderDetailsLink = showDetailsStatuses.includes(
+                t.status
+              ) ? (
+                <Link
+                  href={`/my-orders/${id}`}
+                  className="text-sm underline text-[#325082] underline-offset-2"
+                >
+                  Order Details
+                </Link>
+              ) : null;
 
               return (
                 <OrderRow

@@ -28,6 +28,16 @@ const STATUS_META = {
     bg: "bg-indigo-100",
     fg: "text-indigo-700",
   },
+  SELLER_DELIVERED: {
+    label: "Seller Delivered",
+    bg: "bg-purple-100",
+    fg: "text-purple-700",
+  },
+  MEETUP_COMPLETED: {
+    label: "Meetup Completed",
+    bg: "bg-cyan-100",
+    fg: "text-cyan-700",
+  },
   BUYER_CONFIRMED: {
     label: "Buyer Confirmed",
     bg: "bg-emerald-100",
@@ -35,7 +45,6 @@ const STATUS_META = {
   },
   PAID_OUT: { label: "Paid Out", bg: "bg-emerald-100", fg: "text-emerald-700" },
 
-  // New explicit terminal states
   CANCELLED_BY_BUYER: {
     label: "Cancelled by Buyer",
     bg: "bg-red-100",

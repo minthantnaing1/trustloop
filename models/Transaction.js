@@ -50,16 +50,18 @@ const TransactionSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: [
-      "PENDING_UPLOAD", // buyer created, must upload receipt
-      "AWAITING_ADMIN_REVIEW", // admin verifies receipt
-      "ESCROW_FUNDED", // admin confirmed receipt (money held)
-      "SELLER_ACCEPTED", // seller accepted to fulfill
-      "DELIVERY_IN_PROGRESS", // shipping or meetup arranged
-      "BUYER_CONFIRMED", // buyer confirms item received / meetup done
-      "PAID_OUT", // admin paid out seller
-      "CANCELLED_BY_BUYER", // (new) explicit cancels
-      "CANCELLED_BY_SELLER", // (new)
-      "REJECTED_BY_ADMIN", // (new) replaces REJECTED
+      "PENDING_UPLOAD",
+      "AWAITING_ADMIN_REVIEW",
+      "ESCROW_FUNDED",
+      "SELLER_ACCEPTED",
+      "DELIVERY_IN_PROGRESS",
+      "SELLER_DELIVERED",
+      "MEETUP_COMPLETED",
+      "BUYER_CONFIRMED",
+      "PAID_OUT",
+      "CANCELLED_BY_BUYER",
+      "CANCELLED_BY_SELLER",
+      "REJECTED_BY_ADMIN",
     ],
     default: "PENDING_UPLOAD",
     index: true,
@@ -111,6 +113,8 @@ TransactionSchema.index(
           "ESCROW_FUNDED",
           "SELLER_ACCEPTED",
           "DELIVERY_IN_PROGRESS",
+          "SELLER_DELIVERED",
+          "MEETUP_COMPLETED",
           "BUYER_CONFIRMED",
         ],
       },

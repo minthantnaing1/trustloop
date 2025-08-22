@@ -130,10 +130,16 @@ export default function OrderDetailPage() {
     <>
       <NavBar />
       <main className="max-w-[1200px] mx-auto px-4 mb-10">
-        {/* Title */}
-        <h1 className="text-2xl font-bold text-[#1f3b66] mb-4">
-          Order Details
-        </h1>
+        {/* Title + Back */}
+        <div className="flex items-center gap-3 mb-4">
+          <Link
+            href="/my-orders"
+            className="inline-flex items-center text-[#325082] hover:underline text-sm font-medium"
+          >
+            ← Back
+          </Link>
+          <h1 className="text-2xl font-bold text-[#1f3b66]">Order Details</h1>
+        </div>
 
         {/* Stepper */}
         <div className="mb-5">
@@ -313,10 +319,14 @@ export default function OrderDetailPage() {
 
               {/* Role-aware controls */}
               <div className="mt-6 border-t pt-4 border-[#e7ecf8]">
-                {/* DELIVERY: seller sets details then starts delivery */}
+                {/* DELIVERY: seller sets details / starts / marks delivered */}
                 {method === "DELIVERY" &&
                   isSeller &&
-                  ["ESCROW_FUNDED", "SELLER_ACCEPTED"].includes(txn.status) && (
+                  [
+                    "ESCROW_FUNDED",
+                    "SELLER_ACCEPTED",
+                    "DELIVERY_IN_PROGRESS",
+                  ].includes(txn.status) && (
                     <div className="space-y-3">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
@@ -327,7 +337,10 @@ export default function OrderDetailPage() {
                             type="datetime-local"
                             value={scheduledAt}
                             onChange={(e) => setScheduledAt(e.target.value)}
-                            className="w-full rounded-lg border px-3 py-2 text-sm"
+                            disabled={
+                              busy || txn.status === "DELIVERY_IN_PROGRESS"
+                            }
+                            className="w-full rounded-lg border px-3 py-2 text-sm disabled:bg-gray-100"
                           />
                         </div>
                         <div>
@@ -338,7 +351,10 @@ export default function OrderDetailPage() {
                             type="text"
                             value={carrier}
                             onChange={(e) => setCarrier(e.target.value)}
-                            className="w-full rounded-lg border px-3 py-2 text-sm"
+                            disabled={
+                              busy || txn.status === "DELIVERY_IN_PROGRESS"
+                            }
+                            className="w-full rounded-lg border px-3 py-2 text-sm disabled:bg-gray-100"
                             placeholder="Thailand Post, Kerry, etc."
                           />
                         </div>
@@ -350,7 +366,10 @@ export default function OrderDetailPage() {
                             type="text"
                             value={tracking}
                             onChange={(e) => setTracking(e.target.value)}
-                            className="w-full rounded-lg border px-3 py-2 text-sm"
+                            disabled={
+                              busy || txn.status === "DELIVERY_IN_PROGRESS"
+                            }
+                            className="w-full rounded-lg border px-3 py-2 text-sm disabled:bg-gray-100"
                           />
                         </div>
                         <div>
@@ -361,103 +380,152 @@ export default function OrderDetailPage() {
                             type="text"
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
-                            className="w-full rounded-lg border px-3 py-2 text-sm"
+                            disabled={
+                              busy || txn.status === "DELIVERY_IN_PROGRESS"
+                            }
+                            className="w-full rounded-lg border px-3 py-2 text-sm disabled:bg-gray-100"
                             placeholder="Leave at reception…"
                           />
                         </div>
                       </div>
 
-                      <div className="flex gap-3">
-                        <button
-                          disabled={busy}
-                          onClick={() =>
-                            doPatch({
-                              action: "seller_set_delivery",
-                              scheduledAt,
-                              carrier,
-                              tracking,
-                              notes,
-                            })
-                          }
-                          className="px-4 py-2 rounded-lg bg-[#eef4ff] text-[#1f3b66] ring-1 ring-[#dbe6ff] hover:bg-[#e6f0ff]"
-                        >
-                          Save Delivery Details
-                        </button>
+                      <div className="flex flex-wrap gap-3">
+                        {/* Save & Start are only useful before in-progress */}
+                        {["ESCROW_FUNDED", "SELLER_ACCEPTED"].includes(
+                          txn.status
+                        ) && (
+                          <>
+                            <button
+                              disabled={busy}
+                              onClick={() =>
+                                doPatch({
+                                  action: "seller_set_delivery",
+                                  scheduledAt,
+                                  carrier,
+                                  tracking,
+                                  notes,
+                                })
+                              }
+                              className="px-4 py-2 rounded-lg bg-[#eef4ff] text-[#1f3b66] ring-1 ring-[#dbe6ff] hover:bg-[#e6f0ff]"
+                            >
+                              Save Delivery Details
+                            </button>
 
-                        <button
-                          disabled={busy}
-                          onClick={() =>
-                            doPatch({ action: "mark_delivery_in_progress" })
-                          }
-                          className="px-4 py-2 rounded-lg bg-[#325082] text-white hover:bg-[#2b446e]"
-                        >
-                          Start Delivery
-                        </button>
+                            <button
+                              disabled={busy}
+                              onClick={() =>
+                                doPatch({ action: "mark_delivery_in_progress" })
+                              }
+                              className="px-4 py-2 rounded-lg bg-[#325082] text-white hover:bg-[#2b446e]"
+                            >
+                              Start Delivery
+                            </button>
+                          </>
+                        )}
+
+                        {/* Mark Delivered visible during in-progress */}
+                        {txn.status === "DELIVERY_IN_PROGRESS" && (
+                          <button
+                            disabled={busy}
+                            onClick={() =>
+                              doPatch({ action: "seller_mark_delivered" })
+                            }
+                            className="px-4 py-2 rounded-lg bg-[#6b5bd2]/10 text-[#3b2f8f] ring-1 ring-[#cfc8ff] hover:bg-[#6b5bd2]/20"
+                          >
+                            Mark Delivered
+                          </button>
+                        )}
                       </div>
                     </div>
                   )}
 
-                {/* MEETUP: propose/accept */}
+                {/* MEETUP: propose/accept, and during in-progress allow seller to mark completed */}
                 {method === "MEETUP" &&
-                  ["ESCROW_FUNDED", "SELLER_ACCEPTED"].includes(txn.status) && (
+                  [
+                    "ESCROW_FUNDED",
+                    "SELLER_ACCEPTED",
+                    "DELIVERY_IN_PROGRESS",
+                  ].includes(txn.status) && (
                     <div className="space-y-3">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs font-semibold text-[#325082] mb-1">
-                            Meetup Location
-                          </label>
-                          <input
-                            type="text"
-                            value={meetLoc}
-                            onChange={(e) => setMeetLoc(e.target.value)}
-                            className="w-full rounded-lg border px-3 py-2 text-sm"
-                            placeholder="ABAC Hua Mak Gate 2"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-[#325082] mb-1">
-                            Proposed Time
-                          </label>
-                          <input
-                            type="datetime-local"
-                            value={meetTime}
-                            onChange={(e) => setMeetTime(e.target.value)}
-                            className="w-full rounded-lg border px-3 py-2 text-sm"
-                          />
-                        </div>
-                      </div>
+                      {/* Inputs are only editable before in-progress */}
+                      {["ESCROW_FUNDED", "SELLER_ACCEPTED"].includes(
+                        txn.status
+                      ) && (
+                        <>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs font-semibold text-[#325082] mb-1">
+                                Meetup Location
+                              </label>
+                              <input
+                                type="text"
+                                value={meetLoc}
+                                onChange={(e) => setMeetLoc(e.target.value)}
+                                className="w-full rounded-lg border px-3 py-2 text-sm"
+                                placeholder="ABAC Hua Mak Gate 2"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-semibold text-[#325082] mb-1">
+                                Proposed Time
+                              </label>
+                              <input
+                                type="datetime-local"
+                                value={meetTime}
+                                onChange={(e) => setMeetTime(e.target.value)}
+                                className="w-full rounded-lg border px-3 py-2 text-sm"
+                              />
+                            </div>
+                          </div>
 
-                      <div className="flex gap-3">
-                        <button
-                          disabled={busy || !meetLoc || !meetTime}
-                          onClick={() =>
-                            doPatch({
-                              action: "propose_meetup",
-                              meetupLocation: meetLoc,
-                              meetupProposedAt: meetTime,
-                            })
-                          }
-                          className="px-4 py-2 rounded-lg bg-[#eef4ff] text-[#1f3b66] ring-1 ring-[#dbe6ff] hover:bg-[#e6f0ff]"
-                        >
-                          Propose Meetup
-                        </button>
-
-                        {txn.fulfillment?.meetupProposedAt &&
-                          txn.fulfillment?.meetupLocation &&
-                          me &&
-                          String(txn.fulfillment?.meetupProposedBy) !==
-                            String(me._id) && (
+                          <div className="flex flex-wrap gap-3">
                             <button
-                              disabled={busy}
+                              disabled={busy || !meetLoc || !meetTime}
                               onClick={() =>
-                                doPatch({ action: "accept_meetup" })
+                                doPatch({
+                                  action: "propose_meetup",
+                                  meetupLocation: meetLoc,
+                                  meetupProposedAt: meetTime,
+                                })
                               }
-                              className="px-4 py-2 rounded-lg bg-[#325082] text-white hover:bg-[#2b446e]"
+                              className="px-4 py-2 rounded-lg bg-[#eef4ff] text-[#1f3b66] ring-1 ring-[#dbe6ff] hover:bg-[#e6f0ff]"
                             >
-                              Accept Proposal
+                              Propose Meetup
                             </button>
-                          )}
-                      </div>
+
+                            {txn.fulfillment?.meetupProposedAt &&
+                              txn.fulfillment?.meetupLocation &&
+                              me &&
+                              String(txn.fulfillment?.meetupProposedBy) !==
+                                String(me._id) && (
+                                <button
+                                  disabled={busy}
+                                  onClick={() =>
+                                    doPatch({ action: "accept_meetup" })
+                                  }
+                                  className="px-4 py-2 rounded-lg bg-[#325082] text-white hover:bg-[#2b446e]"
+                                >
+                                  Accept Proposal
+                                </button>
+                              )}
+                          </div>
+                        </>
+                      )}
+
+                      {/* During in-progress, seller can mark completed */}
+                      {isSeller && txn.status === "DELIVERY_IN_PROGRESS" && (
+                        <div className="flex flex-wrap gap-3">
+                          <button
+                            disabled={busy}
+                            onClick={() =>
+                              doPatch({ action: "mark_meetup_completed" })
+                            }
+                            className="px-4 py-2 rounded-lg bg-[#6fd3e6]/10 text-[#086b7f] ring-1 ring-[#bfeef6] hover:bg-[#6fd3e6]/20"
+                          >
+                            Mark Meetup Completed
+                          </button>
+                        </div>
+                      )}
 
                       {txn.fulfillment?.meetupProposedAt && (
                         <div className="text-sm text-gray-700">
@@ -466,6 +534,21 @@ export default function OrderDetailPage() {
                           <b>{fmt(txn.fulfillment.meetupProposedAt)}</b>
                         </div>
                       )}
+                    </div>
+                  )}
+
+                {/* Buyer confirm received for both flows */}
+                {isBuyer &&
+                  (txn.status === "SELLER_DELIVERED" ||
+                    txn.status === "MEETUP_COMPLETED") && (
+                    <div className="mt-4">
+                      <button
+                        disabled={busy}
+                        onClick={() => doPatch({ action: "buyer_confirm" })}
+                        className="px-4 py-2 rounded-lg bg-[#10b981]/90 text-white hover:bg-[#0ea371]"
+                      >
+                        Confirm Received
+                      </button>
                     </div>
                   )}
               </div>

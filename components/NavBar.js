@@ -31,16 +31,31 @@ function NavBar() {
   const [showMenu, setShowMenu] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [me, setMe] = useState(null); // full user doc (for avatar)
 
   const pathname = usePathname();
 
   useEffect(() => {
+    // role (for Admin nav)
     fetch("/api/me")
       .then((res) => res.json())
       .then((data) => {
-        if (data.role === "admin") {
-          setIsAdmin(true);
+        if (data.role === "admin") setIsAdmin(true);
+      })
+      .catch(() => {});
+
+    // full user (for avatar); ignore 401
+    fetch("/api/users/me")
+      .then(async (res) => {
+        if (!res.ok) return null;
+        try {
+          return await res.json();
+        } catch {
+          return null;
         }
+      })
+      .then((u) => {
+        if (u) setMe(u);
       })
       .catch(() => {});
   }, []);
@@ -51,6 +66,11 @@ function NavBar() {
     { label: "AUCTION", href: "/auction" },
     { label: "GIVEAWAY", href: "/giveaway" },
   ];
+
+  const isActiveLink = (href) =>
+    pathname === href ||
+    (href === "/buy-sell" && pathname.startsWith("/buy-sell/")) ||
+    (href === "/buy-sell" && pathname === "/sell");
 
   return (
     <>
@@ -73,29 +93,21 @@ function NavBar() {
           </p>
 
           <ul className="flex gap-[65px]">
-            {navLinks.map((item) => {
-              const isActive =
-                pathname === item.href ||
-                (item.href === "/buy-sell" &&
-                  pathname.startsWith("/buy-sell/")) ||
-                (item.href === "/buy-sell" && pathname === "/sell");
-
-              return (
-                <li key={item.href}>
-                  <Link href={item.href}>
-                    <span
-                      className={`inline-block text-white text-[14px] font-medium px-2 py-1 border-b-2 transition-all duration-500 active:scale-[0.95] ${
-                        isActive
-                          ? "border-white"
-                          : "border-transparent hover:border-white"
-                      }`}
-                    >
-                      {item.label}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
+            {navLinks.map((item) => (
+              <li key={item.href}>
+                <Link href={item.href}>
+                  <span
+                    className={`inline-block text-white text-[14px] font-medium px-2 py-1 border-b-2 transition-all duration-500 active:scale-[0.95] ${
+                      isActiveLink(item.href)
+                        ? "border-white"
+                        : "border-transparent hover:border-white"
+                    }`}
+                  >
+                    {item.label}
+                  </span>
+                </Link>
+              </li>
+            ))}
           </ul>
         </div>
 
@@ -103,8 +115,8 @@ function NavBar() {
         <div className="flex items-center gap-6 text-white">
           {/* Cart */}
           <div
-            onMouseEnter={() => setHover({ ...hover, cart: true })}
-            onMouseLeave={() => setHover({ ...hover, cart: false })}
+            onMouseEnter={() => setHover((h) => ({ ...h, cart: true }))}
+            onMouseLeave={() => setHover((h) => ({ ...h, cart: false }))}
             className="cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
           >
             {hover.cart ? (
@@ -116,8 +128,8 @@ function NavBar() {
 
           {/* Heart */}
           <div
-            onMouseEnter={() => setHover({ ...hover, heart: true })}
-            onMouseLeave={() => setHover({ ...hover, heart: false })}
+            onMouseEnter={() => setHover((h) => ({ ...h, heart: true }))}
+            onMouseLeave={() => setHover((h) => ({ ...h, heart: false }))}
             className="cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
           >
             {hover.heart ? (
@@ -127,24 +139,34 @@ function NavBar() {
             )}
           </div>
 
-          {/* Profile Icon */}
+          {/* Profile / Avatar */}
           <div
-            onMouseEnter={() => setHover({ ...hover, profile: true })}
-            onMouseLeave={() => setHover({ ...hover, profile: false })}
+            onMouseEnter={() => setHover((h) => ({ ...h, profile: true }))}
+            onMouseLeave={() => setHover((h) => ({ ...h, profile: false }))}
             className="cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
           >
-            <Link href="/profile">
-              {hover.profile ? (
-                <UserIconSolid className="w-6 h-6" /> // solid icon when hovered
+            <Link href="/profile" className="block">
+              {me?.image ? (
+                <Image
+                  src={me.image}
+                  alt={me.name || "Profile"}
+                  width={32}
+                  height={32}
+                  className={`rounded-full ring-2 ring-white/70 shadow-sm object-cover ${
+                    hover.profile ? "scale-[1.03]" : ""
+                  }`}
+                />
+              ) : hover.profile ? (
+                <UserIconSolid className="w-6 h-6" />
               ) : (
-                <UserIcon className="w-6 h-6" /> // outline icon otherwise
+                <UserIcon className="w-6 h-6" />
               )}
             </Link>
           </div>
 
           {/* Menu Icon */}
           <div
-            onClick={() => setShowMenu(!showMenu)}
+            onClick={() => setShowMenu((s) => !s)}
             className="cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
           >
             <Bars3Icon className="w-6 h-6" />
@@ -160,7 +182,7 @@ function NavBar() {
         <div
           onClick={() => setShowMenu(false)}
           className="fixed inset-0 bg-black/40 z-[20000]"
-        ></div>
+        />
       )}
 
       {/* Sliding Menu Panel */}

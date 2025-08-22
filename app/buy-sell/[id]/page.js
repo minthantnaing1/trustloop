@@ -37,6 +37,12 @@ export default async function ProductDetailPage({ params }) {
   const sessionEmail = session?.user?.email || "";
   const isOwner = sessionEmail === product.owner?.email;
 
+  // Availability drives the UI:
+  // - false => there is an active transaction (not cancelled/rejected), so hide buyer + seller controls
+  // - true  => cancelled/rejected/no txn, show buyer actions and seller manage actions
+  const canBuyerInteract = !isOwner && product.isAvailable === true;
+  const canSellerManage = isOwner && product.isAvailable === true;
+
   return (
     <>
       <NavBar />
@@ -52,8 +58,8 @@ export default async function ProductDetailPage({ params }) {
             Back to Buy & Sell
           </Link>
 
-          {/* Owner Action Buttons (Moved below back button on mobile) */}
-          {isOwner && (
+          {/* Owner Action Buttons (hidden when product is locked by an active txn) */}
+          {isOwner && canSellerManage && (
             <div className="flex gap-3 items-center sm:ml-auto sm:flex-row flex-wrap">
               <span
                 className={`inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full transition-transform duration-500 ease-in-out transform group hover:scale-[1.1] ${
@@ -106,8 +112,9 @@ export default async function ProductDetailPage({ params }) {
               {Number(product.price).toLocaleString()} ฿
             </p>
 
+            {/* Buyer action buttons — only when available (i.e., not locked by an active txn) */}
             <div className="flex flex-wrap justify-center gap-2 w-full">
-              {!isOwner && (
+              {canBuyerInteract && (
                 <>
                   <ActionButton
                     text="🛒 Add to Cart"
@@ -130,6 +137,13 @@ export default async function ProductDetailPage({ params }) {
                 </>
               )}
             </div>
+
+            {/* If the product is unavailable, you can optionally show a small notice */}
+            {!product.isAvailable && (
+              <p className="text-sm text-gray-600 mt-1">
+                This item is currently in an active transaction.
+              </p>
+            )}
 
             <div className="bg-[#e2e2e2] p-3 rounded-md">
               Description: {product.description || "-"}
@@ -159,6 +173,7 @@ export default async function ProductDetailPage({ params }) {
                 </p>
               </div>
             </div>
+
             {/* Public Comments Section */}
             <CommentSection
               productId={product._id.toString()}

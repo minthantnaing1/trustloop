@@ -374,4 +374,55 @@ export async function PATCH(req, { params }) {
     await txn.save();
     return Response.json({ success: true, fulfillment: txn.fulfillment });
   }
+
+  // ---- Seller marks "delivered" (DELIVERY flow) -> SELLER_DELIVERED ----
+  if (action === "seller_mark_delivered") {
+    const isSeller = String(txn.seller) === String(me._id);
+    if (!isSeller) return new Response("Forbidden", { status: 403 });
+
+    if (txn.fulfillment?.method !== "DELIVERY") {
+      return new Response("Not a delivery order", { status: 409 });
+    }
+    if (!["DELIVERY_IN_PROGRESS"].includes(txn.status)) {
+      return new Response("Not allowed in current state", { status: 409 });
+    }
+
+    txn.status = "SELLER_DELIVERED";
+    txn.timeline.push({ by: me._id, action: "SELLER_DELIVERED" });
+    await txn.save();
+    return Response.json({ success: true, status: txn.status });
+  }
+
+  // ---- Seller marks "meetup completed" (MEETUP flow) -> MEETUP_COMPLETED ----
+  if (action === "mark_meetup_completed") {
+    const isSeller = String(txn.seller) === String(me._id);
+    if (!isSeller) return new Response("Forbidden", { status: 403 });
+
+    if (txn.fulfillment?.method !== "MEETUP") {
+      return new Response("Not a meetup order", { status: 409 });
+    }
+    if (!["DELIVERY_IN_PROGRESS"].includes(txn.status)) {
+      return new Response("Not allowed in current state", { status: 409 });
+    }
+
+    txn.status = "MEETUP_COMPLETED";
+    txn.timeline.push({ by: me._id, action: "MEETUP_COMPLETED" });
+    await txn.save();
+    return Response.json({ success: true, status: txn.status });
+  }
+
+  // ---- Buyer confirms receipt -> BUYER_CONFIRMED ----
+  if (action === "buyer_confirm") {
+    const isBuyer = String(txn.buyer) === String(me._id);
+    if (!isBuyer) return new Response("Forbidden", { status: 403 });
+
+    if (!["SELLER_DELIVERED", "MEETUP_COMPLETED"].includes(txn.status)) {
+      return new Response("Not allowed in current state", { status: 409 });
+    }
+
+    txn.status = "BUYER_CONFIRMED";
+    txn.timeline.push({ by: me._id, action: "BUYER_CONFIRMED" });
+    await txn.save();
+    return Response.json({ success: true, status: txn.status });
+  }
 }

@@ -28,8 +28,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <NavBar />
-      <main className="bg-white mt-[-20px]">
+      <main className="bg-white">
         {/* Hero Section */}
         <section className="bg-[#1a2d48]">
           <HeroCarousel />
