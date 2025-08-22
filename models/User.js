@@ -31,6 +31,9 @@ const UserSchema = new mongoose.Schema({
   location: { type: String }, // e.g., "AU Dorm 2" or "Bangna Campus"
   defaultScanCode: String, // Default QR or scanner setting
 
+  // Favorites (added)
+  favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product", default: [] }],
+
   // Timestamps
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },

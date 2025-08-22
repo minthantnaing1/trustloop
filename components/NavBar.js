@@ -38,9 +38,7 @@ function NavBar() {
     fetch("/api/me")
       .then((res) => res.json())
       .then((data) => {
-        if (data.role === "admin") {
-          setIsAdmin(true);
-        }
+        if (data.role === "admin") setIsAdmin(true);
       })
       .catch(() => {});
   }, []);
@@ -102,30 +100,34 @@ function NavBar() {
         {/* Right - Action Icons */}
         <div className="flex items-center gap-6 text-white">
           {/* Cart */}
-          <div
-            onMouseEnter={() => setHover({ ...hover, cart: true })}
-            onMouseLeave={() => setHover({ ...hover, cart: false })}
-            className="cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
-          >
-            {hover.cart ? (
-              <CartSolid className="w-6 h-6" />
-            ) : (
-              <ShoppingCartIcon className="w-6 h-6" />
-            )}
-          </div>
+          <Link href="/cart" className="inline-block" aria-label="Cart">
+            <div
+              onMouseEnter={() => setHover({ ...hover, cart: true })}
+              onMouseLeave={() => setHover({ ...hover, cart: false })}
+              className="cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
+            >
+              {hover.cart ? (
+                <CartSolid className="w-6 h-6" />
+              ) : (
+                <ShoppingCartIcon className="w-6 h-6" />
+              )}
+            </div>
+          </Link>
 
           {/* Heart */}
-          <div
-            onMouseEnter={() => setHover({ ...hover, heart: true })}
-            onMouseLeave={() => setHover({ ...hover, heart: false })}
-            className="cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
-          >
-            {hover.heart ? (
-              <HeartSolid className="w-6 h-6" />
-            ) : (
-              <HeartIcon className="w-6 h-6" />
-            )}
-          </div>
+          <Link href="/favorites" className="inline-block" aria-label="Favorites">
+            <div
+              onMouseEnter={() => setHover({ ...hover, heart: true })}
+              onMouseLeave={() => setHover({ ...hover, heart: false })}
+              className="cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
+            >
+              {hover.heart ? (
+                <HeartSolid className="w-6 h-6" />
+              ) : (
+                <HeartIcon className="w-6 h-6" />
+              )}
+            </div>
+          </Link>
 
           {/* Profile Icon */}
           <div
@@ -133,11 +135,11 @@ function NavBar() {
             onMouseLeave={() => setHover({ ...hover, profile: false })}
             className="cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
           >
-            <Link href="/profile">
+            <Link href="/profile" aria-label="Profile">
               {hover.profile ? (
-                <UserIconSolid className="w-6 h-6" /> // solid icon when hovered
+                <UserIconSolid className="w-6 h-6" />
               ) : (
-                <UserIcon className="w-6 h-6" /> // outline icon otherwise
+                <UserIcon className="w-6 h-6" />
               )}
             </Link>
           </div>

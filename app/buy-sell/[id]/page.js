@@ -14,6 +14,9 @@ import ProductDeleteButton from "@/components/ProductDeleteButton";
 import ProductImages from "@/components/ProductImages";
 import CommentSection from "@/components/CommentSection";
 
+// NEW: add these two tiny client buttons (files below)
+import FavoriteButton from "./FavoriteButton";
+
 export default async function ProductDetailPage({ params }) {
   const { id } = await params;
   const cookieStore = await cookies();
@@ -36,6 +39,25 @@ export default async function ProductDetailPage({ params }) {
   const session = await auth();
   const sessionEmail = session?.user?.email || "";
   const isOwner = sessionEmail === product.owner?.email;
+
+  // NEW: compute initial favorite state (keep it server-side to hydrate client)
+  let initialIsFav = false;
+  if (sessionEmail) {
+    try {
+      const favRes = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_URL}/api/favorites`,
+        {
+          headers: { Cookie: cookieStore.toString() },
+          cache: "no-store",
+        }
+      );
+      if (favRes.ok) {
+        const data = await favRes.json();
+        const favs = Array.isArray(data?.favorites) ? data.favorites : [];
+        initialIsFav = favs.some((p) => p?._id?.toString() === product._id?.toString());
+      }
+    } catch {}
+  }
 
   return (
     <>
@@ -109,11 +131,8 @@ export default async function ProductDetailPage({ params }) {
             <div className="flex flex-wrap justify-center gap-2 w-full">
               {!isOwner && (
                 <>
-                  <ActionButton
-                    text="🛒 Add to Cart"
-                    variant="cartPrimaryClick"
-                    className="flex-[1]"
-                  />
+                  {/* NEW: real Add-to-Cart (DB) + redirect to /cart */}
+                 
 
                   <Link
                     href={`/buy-sell/${product._id}/checkout`}
@@ -126,7 +145,12 @@ export default async function ProductDetailPage({ params }) {
                     />
                   </Link>
 
-                  <ActionButton text="♡" variant="iconOutlineHover" />
+                  {/* NEW: Favorite (toggle) */}
+                  <FavoriteButton
+                    productId={product._id?.toString()}
+                    initialIsFav={initialIsFav}
+                    className=""
+                  />
                 </>
               )}
             </div>
@@ -159,6 +183,7 @@ export default async function ProductDetailPage({ params }) {
                 </p>
               </div>
             </div>
+
             {/* Public Comments Section */}
             <CommentSection
               productId={product._id.toString()}
