@@ -1,4 +1,3 @@
-// app/api/admin/transactions/[id]/route.js
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -24,9 +23,7 @@ function extractPublicId(url = "") {
   }
 }
 
-// PATCH /api/admin/transactions/:id  { op: "verify" | "reject" }
-// ...imports...
-
+// PATCH /api/admin/transactions/:id  { op: "verify" | "reject", reason?: string }
 export async function PATCH(req, { params }) {
   try {
     const { id } = await params;
@@ -44,13 +41,17 @@ export async function PATCH(req, { params }) {
     if (!mongoose.Types.ObjectId.isValid(id))
       return new Response("Invalid id", { status: 400 });
 
-    let op;
+    let op,
+      reason = "";
     try {
       const body = await req.json();
       op = body?.op;
+      reason = body?.reason || "";
     } catch {}
     const url = new URL(req.url);
     op = op ?? url.searchParams.get("op");
+    reason = reason || url.searchParams.get("reason") || "";
+
     if (!op)
       return new Response("Missing 'op' (verify|reject).", { status: 400 });
 
@@ -58,11 +59,14 @@ export async function PATCH(req, { params }) {
     const txn = await Transaction.findById(id).populate("product");
     if (!txn) return new Response("Not found", { status: 404 });
 
-    const prevStatus = txn.status; // <-- keep previous state
+    const prevStatus = txn.status;
 
     if (op === "verify") {
       if (!txn.buyerReceiptUrl)
         return new Response("No buyer receipt uploaded.", { status: 409 });
+
+      // ✅ clear any previous reject reason
+      txn.adminRejectReason = "";
 
       txn.status = "ESCROW_FUNDED";
       txn.timeline.push({
@@ -86,24 +90,23 @@ export async function PATCH(req, { params }) {
     }
 
     if (op === "reject") {
-      txn.status = "REJECTED";
+      txn.status = "REJECTED_BY_ADMIN"; // <-- updated
+      txn.adminRejectReason = reason || txn.adminRejectReason || "";
       txn.timeline.push({
         by: me._id,
         at: new Date(),
-        action: "ADMIN_REJECTED_RECEIPT",
+        action: "REJECTED_BY_ADMIN", // <-- updated
+        meta: reason ? { reason } : undefined,
       });
       txn.updatedAt = new Date();
       await txn.save();
 
-      // if it was funded before (or just always), re-open the product
+      // Re-open the product for sale
       if (txn.product?._id) {
-        // either only when coming from funded:
-        // if (prevStatus === "ESCROW_FUNDED") {
         await Product.updateOne(
           { _id: txn.product._id },
           { $set: { isAvailable: true } }
         );
-        // }
       }
 
       return Response.json({ ok: true, status: txn.status });
@@ -118,7 +121,7 @@ export async function PATCH(req, { params }) {
   }
 }
 
-// DELETE /api/admin/transactions/:id  (single delete)
+// DELETE /api/admin/transactions/:id
 export async function DELETE(_req, { params }) {
   try {
     const { id } = await params;
@@ -139,7 +142,6 @@ export async function DELETE(_req, { params }) {
     const txn = await Transaction.findById(id, "buyerReceiptUrl");
     if (!txn) return new Response("Not found", { status: 404 });
 
-    // best-effort Cloudinary delete
     const pid = extractPublicId(txn.buyerReceiptUrl);
     if (pid) {
       try {

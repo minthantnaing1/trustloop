@@ -106,7 +106,7 @@ export default function BuySellPage() {
 
       <div className="max-w-[1200px] mx-auto px-4 w-full">
         {/* Header & Search */}
-        <div className="flex flex-col sm:flex-row justify-between items-center mt-[98px] mb-6 w-full gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 w-full gap-4">
           {/* Left: Title & Mobile Buttons */}
           <div className="flex flex-col w-full sm:w-auto">
             <h2 className="text-lg font-semibold text-black hidden sm:block">

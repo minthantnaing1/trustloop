@@ -117,7 +117,8 @@ export default function AdminTransactionsPage() {
                   const awaiting = t.status === "AWAITING_ADMIN_REVIEW";
                   const editable =
                     editMode &&
-                    (t.status === "ESCROW_FUNDED" || t.status === "REJECTED");
+                    (t.status === "ESCROW_FUNDED" ||
+                      t.status === "REJECTED_BY_ADMIN");
                   const showActions = awaiting || editable;
 
                   return (

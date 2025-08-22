@@ -36,6 +36,7 @@ export default function ProfileEditPage() {
         phone: user.phone,
         faculty: user.faculty,
         year: user.year,
+        location: user.location,
       }),
     });
 
@@ -52,7 +53,7 @@ export default function ProfileEditPage() {
   return (
     <>
       <NavBar />
-      <main className="max-w-[600px] mx-auto mt-[120px] mb-10 px-4">
+      <main className="max-w-[600px] mx-auto mb-10 px-4">
         <h1 className="text-xl font-semibold mb-4 text-[#325082]">
           Edit Your Profile
         </h1>
@@ -164,6 +165,18 @@ export default function ProfileEditPage() {
             <option value="Junior">Junior</option>
             <option value="Senior">Senior</option>
           </select>
+
+          <input
+            name="location"
+            value={user.location || ""}
+            onChange={handleChange}
+            placeholder="Default location (e.g., AU Dorm 2, Bangna Campus, etc.)"
+            className="w-full p-3 rounded-md bg-[#f1f1f1] outline-none"
+          />
+          <p className="text-xs text-gray-500 -mt-2">
+            Used as your default meet-up / delivery location at checkout (you
+            can override per order).
+          </p>
 
           <div className="flex justify-between gap-3">
             <ActionButton

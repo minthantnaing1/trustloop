@@ -152,6 +152,9 @@ function NavBar() {
         </div>
       </header>
 
+      {/* Spacer to push content down */}
+      <div className="h-[100px]" />
+
       {/* Overlay */}
       {showMenu && (
         <div

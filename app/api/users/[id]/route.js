@@ -47,6 +47,8 @@ export async function DELETE(_, { params }) {
 
 // ✅ Update User (Owner or Admin)
 export async function PATCH(req, { params }) {
+  const { id } = await params;
+
   try {
     const session = await auth();
     if (!session?.user?.email) {
@@ -55,7 +57,7 @@ export async function PATCH(req, { params }) {
 
     const body = await req.json();
     await connectDB();
-    const user = await User.findById(params.id);
+    const user = await User.findById(id);
 
     if (!user) {
       return new Response("User not found", { status: 404 });
@@ -66,7 +68,14 @@ export async function PATCH(req, { params }) {
       return new Response("Forbidden", { status: 403 });
     }
 
-    const allowedFields = ["name", "image", "phone", "faculty", "year"];
+    const allowedFields = [
+      "name",
+      "image",
+      "phone",
+      "faculty",
+      "year",
+      "location",
+    ];
     allowedFields.forEach((field) => {
       if (body[field] !== undefined) {
         user[field] = body[field];

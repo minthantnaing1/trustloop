@@ -24,7 +24,7 @@ const STATUS_META = {
     fg: "text-blue-700",
   },
   DELIVERY_IN_PROGRESS: {
-    label: "Delivery in progress",
+    label: "Delivery in Progress",
     bg: "bg-indigo-100",
     fg: "text-indigo-700",
   },
@@ -34,8 +34,23 @@ const STATUS_META = {
     fg: "text-emerald-700",
   },
   PAID_OUT: { label: "Paid Out", bg: "bg-emerald-100", fg: "text-emerald-700" },
-  REJECTED: { label: "Rejected", bg: "bg-red-100", fg: "text-red-700" },
-  CANCELLED: { label: "Cancelled", bg: "bg-red-100", fg: "text-red-700" },
+
+  // New explicit terminal states
+  CANCELLED_BY_BUYER: {
+    label: "Cancelled by Buyer",
+    bg: "bg-red-100",
+    fg: "text-red-700",
+  },
+  CANCELLED_BY_SELLER: {
+    label: "Cancelled by Seller",
+    bg: "bg-red-100",
+    fg: "text-red-700",
+  },
+  REJECTED_BY_ADMIN: {
+    label: "Rejected by Admin",
+    bg: "bg-red-100",
+    fg: "text-red-700",
+  },
 };
 
 export const STATUS_CODES = Object.keys(STATUS_META); // keeps insertion order

@@ -9,8 +9,20 @@ export async function POST(req) {
   if (!session?.user?.email)
     return new Response("Unauthorized", { status: 401 });
 
-  const { productId } = await req.json();
+  const {
+    productId,
+    // NEW: buyer selection at checkout
+    method, // "DELIVERY" | "MEETUP"
+    address = "", // if DELIVERY
+    meetupLocation = "", // if MEETUP
+  } = await req.json();
+
   if (!productId) return new Response("productId required", { status: 400 });
+  if (!method || !["DELIVERY", "MEETUP"].includes(method)) {
+    return new Response("valid method required (DELIVERY or MEETUP)", {
+      status: 400,
+    });
+  }
 
   await connectDB();
 
@@ -22,6 +34,7 @@ export async function POST(req) {
     "PENDING_UPLOAD",
     "AWAITING_ADMIN_REVIEW",
     "ESCROW_FUNDED",
+    "SELLER_ACCEPTED",
     "DELIVERY_IN_PROGRESS",
     "BUYER_CONFIRMED",
   ];
@@ -38,8 +51,7 @@ export async function POST(req) {
     return Response.json({ transactionId: existing._id, reused: true });
   }
 
-  // 2) Atomically reserve the product for 5 minutes (set isAvailable=false)
-  //    This prevents other users (and the same user) from buying again.
+  // 2) Atomically reserve the product for 5 minutes
   const product = await Product.findOneAndUpdate(
     { _id: productId, isAvailable: true },
     { $set: { isAvailable: false } },
@@ -64,6 +76,20 @@ export async function POST(req) {
   const total = price + fee;
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
+  // Build fulfillment from buyer choice
+  const fulfillment =
+    method === "DELIVERY"
+      ? {
+          method,
+          address: address || buyerUser.defaultLocation || "",
+          notes: "",
+        }
+      : {
+          method,
+          meetupLocation: meetupLocation || buyerUser.defaultLocation || "",
+          notes: "",
+        };
+
   try {
     const txn = await Transaction.create({
       product: product._id,
@@ -75,7 +101,14 @@ export async function POST(req) {
       total,
       sellerNet: price,
       expiresAt,
-      timeline: [{ by: buyerUser._id, action: "ORDER_CREATED" }],
+      fulfillment, // NEW
+      timeline: [
+        {
+          by: buyerUser._id,
+          action: "ORDER_CREATED",
+          meta: { method, address, meetupLocation, price, fee, total },
+        },
+      ],
     });
 
     return Response.json({ transactionId: txn._id, reused: false });

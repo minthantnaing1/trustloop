@@ -15,7 +15,7 @@ export default function ConfirmModal({
     if (isOpen) {
       setShow(true);
       if (variant === "danger") {
-        setCountdown(3); // 5-second delay for delete
+        setCountdown(0); // 5-second delay for delete
       }
     }
   }, [isOpen, variant]);

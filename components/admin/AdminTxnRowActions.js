@@ -4,21 +4,22 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import ActionButton from "@/components/ActionButton";
 
-const OP_TO_STATUS = { verify: "ESCROW_FUNDED", reject: "REJECTED" };
+// Map ops to the *new* statuses (for optimistic UI if API didn’t return)
+const OP_TO_STATUS = { verify: "ESCROW_FUNDED", reject: "REJECTED_BY_ADMIN" };
 
 export default function AdminTxnRowActions({ txnId, onDone }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
-  async function call(op) {
+  async function call(op, extra = {}) {
     setBusy(true);
     setErr("");
     try {
       const res = await fetch(`/api/admin/transactions/${txnId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ op }),
+        body: JSON.stringify({ op, ...extra }),
       });
       if (!res.ok) throw new Error(await res.text());
       let data = null;
@@ -26,6 +27,7 @@ export default function AdminTxnRowActions({ txnId, onDone }) {
         data = await res.json();
       } catch {}
       const newStatus = data?.status || OP_TO_STATUS[op] || null;
+
       if (onDone && newStatus) {
         onDone({ id: txnId, newStatus });
       } else {
@@ -50,7 +52,12 @@ export default function AdminTxnRowActions({ txnId, onDone }) {
       <ActionButton
         text="Reject"
         variant="dangerOutlineHover"
-        onClick={() => call("reject")}
+        onClick={() => {
+          // optional: collect a reason; remove this prompt if you don’t want it
+          const reason =
+            window.prompt("Reason for rejection? (optional)") || "";
+          call("reject", { reason });
+        }}
         disabled={busy}
         className="h-[34px] w-[90px]"
       />

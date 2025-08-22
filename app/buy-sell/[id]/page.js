@@ -40,7 +40,7 @@ export default async function ProductDetailPage({ params }) {
   return (
     <>
       <NavBar />
-      <main className="max-w-[1200px] mx-auto mt-[120px] mb-[40px] px-5 w-full">
+      <main className="max-w-[1200px] mx-auto mb-[40px] px-5 w-full">
         {/* Top Section */}
         <div className="flex justify-between items-start mb-4 flex-col sm:flex-row gap-4">
           {/* Back Button */}
