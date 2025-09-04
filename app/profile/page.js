@@ -134,7 +134,7 @@ export default async function ProfilePage() {
         </section>
 
         {/* Centered phone and location below the top section */}
-        <div className="flex flex-col items-start ml-[262px] mb-6 space-y-1">
+        <div className="flex flex-col items-center mt-4 mb-6 space-y-2">
           <p className="text-base text-gray-800">
             <span className="font-semibold">Phone – </span>
             <span className="font-normal">{user.phone || "Not set"}</span>

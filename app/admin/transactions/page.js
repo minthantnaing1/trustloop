@@ -191,6 +191,20 @@ export default function AdminTransactionsPage() {
                               Delete
                             </span>
                           </button>
+                        ) : t.status === "BUYER_CONFIRMED" ? (
+                          <a
+                            href={`/admin/transactions/${txnId}/payout`}
+                            className="inline-flex items-center px-3 py-2 rounded-md bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700"
+                          >
+                            Payout
+                          </a>
+                        ) : t.status === "PAID_OUT" ? (
+                          <a
+                            href={`/admin/transactions/${txnId}/payout`}
+                            className="text-sm underline text-[#325082] underline-offset-2"
+                          >
+                            View Payout
+                          </a>
                         ) : showActions ? (
                           <AdminTxnRowActions
                             txnId={txnId}

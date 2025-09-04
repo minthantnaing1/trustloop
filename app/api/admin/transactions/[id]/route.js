@@ -41,19 +41,22 @@ export async function PATCH(req, { params }) {
     if (!mongoose.Types.ObjectId.isValid(id))
       return new Response("Invalid id", { status: 400 });
 
-    let op,
-      reason = "";
+    // replace your current body parsing with this (keeps 'body'):
+    let body = {};
     try {
-      const body = await req.json();
-      op = body?.op;
-      reason = body?.reason || "";
+      body = await req.json();
     } catch {}
+    let op = body?.op;
+    let reason = body?.reason || "";
+
     const url = new URL(req.url);
     op = op ?? url.searchParams.get("op");
     reason = reason || url.searchParams.get("reason") || "";
 
     if (!op)
-      return new Response("Missing 'op' (verify|reject).", { status: 400 });
+      return new Response("Missing 'op' (verify|reject|mark_paid).", {
+        status: 400,
+      });
 
     // include product so we can toggle availability
     const txn = await Transaction.findById(id).populate("product");
@@ -112,9 +115,39 @@ export async function PATCH(req, { params }) {
       return Response.json({ ok: true, status: txn.status });
     }
 
-    return new Response("Unsupported op. Use 'verify' or 'reject'.", {
-      status: 400,
-    });
+    // --- NEW: admin marks payout complete ---
+    if (op === "mark_paid") {
+      // accept from body or query (?payoutUrl=...)
+      const payoutUrl = body?.payoutUrl || url.searchParams.get("payoutUrl");
+      if (!payoutUrl)
+        return new Response("payoutUrl required", { status: 400 });
+
+      // optional: ensure we’re only paying after buyer confirmed
+      if (txn.status !== "BUYER_CONFIRMED") {
+        return new Response("Not allowed in current state", { status: 409 });
+      }
+
+      txn.status = "PAID_OUT";
+      txn.adminPayoutReceiptUrl = payoutUrl;
+      txn.adminRejectReason = ""; // clear previous reject reason if any
+      txn.timeline.push({
+        by: me._id,
+        at: new Date(),
+        action: "ADMIN_PAID_OUT",
+        meta: { url: payoutUrl },
+      });
+      txn.updatedAt = new Date();
+      await txn.save();
+
+      return Response.json({ ok: true, status: txn.status });
+    }
+
+    return new Response(
+      "Unsupported op. Use 'verify' or 'reject' or 'mark_paid'.",
+      {
+        status: 400,
+      }
+    );
   } catch (e) {
     console.error("PATCH /api/admin/transactions/[id] error:", e);
     return new Response("Internal Server Error", { status: 500 });

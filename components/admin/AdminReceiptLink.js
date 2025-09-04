@@ -57,7 +57,7 @@ export default function AdminReceiptLink({ url }) {
 
       {open && (
         <div
-          className="fixed inset-0 z-[9999] bg-black/50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[30000] bg-black/50 flex items-center justify-center p-4"
           onClick={handleClose}
         >
           <div

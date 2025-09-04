@@ -43,7 +43,11 @@ const STATUS_META = {
     bg: "bg-emerald-100",
     fg: "text-emerald-700",
   },
-  PAID_OUT: { label: "Paid Out", bg: "bg-emerald-100", fg: "text-emerald-700" },
+  PAID_OUT: {
+    label: "Paid Out by Admin",
+    bg: "bg-emerald-100",
+    fg: "text-emerald-700",
+  },
 
   CANCELLED_BY_BUYER: {
     label: "Cancelled by Buyer",

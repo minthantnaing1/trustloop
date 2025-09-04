@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 import ConfirmModal from "@/components/ConfirmModal";
 
@@ -31,7 +31,23 @@ function NavBar() {
   const [showMenu, setShowMenu] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [me, setMe] = useState(null); // full user doc (for avatar)
+
+  // ---- Optimistic avatar: load instantly from localStorage, then refresh from API
+  // ---- Optimistic avatar: avoid hydration error
+  const [me, setMe] = useState(null);
+  const [avatarUrl, setAvatarUrl] = useState("");
+
+  // Load cached avatar on client only
+  useEffect(() => {
+    try {
+      const cachedImage = localStorage.getItem("tl_avatar");
+      const cachedName = localStorage.getItem("tl_name");
+      if (cachedImage) {
+        setMe({ image: cachedImage, name: cachedName || "" });
+        setAvatarUrl(cachedImage);
+      }
+    } catch {}
+  }, []);
 
   const pathname = usePathname();
 
@@ -55,22 +71,37 @@ function NavBar() {
         }
       })
       .then((u) => {
-        if (u) setMe(u);
+        if (!u) return;
+        setMe({ image: u.image || "", name: u.name || "" });
+        if (u.image) {
+          setAvatarUrl(u.image);
+          try {
+            localStorage.setItem("tl_avatar", u.image);
+            if (u.name) localStorage.setItem("tl_name", u.name);
+          } catch {}
+        }
       })
       .catch(() => {});
   }, []);
 
-  const navLinks = [
-    { label: "HOME", href: "/home" },
-    { label: "BUY & SELL", href: "/buy-sell" },
-    { label: "AUCTION", href: "/auction" },
-    { label: "GIVEAWAY", href: "/giveaway" },
-  ];
+  const navLinks = useMemo(
+    () => [
+      { label: "HOME", href: "/home" },
+      { label: "BUY & SELL", href: "/buy-sell" },
+      { label: "AUCTION", href: "/auction" },
+      { label: "GIVEAWAY", href: "/giveaway" },
+    ],
+    []
+  );
 
   const isActiveLink = (href) =>
     pathname === href ||
     (href === "/buy-sell" && pathname.startsWith("/buy-sell/")) ||
     (href === "/buy-sell" && pathname === "/sell");
+
+  // Tiny inline blur placeholder (keeps circle shape clean)
+  const blurDataURL =
+    "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNmMmYyZjQiIC8+PC9zdmc+";
 
   return (
     <>
@@ -146,21 +177,35 @@ function NavBar() {
             className="cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
           >
             <Link href="/profile" className="block">
-              {me?.image ? (
-                <Image
-                  src={me.image}
-                  alt={me.name || "Profile"}
-                  width={32}
-                  height={32}
-                  className={`rounded-full ring-2 ring-white/70 shadow-sm object-cover ${
-                    hover.profile ? "scale-[1.03]" : ""
-                  }`}
-                />
-              ) : hover.profile ? (
-                <UserIconSolid className="w-6 h-6" />
-              ) : (
-                <UserIcon className="w-6 h-6" />
-              )}
+              <div className={`relative w-8 h-8`}>
+                {avatarUrl ? (
+                  <Image
+                    src={avatarUrl}
+                    alt={me?.name || "Profile"}
+                    fill
+                    sizes="32px"
+                    priority
+                    placeholder="blur"
+                    blurDataURL={blurDataURL}
+                    className={`rounded-full ring-2 ring-white/70 shadow-sm object-cover ${
+                      hover.profile ? "scale-[1.03]" : ""
+                    }`}
+                    onError={() => {
+                      // Fallback to placeholder if remote image fails
+                      setAvatarUrl("");
+                    }}
+                  />
+                ) : (
+                  // Circular placeholder (always a circle)
+                  <div className="w-8 h-8 rounded-full ring-2 ring-white/70 shadow-sm bg-white/20 flex items-center justify-center">
+                    {hover.profile ? (
+                      <UserIconSolid className="w-5 h-5 text-white" />
+                    ) : (
+                      <UserIcon className="w-5 h-5 text-white" />
+                    )}
+                  </div>
+                )}
+              </div>
             </Link>
           </div>
 
