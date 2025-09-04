@@ -125,7 +125,7 @@ export default function EditProductPage() {
   return (
     <>
       <NavBar />
-      <main className="max-w-[1200px] mx-auto mt-[110px] mb-5 px-5">
+      <main className="max-w-[1200px] mx-auto mb-5 px-5">
         {/* Top Bar */}
         <div className="flex justify-between items-center mb-6">
           <ActionButton

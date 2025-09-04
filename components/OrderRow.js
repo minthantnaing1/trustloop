@@ -7,6 +7,7 @@ export default function OrderRow({
   rightArea, // totals + actions (JSX)
   subtitleRight, // optional small text near status
   metaLeft = [], // array of [label, value]
+  footer, // 🔹 NEW: renders at the bottom of the card
 }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-[#f8fbff] shadow-sm hover:shadow-md hover:ring-1 hover:ring-[#325082]/15 transition-all">
@@ -22,37 +23,44 @@ export default function OrderRow({
       </div>
 
       {/* Body */}
-      <div className="p-4 flex gap-4">
-        {/* Thumb */}
-        <div className="w-24 h-24 rounded-xl overflow-hidden bg-slate-100 shrink-0 ring-1 ring-slate-200">
-          {image ? (
-            <img
-              src={image}
-              alt={title}
-              className="w-full h-full object-cover"
-            />
-          ) : null}
+      <div className="p-4">
+        <div className="flex gap-4">
+          {/* Thumb */}
+          <div className="w-24 h-24 rounded-xl overflow-hidden bg-slate-100 shrink-0 ring-1 ring-slate-200">
+            {image ? (
+              <img
+                src={image}
+                alt={title}
+                className="w-full h-full object-cover"
+              />
+            ) : null}
+          </div>
+
+          {/* Title + meta */}
+          <div className="flex-1 min-w-0">
+            <div className="text-[15px] font-semibold text-[#1b2b4a] line-clamp-2">
+              {title}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-[13px] text-slate-600">
+              {metaLeft.map(([k, v], i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <span className="text-slate-500">{k}:</span>
+                  <span>{v}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right column */}
+          <div className="w-full sm:w-64 flex sm:block items-end justify-between">
+            {rightArea}
+          </div>
         </div>
 
-        {/* Title + meta */}
-        <div className="flex-1 min-w-0">
-          <div className="text-[15px] font-semibold text-[#1b2b4a] line-clamp-2">
-            {title}
-          </div>
-          <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-[13px] text-slate-600">
-            {metaLeft.map(([k, v], i) => (
-              <div key={i} className="flex items-center gap-2">
-                <span className="text-slate-500">{k}:</span>
-                <span>{v}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Right column */}
-        <div className="w-full sm:w-64 flex sm:block items-end justify-between">
-          {rightArea}
-        </div>
+        {/* 🔹 Footer slot (timeline lives here) */}
+        {footer && (
+          <div className="mt-3 pt-3 border-t border-[#e6eeff]">{footer}</div>
+        )}
       </div>
     </div>
   );

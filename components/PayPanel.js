@@ -1,3 +1,4 @@
+// components/PayPanel.js
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -8,14 +9,14 @@ export default function PayPanel({ txn }) {
   const router = useRouter();
 
   // ---- state ----
-  const [timeLeft, setTimeLeft] = useState(null); // null until first tick
+  const [timeLeft, setTimeLeft] = useState(null);
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const fileInputRef = useRef(null);
 
-  // ---- countdown ----
+  // countdown
   const expiresAt = useMemo(() => {
     const t = new Date(txn.expiresAt).getTime();
     return Number.isFinite(t) ? t : Date.now() + 5 * 60 * 1000;
@@ -32,7 +33,7 @@ export default function PayPanel({ txn }) {
     return () => clearInterval(id);
   }, [expiresAt]);
 
-  // auto-cancel after we’ve initialized
+  // auto-cancel on timeout
   const cancelled = useRef(false);
   useEffect(() => {
     if (timeLeft === null) return;
@@ -53,11 +54,10 @@ export default function PayPanel({ txn }) {
           timeLeft % 60
         ).padStart(2, "0")}`;
 
-  // ---- uploader helpers ----
+  // uploader helpers
   function openPicker() {
     fileInputRef.current?.click();
   }
-
   function onFileChange(e) {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -66,7 +66,6 @@ export default function PayPanel({ txn }) {
     const url = URL.createObjectURL(f);
     setPreview(url);
   }
-
   function onDrop(e) {
     e.preventDefault();
     const f = e.dataTransfer.files?.[0];
@@ -76,26 +75,22 @@ export default function PayPanel({ txn }) {
     const url = URL.createObjectURL(f);
     setPreview(url);
   }
-
   function onDragOver(e) {
     e.preventDefault();
   }
-
   function clearFile() {
     setFile(null);
     if (preview) URL.revokeObjectURL(preview);
     setPreview(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
-
   useEffect(() => {
-    // cleanup preview URL when component unmounts
     return () => {
       if (preview) URL.revokeObjectURL(preview);
     };
   }, [preview]);
 
-  // ---- submit (Cloudinary first, then PATCH with URL) ----
+  // submit (upload then PATCH)
   async function handleUpload() {
     if (!file) {
       setErr("Please choose an image of your receipt.");
@@ -109,7 +104,6 @@ export default function PayPanel({ txn }) {
     setErr("");
     setBusy(true);
     try {
-      // 1) Upload to Cloudinary via your existing /api/upload
       const fd = new FormData();
       fd.append("file", file);
       const up = await fetch("/api/upload", { method: "POST", body: fd });
@@ -118,21 +112,19 @@ export default function PayPanel({ txn }) {
         throw new Error(upData?.error || "Upload failed");
       }
 
-      // 2) Save URL to the transaction (no base64 in DB)
       const res = await fetch(`/api/transactions/${txn._id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "upload_receipt",
           buyerReceiptUrl: upData.url,
-          buyerReceiptPublicId: upData.publicId || "", // optional if your /api/upload returns it
+          buyerReceiptPublicId: upData.publicId || "",
         }),
       });
       if (!res.ok)
         throw new Error((await res.text()) || "Failed to submit receipt");
 
-      // Success → go back to profile (or wherever you want)
-      router.replace("/profile");
+      router.replace("/my-orders");
     } catch (e) {
       setErr(e.message || "Something went wrong");
       setBusy(false);

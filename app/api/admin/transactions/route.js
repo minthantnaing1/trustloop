@@ -1,4 +1,3 @@
-// app/api/admin/transactions/route.js
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -12,9 +11,7 @@ import cloudinary from "@/lib/cloudinary";
 
 function extractPublicId(url = "") {
   try {
-    // Handles: https://res.cloudinary.com/<cloud>/image/upload/v123/folder/name.jpg
     const afterUpload = url.split("/upload/")[1];
-    // Drop version + extension
     return afterUpload
       .split("/")
       .slice(1)
@@ -25,7 +22,7 @@ function extractPublicId(url = "") {
   }
 }
 
-// GET /api/admin/transactions?status=ALL|AWAITING_ADMIN_REVIEW|...
+// GET /api/admin/transactions?status=ALL|PENDING_UPLOAD|AWAITING_ADMIN_REVIEW|...
 export async function GET(req) {
   try {
     const session = await auth();
@@ -33,19 +30,18 @@ export async function GET(req) {
       return new Response("Unauthorized", { status: 401 });
 
     await connectDB();
-    // keep ObjectId (no .lean() yet)
     const me = await User.findOne({ email: session.user.email }).select(
       "_id role"
     );
     if (!me || me.role !== "admin")
       return new Response("Forbidden", { status: 403 });
 
-    // best-effort sweep (never fail the page)
+    // best-effort sweep (expire unpaid -> buyer-cancel)
     try {
       const now = new Date();
       await Transaction.updateMany(
         { status: "PENDING_UPLOAD", expiresAt: { $lte: now } },
-        { $set: { status: "CANCELLED", updatedAt: now } }
+        { $set: { status: "CANCELLED_BY_BUYER", updatedAt: now } }
       );
     } catch (sweepErr) {
       console.warn("transactions sweep skipped:", sweepErr?.message);
@@ -53,6 +49,8 @@ export async function GET(req) {
 
     const { searchParams } = new URL(req.url);
     const statusParam = (searchParams.get("status") || "ALL").toUpperCase();
+
+    // exact-match filtering only (no legacy mapping)
     const match = statusParam === "ALL" ? {} : { status: statusParam };
 
     const docs = await Transaction.find(match)
@@ -97,13 +95,11 @@ export async function DELETE(req) {
     } catch {}
     if (!ids.length) return new Response("ids[] required", { status: 400 });
 
-    // fetch only what we need
     const txns = await Transaction.find(
       { _id: { $in: ids } },
       "buyerReceiptUrl"
     ).lean();
 
-    // delete Cloudinary receipts (best effort)
     await Promise.allSettled(
       txns.map(async (t) => {
         const pid = extractPublicId(t.buyerReceiptUrl);
@@ -117,7 +113,6 @@ export async function DELETE(req) {
       })
     );
 
-    // delete from Mongo
     await Transaction.deleteMany({ _id: { $in: ids } });
 
     return Response.json({ ok: true, deleted: ids.length });

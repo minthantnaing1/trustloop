@@ -1,19 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import NavBar from "@/components/NavBar";
 import OrderRow from "@/components/OrderRow";
 import ActionButton from "@/components/ActionButton";
 import StatusPill from "@/components/StatusPill";
-import AdminReceiptLink from "@/components/admin/AdminReceiptLink";
 
 export default function MyOrdersPage() {
-  const [role, setRole] = useState("buyer"); // "buyer" | "seller"
+  const router = useRouter();
+  const [role, setRole] = useState("buyer");
   const [buyerTxns, setBuyerTxns] = useState(null);
   const [sellerTxns, setSellerTxns] = useState(null);
   const [errBuyer, setErrBuyer] = useState("");
   const [errSeller, setErrSeller] = useState("");
+  const [pendingActionId, setPendingActionId] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -51,6 +53,7 @@ export default function MyOrdersPage() {
 
   async function actOnTxn(id, action) {
     try {
+      setPendingActionId(id);
       const res = await fetch(`/api/transactions/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -58,6 +61,7 @@ export default function MyOrdersPage() {
       });
       if (!res.ok) throw new Error(await res.text());
 
+      // optimistic: update seller list
       setSellerTxns((prev) =>
         (prev || []).map((t) =>
           (t._id?.toString?.() || t._id) === id
@@ -67,15 +71,19 @@ export default function MyOrdersPage() {
                   action === "seller_accept"
                     ? "SELLER_ACCEPTED"
                     : action === "seller_cancel"
-                    ? "CANCELLED"
+                    ? "CANCELLED_BY_SELLER"
                     : t.status,
                 updatedAt: new Date().toISOString(),
               }
             : t
         )
       );
+
+      if (action === "seller_accept") router.push(`/my-orders/${id}#delivery`);
     } catch (e) {
       alert(e.message || "Action failed");
+    } finally {
+      setPendingActionId(null);
     }
   }
 
@@ -85,8 +93,7 @@ export default function MyOrdersPage() {
   return (
     <>
       <NavBar />
-      <div className="max-w-[1200px] mx-auto px-4 py-8 mt-[75px]">
-        {/* Header with role switch on the right */}
+      <div className="max-w-[1200px] mx-auto px-4 py-2">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-semibold text-[#325082]">My Orders</h1>
           <div className="bg-white rounded-full shadow-sm border overflow-hidden">
@@ -124,9 +131,8 @@ export default function MyOrdersPage() {
               const isSeller = role === "seller";
               const canAcceptOrCancel =
                 isSeller && t.status === "ESCROW_FUNDED";
-
-              // Counterparty line (always show the other side)
               const counterparty = isSeller ? t.buyer : t.seller;
+
               const counterpartyLine = counterparty ? (
                 <span className="text-sm text-gray-600">
                   {isSeller ? "Buyer:" : "Seller:"}{" "}
@@ -152,14 +158,34 @@ export default function MyOrdersPage() {
                 </a>
               ) : null;
 
-              const detailsLink = (
+              const productLink = (
                 <Link
-                  href={`/buy-sell/${t.product?._id || ""}`}
+                  href={`/buy-sell/${t.product?._id}`}
                   className="text-sm underline text-[#325082] underline-offset-2"
                 >
-                  Details
+                  Product Details
                 </Link>
               );
+
+              const showDetailsStatuses = [
+                "SELLER_ACCEPTED",
+                "DELIVERY_IN_PROGRESS",
+                "SELLER_DELIVERED",
+                "MEETUP_COMPLETED",
+                "BUYER_CONFIRMED",
+                "PAID_OUT",
+              ];
+
+              const orderDetailsLink = showDetailsStatuses.includes(
+                t.status
+              ) ? (
+                <Link
+                  href={`/my-orders/${id}`}
+                  className="text-sm underline text-[#325082] underline-offset-2"
+                >
+                  Order Details
+                </Link>
+              ) : null;
 
               return (
                 <OrderRow
@@ -186,27 +212,60 @@ export default function MyOrdersPage() {
                       {/* Links row */}
                       <div className="flex gap-3 text-sm">
                         {receiptLink}
-                        {detailsLink}
+                        {productLink}
+                        {orderDetailsLink}
                       </div>
 
                       {/* Actions row (seller only) */}
-                      {canAcceptOrCancel && (
+                      {isSeller && canAcceptOrCancel && (
                         <div className="flex gap-2">
                           <ActionButton
                             text="Accept"
                             variant="primaryClick"
                             className="h-[34px] px-3"
+                            disabled={pendingActionId === id}
                             onClick={() => actOnTxn(id, "seller_accept")}
                           />
                           <ActionButton
                             text="Cancel"
                             variant="dangerOutlineHover"
                             className="h-[34px] px-3"
+                            disabled={pendingActionId === id}
                             onClick={() => actOnTxn(id, "seller_cancel")}
                           />
                         </div>
                       )}
                     </div>
+                  }
+                  footer={
+                    <details>
+                      <summary className="cursor-pointer text-sm text-[#325082] underline underline-offset-2">
+                        View Timeline
+                      </summary>
+                      <div className="mt-2 bg-[#f8fbff] border border-[#e6eeff] rounded-lg p-3 max-w-xl">
+                        {Array.isArray(t.timeline) && t.timeline.length > 0 ? (
+                          <ul className="space-y-2">
+                            {[...t.timeline].reverse().map((e, i) => (
+                              <li
+                                key={i}
+                                className="flex items-center justify-between rounded-md bg-white ring-1 ring-[#e6eeff] px-3 py-2"
+                              >
+                                <div className="text-sm text-gray-800">
+                                  {e.action || "-"}
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  {e.at ? new Date(e.at).toLocaleString() : "-"}
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <div className="text-sm text-gray-500">
+                            No events yet.
+                          </div>
+                        )}
+                      </div>
+                    </details>
                   }
                 />
               );

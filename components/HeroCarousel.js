@@ -16,7 +16,7 @@ export default function HeroCarousel() {
   }, []);
 
   return (
-    <div className="relative w-full aspect-[16/9] overflow-hidden shadow-lg">
+    <div className="relative w-full aspect-[16/9] mt-[0.2px] overflow-hidden shadow-lg">
       {/* Image Slider */}
       <div
         className="flex w-full h-full transition-transform duration-1500 ease-in-out"
@@ -45,7 +45,7 @@ export default function HeroCarousel() {
           auction, or donate securely among AU students.
         </p>
         <Link href="/buy-sell">
-          <span className="bg-white text-[#325082] font-semibold rounded-full px-6 py-3 hover:bg-gray-200 transition">
+          <span className="bg-white text-[#325082] font-semibold rounded-full px-4 py-3 hover:bg-gray-200 transition">
             Start Exploring
           </span>
         </Link>

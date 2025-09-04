@@ -24,18 +24,46 @@ const STATUS_META = {
     fg: "text-blue-700",
   },
   DELIVERY_IN_PROGRESS: {
-    label: "Delivery in progress",
+    label: "Delivery in Progress",
     bg: "bg-indigo-100",
     fg: "text-indigo-700",
+  },
+  SELLER_DELIVERED: {
+    label: "Seller Delivered",
+    bg: "bg-purple-100",
+    fg: "text-purple-700",
+  },
+  MEETUP_COMPLETED: {
+    label: "Meetup Completed",
+    bg: "bg-cyan-100",
+    fg: "text-cyan-700",
   },
   BUYER_CONFIRMED: {
     label: "Buyer Confirmed",
     bg: "bg-emerald-100",
     fg: "text-emerald-700",
   },
-  PAID_OUT: { label: "Paid Out", bg: "bg-emerald-100", fg: "text-emerald-700" },
-  REJECTED: { label: "Rejected", bg: "bg-red-100", fg: "text-red-700" },
-  CANCELLED: { label: "Cancelled", bg: "bg-red-100", fg: "text-red-700" },
+  PAID_OUT: {
+    label: "Paid Out by Admin",
+    bg: "bg-emerald-100",
+    fg: "text-emerald-700",
+  },
+
+  CANCELLED_BY_BUYER: {
+    label: "Cancelled by Buyer",
+    bg: "bg-red-100",
+    fg: "text-red-700",
+  },
+  CANCELLED_BY_SELLER: {
+    label: "Cancelled by Seller",
+    bg: "bg-red-100",
+    fg: "text-red-700",
+  },
+  REJECTED_BY_ADMIN: {
+    label: "Rejected by Admin",
+    bg: "bg-red-100",
+    fg: "text-red-700",
+  },
 };
 
 export const STATUS_CODES = Object.keys(STATUS_META); // keeps insertion order

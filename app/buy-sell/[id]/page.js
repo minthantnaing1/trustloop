@@ -40,29 +40,16 @@ export default async function ProductDetailPage({ params }) {
   const sessionEmail = session?.user?.email || "";
   const isOwner = sessionEmail === product.owner?.email;
 
-  // NEW: compute initial favorite state (keep it server-side to hydrate client)
-  let initialIsFav = false;
-  if (sessionEmail) {
-    try {
-      const favRes = await fetch(
-        `${process.env.NEXT_PUBLIC_BASE_URL}/api/favorites`,
-        {
-          headers: { Cookie: cookieStore.toString() },
-          cache: "no-store",
-        }
-      );
-      if (favRes.ok) {
-        const data = await favRes.json();
-        const favs = Array.isArray(data?.favorites) ? data.favorites : [];
-        initialIsFav = favs.some((p) => p?._id?.toString() === product._id?.toString());
-      }
-    } catch {}
-  }
+  // Availability drives the UI:
+  // - false => there is an active transaction (not cancelled/rejected), so hide buyer + seller controls
+  // - true  => cancelled/rejected/no txn, show buyer actions and seller manage actions
+  const canBuyerInteract = !isOwner && product.isAvailable === true;
+  const canSellerManage = isOwner && product.isAvailable === true;
 
   return (
     <>
       <NavBar />
-      <main className="max-w-[1200px] mx-auto mt-[120px] mb-[40px] px-5 w-full">
+      <main className="max-w-[1200px] mx-auto mb-[40px] px-5 w-full">
         {/* Top Section */}
         <div className="flex justify-between items-start mb-4 flex-col sm:flex-row gap-4">
           {/* Back Button */}
@@ -74,8 +61,8 @@ export default async function ProductDetailPage({ params }) {
             Back to Buy & Sell
           </Link>
 
-          {/* Owner Action Buttons (Moved below back button on mobile) */}
-          {isOwner && (
+          {/* Owner Action Buttons (hidden when product is locked by an active txn) */}
+          {isOwner && canSellerManage && (
             <div className="flex gap-3 items-center sm:ml-auto sm:flex-row flex-wrap">
               <span
                 className={`inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full transition-transform duration-500 ease-in-out transform group hover:scale-[1.1] ${
@@ -128,8 +115,9 @@ export default async function ProductDetailPage({ params }) {
               {Number(product.price).toLocaleString()} ฿
             </p>
 
+            {/* Buyer action buttons — only when available (i.e., not locked by an active txn) */}
             <div className="flex flex-wrap justify-center gap-2 w-full">
-              {!isOwner && (
+              {canBuyerInteract && (
                 <>
                   {/* NEW: real Add-to-Cart (DB) + redirect to /cart */}
                  
@@ -154,6 +142,13 @@ export default async function ProductDetailPage({ params }) {
                 </>
               )}
             </div>
+
+            {/* If the product is unavailable, you can optionally show a small notice */}
+            {!product.isAvailable && (
+              <p className="text-sm text-gray-600 mt-1">
+                This item is currently in an active transaction.
+              </p>
+            )}
 
             <div className="bg-[#e2e2e2] p-3 rounded-md">
               Description: {product.description || "-"}

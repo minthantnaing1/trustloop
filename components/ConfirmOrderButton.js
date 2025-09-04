@@ -4,20 +4,50 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import ActionButton from "@/components/ActionButton";
 
-export default function ConfirmOrderButton({ productId }) {
+export default function ConfirmOrderButton({ productId, formId }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
   async function handleConfirm() {
+    if (loading) return; // guard double clicks
     try {
       setLoading(true);
       setErr("");
 
+      if (!productId) {
+        throw new Error("Missing productId");
+      }
+
+      // Read method + location from the form if provided
+      let payload = { productId };
+      if (formId) {
+        const form = document.getElementById(formId);
+        if (!form) throw new Error("Checkout form not found");
+        const fd = new FormData(form);
+        const method = (fd.get("method") || "MEETUP").toString();
+        const location = (fd.get("location") || "").toString().trim();
+
+        if (!["MEETUP", "DELIVERY"].includes(method)) {
+          throw new Error("Please select a valid fulfillment method.");
+        }
+        if (!location) {
+          throw new Error("Please provide a location/address for this order.");
+        }
+
+        payload = {
+          ...payload,
+          method,
+          ...(method === "DELIVERY"
+            ? { address: location }
+            : { meetupLocation: location }),
+        };
+      }
+
       const res = await fetch("/api/transactions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -26,7 +56,6 @@ export default function ConfirmOrderButton({ productId }) {
       }
 
       const data = await res.json();
-      // Navigate to Pay & Upload under buy-sell
       router.push(`/buy-sell/pay/${data.transactionId}`);
     } catch (e) {
       setErr(e.message || "Something went wrong");

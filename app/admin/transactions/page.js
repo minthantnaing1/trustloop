@@ -117,7 +117,8 @@ export default function AdminTransactionsPage() {
                   const awaiting = t.status === "AWAITING_ADMIN_REVIEW";
                   const editable =
                     editMode &&
-                    (t.status === "ESCROW_FUNDED" || t.status === "REJECTED");
+                    (t.status === "ESCROW_FUNDED" ||
+                      t.status === "REJECTED_BY_ADMIN");
                   const showActions = awaiting || editable;
 
                   return (
@@ -190,6 +191,20 @@ export default function AdminTransactionsPage() {
                               Delete
                             </span>
                           </button>
+                        ) : t.status === "BUYER_CONFIRMED" ? (
+                          <a
+                            href={`/admin/transactions/${txnId}/payout`}
+                            className="inline-flex items-center px-3 py-2 rounded-md bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700"
+                          >
+                            Payout
+                          </a>
+                        ) : t.status === "PAID_OUT" ? (
+                          <a
+                            href={`/admin/transactions/${txnId}/payout`}
+                            className="text-sm underline text-[#325082] underline-offset-2"
+                          >
+                            View Payout
+                          </a>
                         ) : showActions ? (
                           <AdminTxnRowActions
                             txnId={txnId}

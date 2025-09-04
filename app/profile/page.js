@@ -67,7 +67,7 @@ export default async function ProfilePage() {
   return (
     <>
       <NavBar />
-      <main className="max-w-[1200px] mx-auto mt-[110px] mb-5 px-5">
+      <main className="max-w-[1200px] mx-auto mb-5 px-5">
         {/* Edit Button - Top Right */}
         <div className="flex justify-end mb-4">
           <Link href="/profile/edit">
@@ -76,10 +76,10 @@ export default async function ProfilePage() {
         </div>
 
         {/* Top Section */}
-        <section className="flex flex-wrap justify-between items-start gap-5 mb-5">
+        <section className="flex flex-wrap justify-between items-start gap-5">
           {/* Profile Box */}
           <div className="flex-1 min-w-[300px]">
-            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 bg-white rounded-[10px] p-4 max-w-[450px] sm:ml-[120px] mx-auto">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 bg-white rounded-[10px] p-4 max-w-[450px] sm:ml-[110px] mx-auto">
               {user.image ? (
                 <Image
                   src={user.image}
@@ -126,12 +126,26 @@ export default async function ProfilePage() {
               <strong>฿{user.revenue || 0}</strong>
             </div>
             <div className="flex-1 min-w-[140px] bg-white p-4 rounded-[10px] text-center">
-              <Link href="/buy-sell" className="text-blue-800 underline">
+              <Link href="/my-orders" className="text-blue-800 underline">
                 More Transactions
               </Link>
             </div>
           </div>
         </section>
+
+        {/* Centered phone and location below the top section */}
+        <div className="flex flex-col items-center mt-4 mb-6 space-y-2">
+          <p className="text-base text-gray-800">
+            <span className="font-semibold">Phone – </span>
+            <span className="font-normal">{user.phone || "Not set"}</span>
+          </p>
+          <p className="text-base text-gray-800">
+            <span className="font-semibold">Location – </span>
+            <span className="font-normal">
+              {user.location?.trim() || "Not set"}
+            </span>
+          </p>
+        </div>
 
         {/* Your Bought Items */}
         <section className="mb-8 bg-[#f9fafb] rounded-[12px] p-4">
