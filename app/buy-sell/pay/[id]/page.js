@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import NavBar from "@/components/NavBar";
 import Link from "next/link";
 import PayPanel from "@/components/PayPanel";
+import Stepper from "@/components/Stepper";
 
 export default async function PayPage({ params }) {
   const { id } = await params; // transactionId
@@ -21,44 +22,27 @@ export default async function PayPage({ params }) {
 
   if (!res.ok) return <div>Transaction not found.</div>;
   const txn = await res.json();
+  const productId = txn?.product?._id ?? txn?.product ?? null;
 
   return (
     <>
       <NavBar />
       <main className="max-w-[1200px] mx-auto mb-[40px] px-4 w-full overflow-x-hidden">
-        <h1 className="text-2xl font-bold text-[#325082] mb-4">Pay & Upload</h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold text-[#325082]">Checkout</h1>
+          {productId && (
+            <Link
+              href={`/buy-sell/${productId}/checkout`}
+              className="text-[#325082] text-sm hover:underline"
+            >
+              ← Back to Checkout
+            </Link>
+          )}
+        </div>
 
-        {/* Stepper */}
+        {/* Progress Stepper (buyer, step 2) */}
         <div className="mb-5">
-          <ol className="flex items-center text-sm">
-            <li className="flex items-center text-gray-500">
-              <span className="w-6 h-6 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs mr-2">
-                1
-              </span>
-              Review
-            </li>
-            <span className="mx-3 h-[2px] w-10 bg-[#cfd8e3] block" />
-            <li className="flex items-center font-semibold text-[#325082]">
-              <span className="w-6 h-6 rounded-full bg-[#325082] text-white flex items-center justify-center text-xs mr-2">
-                2
-              </span>
-              Pay & Upload
-            </li>
-            <span className="mx-3 h-[2px] w-10 bg-[#cfd8e3] block" />
-            <li className="flex items-center text-gray-500">
-              <span className="w-6 h-6 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs mr-2">
-                3
-              </span>
-              Deliver
-            </li>
-            <span className="mx-3 h-[2px] w-10 bg-[#cfd8e3] block" />
-            <li className="flex items-center text-gray-500">
-              <span className="w-6 h-6 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs mr-2">
-                4
-              </span>
-              Payout
-            </li>
-          </ol>
+          <Stepper current={2} variant="buyer" className="px-1" />
         </div>
 
         <PayPanel txn={txn} sessionEmail={session?.user?.email} />

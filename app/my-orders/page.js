@@ -1,12 +1,78 @@
+// app/my-orders/page.js
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import NavBar from "@/components/NavBar";
-import OrderRow from "@/components/OrderRow";
 import ActionButton from "@/components/ActionButton";
 import StatusPill from "@/components/StatusPill";
+import Stepper from "@/components/Stepper";
+
+function MethodTag({ method }) {
+  if (!method) return null;
+  const label =
+    method === "DELIVERY"
+      ? "Delivery"
+      : method === "MEETUP"
+      ? "Meetup"
+      : method;
+  const tone =
+    method === "DELIVERY"
+      ? "ring-indigo-200/70 bg-indigo-50/60 text-indigo-700"
+      : "ring-emerald-200/70 bg-emerald-50/60 text-emerald-700";
+  return (
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 text-[11px] font-medium ring-1 rounded-full ${tone}`}
+    >
+      {label}
+    </span>
+  );
+}
+
+/** Animated sliding pill role switch (800ms) */
+function RoleSwitch({ role, setRole }) {
+  const isBuyer = role === "buyer";
+
+  return (
+    <div className="relative inline-grid grid-cols-2 rounded-full bg-slate-100 p-1 shadow-sm w-[260px]">
+      {/* Sliding highlight */}
+      <span
+        aria-hidden="true"
+        className={`absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-[#325082]
+                    transition-transform duration-[800ms] ease-[cubic-bezier(.2,.8,.2,1)]
+                    transform-gpu will-change-transform
+                    ${isBuyer ? "translate-x-0" : "translate-x-full"}`}
+      />
+      <button
+        type="button"
+        onClick={() => setRole("buyer")}
+        className={`relative z-10 h-9 px-3 text-sm font-medium rounded-full transition-colors duration-[800ms]
+                    ${
+                      isBuyer
+                        ? "text-white"
+                        : "text-[#325082] hover:text-[#22365a]"
+                    }`}
+        aria-pressed={isBuyer}
+      >
+        As Buyer
+      </button>
+      <button
+        type="button"
+        onClick={() => setRole("seller")}
+        className={`relative z-10 h-9 px-3 text-sm font-medium rounded-full transition-colors duration-[800ms]
+                    ${
+                      !isBuyer
+                        ? "text-white"
+                        : "text-[#325082] hover:text-[#22365a]"
+                    }`}
+        aria-pressed={!isBuyer}
+      >
+        As Seller
+      </button>
+    </div>
+  );
+}
 
 export default function MyOrdersPage() {
   const router = useRouter();
@@ -19,7 +85,6 @@ export default function MyOrdersPage() {
 
   useEffect(() => {
     let mounted = true;
-
     (async () => {
       try {
         const r = await fetch("/api/transactions/mine?role=buyer", {
@@ -32,7 +97,6 @@ export default function MyOrdersPage() {
         if (mounted) setErrBuyer(e.message || "Failed to load your orders");
       }
     })();
-
     (async () => {
       try {
         const r = await fetch("/api/transactions/mine?role=seller", {
@@ -45,7 +109,6 @@ export default function MyOrdersPage() {
         if (mounted) setErrSeller(e.message || "Failed to load your sales");
       }
     })();
-
     return () => {
       mounted = false;
     };
@@ -61,7 +124,6 @@ export default function MyOrdersPage() {
       });
       if (!res.ok) throw new Error(await res.text());
 
-      // optimistic: update seller list
       setSellerTxns((prev) =>
         (prev || []).map((t) =>
           (t._id?.toString?.() || t._id) === id
@@ -92,38 +154,54 @@ export default function MyOrdersPage() {
 
   return (
     <>
+      {/* smooth page fade on initial mount */}
+      <style jsx global>{`
+        @keyframes fadeSlide {
+          from {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
+
       <NavBar />
-      <div className="max-w-[1200px] mx-auto px-4 py-2">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-semibold text-[#325082]">My Orders</h1>
-          <div className="bg-white rounded-full shadow-sm border overflow-hidden">
-            <button
-              onClick={() => setRole("buyer")}
-              className={`px-6 py-2 text-sm ${
-                role === "buyer"
-                  ? "bg-[#325082] text-white"
-                  : "text-[#325082] hover:bg-[#325082]/10"
-              }`}
-            >
-              As Buyer
-            </button>
-            <button
-              onClick={() => setRole("seller")}
-              className={`px-6 py-2 text-sm ${
-                role === "seller"
-                  ? "bg-[#325082] text-white"
-                  : "text-[#325082] hover:bg-[#325082]/10"
-              }`}
-            >
-              As Seller
-            </button>
-          </div>
+
+      <main
+        className="max-w-[1200px] mx-auto px-4 transition-all duration-[800ms]"
+        style={{ animation: "fadeSlide 800ms ease-out" }}
+      >
+        <div className="flex items-center justify-between gap-3 mb-6 flex-nowrap">
+          <h1 className="text-2xl font-bold text-[#1f2d4d] sm:leading-none whitespace-nowrap">
+            My Orders
+          </h1>
+          <RoleSwitch role={role} setRole={setRole} />
         </div>
 
-        <div className="space-y-4">
-          {err && <p className="text-red-600">{err}</p>}
-          {!list && !err && <p className="text-gray-500">Loading…</p>}
+        {/* Seller-only progress (UI stepper at step 2) */}
+        {role === "seller" && (
+          <div
+            className="mb-4"
+            style={{ animation: "fadeSlide 800ms ease-out" }}
+          >
+            <Stepper current={2} variant="seller" className="px-1" />
+          </div>
+        )}
 
+        {err && <p className="mb-4 text-sm text-red-600">{err}</p>}
+        {!list && !err && (
+          <div className="mb-4 text-sm text-slate-500">Loading…</div>
+        )}
+
+        {/* Entire list fades/slides on tab change */}
+        <section
+          key={role}
+          className="space-y-4"
+          style={{ animation: "fadeSlide 800ms ease-out" }}
+        >
           {list &&
             list.length > 0 &&
             list.map((t) => {
@@ -132,152 +210,163 @@ export default function MyOrdersPage() {
               const canAcceptOrCancel =
                 isSeller && t.status === "ESCROW_FUNDED";
               const counterparty = isSeller ? t.buyer : t.seller;
+              const method = t.fulfillment?.method;
 
-              const counterpartyLine = counterparty ? (
-                <span className="text-sm text-gray-600">
-                  {isSeller ? "Buyer:" : "Seller:"}{" "}
-                  <span className="text-[#325082] font-medium">
-                    {counterparty.name || counterparty.email}
-                  </span>
-                  {counterparty.name && (
-                    <span className="ml-1 text-gray-500 text-xs">
-                      ({counterparty.email})
-                    </span>
-                  )}
-                </span>
-              ) : null;
-
-              const receiptLink = t.buyerReceiptUrl ? (
-                <a
-                  href={t.buyerReceiptUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm underline text-[#325082] underline-offset-2"
-                >
-                  Receipt
-                </a>
-              ) : null;
-
-              const productLink = (
-                <Link
-                  href={`/buy-sell/${t.product?._id}`}
-                  className="text-sm underline text-[#325082] underline-offset-2"
-                >
-                  Product Details
-                </Link>
-              );
-
-              const showDetailsStatuses = [
-                "SELLER_ACCEPTED",
-                "DELIVERY_IN_PROGRESS",
-                "SELLER_DELIVERED",
-                "MEETUP_COMPLETED",
-                "BUYER_CONFIRMED",
-                "PAID_OUT",
-              ];
-
-              const orderDetailsLink = showDetailsStatuses.includes(
-                t.status
-              ) ? (
-                <Link
-                  href={`/my-orders/${id}`}
-                  className="text-sm underline text-[#325082] underline-offset-2"
-                >
-                  Order Details
-                </Link>
-              ) : null;
+              const accent =
+                method === "DELIVERY"
+                  ? "before:bg-indigo-400/70"
+                  : "before:bg-emerald-400/70";
 
               return (
-                <OrderRow
+                <article
                   key={id}
-                  title={t.product?.title || "-"}
-                  image={t.product?.defaultImage}
-                  status={<StatusPill status={t.status} />}
-                  subtitleRight={counterpartyLine}
-                  metaLeft={[
-                    [
-                      "Updated",
-                      new Date(t.updatedAt || t.createdAt).toLocaleString(),
-                    ],
-                  ]}
-                  rightArea={
-                    <div className="flex flex-col items-end gap-2">
-                      <div className="text-sm text-gray-700">
-                        Total{" "}
-                        <span className="font-semibold">
-                          ฿{Number(t.total || 0).toLocaleString()}
+                  className={`relative bg-white ring-1 ring-slate-200 shadow-sm hover:shadow-md
+                              transition-all duration-[800ms] rounded-none
+                              before:content-[''] before:absolute before:inset-y-0 before:left-0 before:w-1 ${accent}`}
+                >
+                  {/* Banner */}
+                  <header className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 bg-slate-50">
+                    <div className="text-xs sm:text-[13px] text-slate-600">
+                      {isSeller ? "Buyer" : "Seller"}:&nbsp;
+                      <span className="font-medium text-[#325082]">
+                        {counterparty?.name || counterparty?.email || "-"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <StatusPill status={t.status} />
+                      <MethodTag method={method} />
+                    </div>
+                  </header>
+
+                  {/* Two-part row: image | info/actions */}
+                  <div className="p-4 flex gap-4 items-center">
+                    <div className="w-[120px] h-[120px] bg-slate-100 ring-1 ring-slate-200 overflow-hidden shrink-0">
+                      {t.product?.defaultImage ? (
+                        <img
+                          src={t.product.defaultImage}
+                          alt={t.product?.title || "Product"}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : null}
+                    </div>
+
+                    <div className="flex-1 min-w-0 flex flex-col items-end text-right justify-between">
+                      <div>
+                        <h3 className="text-sm sm:text-base font-semibold text-[#15243f] line-clamp-2">
+                          {t.product?.title || "-"}
+                        </h3>
+                        <div className="mt-2 text-[13px] text-slate-700 space-y-1">
+                          <div>
+                            <span className="text-slate-500">Updated:</span>{" "}
+                            <time>
+                              {new Date(
+                                t.updatedAt || t.createdAt
+                              ).toLocaleString()}
+                            </time>
+                          </div>
+                          <div>
+                            <span className="text-slate-500">Total:</span>{" "}
+                            <span className="font-semibold">
+                              ฿{Number(t.total || 0).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="mt-3 flex gap-2 flex-wrap justify-end">
+                        {isSeller && canAcceptOrCancel && (
+                          <>
+                            <ActionButton
+                              text="Accept the Order"
+                              variant="primaryClick"
+                              disabled={pendingActionId === id}
+                              onClick={() => actOnTxn(id, "seller_accept")}
+                            />
+                            <ActionButton
+                              text="Cancel the Order"
+                              variant="dangerOutlineHover"
+                              disabled={pendingActionId === id}
+                              onClick={() => actOnTxn(id, "seller_cancel")}
+                            />
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="border-t border-slate-200 mx-4"></div>
+
+                  {/* Timeline summary + button, dropdown unchanged */}
+                  <details className="px-4 pb-1">
+                    <summary className="list-none [&::-webkit-details-marker]:hidden">
+                      <div className="flex items-center justify-between py-2">
+                        <span className="text-sm text-[#325082] underline underline-offset-2">
+                          View timeline
                         </span>
-                      </div>
-
-                      {/* Links row */}
-                      <div className="flex gap-3 text-sm">
-                        {receiptLink}
-                        {productLink}
-                        {orderDetailsLink}
-                      </div>
-
-                      {/* Actions row (seller only) */}
-                      {isSeller && canAcceptOrCancel && (
-                        <div className="flex gap-2">
+                        <Link href={`/my-orders/${id}`}>
                           <ActionButton
-                            text="Accept"
+                            text="Order Detail"
                             variant="primaryClick"
-                            className="h-[34px] px-3"
-                            disabled={pendingActionId === id}
-                            onClick={() => actOnTxn(id, "seller_accept")}
                           />
-                          <ActionButton
-                            text="Cancel"
-                            variant="dangerOutlineHover"
-                            className="h-[34px] px-3"
-                            disabled={pendingActionId === id}
-                            onClick={() => actOnTxn(id, "seller_cancel")}
-                          />
+                        </Link>
+                      </div>
+                    </summary>
+
+                    <div className="border border-slate-200 rounded-md max-h-40 overflow-y-auto p-3">
+                      {Array.isArray(t.timeline) && t.timeline.length > 0 ? (
+                        <ul className="space-y-2">
+                          {[...t.timeline].reverse().map((e, i) => (
+                            <li
+                              key={i}
+                              className="flex items-center justify-between"
+                            >
+                              <div className="text-sm text-slate-800">
+                                {e.action || "-"}
+                              </div>
+                              <time className="text-xs text-slate-500">
+                                {e.at ? new Date(e.at).toLocaleString() : "-"}
+                              </time>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="text-sm text-slate-500">
+                          No events yet.
                         </div>
                       )}
                     </div>
-                  }
-                  footer={
-                    <details>
-                      <summary className="cursor-pointer text-sm text-[#325082] underline underline-offset-2">
-                        View Timeline
-                      </summary>
-                      <div className="mt-2 bg-[#f8fbff] border border-[#e6eeff] rounded-lg p-3 max-w-xl">
-                        {Array.isArray(t.timeline) && t.timeline.length > 0 ? (
-                          <ul className="space-y-2">
-                            {[...t.timeline].reverse().map((e, i) => (
-                              <li
-                                key={i}
-                                className="flex items-center justify-between rounded-md bg-white ring-1 ring-[#e6eeff] px-3 py-2"
-                              >
-                                <div className="text-sm text-gray-800">
-                                  {e.action || "-"}
-                                </div>
-                                <div className="text-sm text-gray-600">
-                                  {e.at ? new Date(e.at).toLocaleString() : "-"}
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <div className="text-sm text-gray-500">
-                            No events yet.
-                          </div>
-                        )}
-                      </div>
-                    </details>
-                  }
-                />
+                  </details>
+                </article>
               );
             })}
 
           {list && list.length === 0 && (
-            <div className="rounded-xl border bg-white p-10 text-center text-gray-500">
-              {role === "buyer" ? "No orders yet." : "No sales yet."}
+            <div
+              className="border bg-white p-10 text-center rounded-none transition-all duration-[800ms]"
+              style={{ animation: "fadeSlide 800ms ease-out" }}
+            >
+              <div className="text-lg font-medium text-[#1f2d4d] mb-1">
+                Nothing here yet
+              </div>
+              <p className="text-sm text-slate-500">
+                {role === "buyer"
+                  ? "You haven’t placed any orders."
+                  : "You don’t have any sales."}
+              </p>
+              <div className="mt-4">
+                <Link
+                  href="/buy-sell"
+                  className="inline-flex items-center px-4 py-2 bg-[#325082] text-white hover:bg-[#2b446e] text-sm rounded-lg transition-colors duration-[800ms]"
+                >
+                  Explore products
+                </Link>
+              </div>
             </div>
           )}
-        </div>
-      </div>
+        </section>
+      </main>
     </>
   );
 }
