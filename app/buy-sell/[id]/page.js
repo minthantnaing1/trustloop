@@ -46,6 +46,17 @@ export default async function ProductDetailPage({ params }) {
   const canBuyerInteract = !isOwner && product.isAvailable === true;
   const canSellerManage = isOwner && product.isAvailable === true;
 
+  const initialIsFav = Boolean(
+    product?.isFav ??
+      product?.isFavorited ??
+      (Array.isArray(product?.favoritedBy) &&
+        sessionEmail &&
+        product.favoritedBy.includes(sessionEmail)) ??
+      (Array.isArray(product?.favoriteUserIds) &&
+        session?.user?.id &&
+        product.favoriteUserIds.includes(session.user.id))
+  );
+
   return (
     <>
       <NavBar />

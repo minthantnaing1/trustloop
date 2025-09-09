@@ -10,20 +10,17 @@ import ConfirmModal from "@/components/ConfirmModal";
 
 import {
   Bars3Icon,
-  ShoppingCartIcon,
   HeartIcon,
   UserIcon,
 } from "@heroicons/react/24/outline";
 
 import {
-  ShoppingCartIcon as CartSolid,
   HeartIcon as HeartSolid,
   UserIcon as UserIconSolid,
 } from "@heroicons/react/24/solid";
 
 function NavBar() {
   const [hover, setHover] = useState({
-    cart: false,
     heart: false,
     profile: false,
   });
@@ -144,22 +141,7 @@ function NavBar() {
 
         {/* Right - Action Icons */}
         <div className="flex items-center gap-6 text-white">
-          {/* Cart */}
-          <Link href="/cart" className="inline-block" aria-label="Cart">
-            <div
-              onMouseEnter={() => setHover({ ...hover, cart: true })}
-              onMouseLeave={() => setHover({ ...hover, cart: false })}
-              className="cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
-            >
-              {hover.cart ? (
-                <CartSolid className="w-6 h-6" />
-              ) : (
-                <ShoppingCartIcon className="w-6 h-6" />
-              )}
-            </div>
-          </Link>
-
-          {/* Heart */}
+          {/* Heart (only one) */}
           <Link href="/favorites" className="inline-block" aria-label="Favorites">
             <div
               onMouseEnter={() => setHover({ ...hover, heart: true })}
@@ -173,30 +155,6 @@ function NavBar() {
               )}
             </div>
           </Link>
-          <div
-            onMouseEnter={() => setHover((h) => ({ ...h, cart: true }))}
-            onMouseLeave={() => setHover((h) => ({ ...h, cart: false }))}
-            className="cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
-          >
-            {hover.cart ? (
-              <CartSolid className="w-6 h-6" />
-            ) : (
-              <ShoppingCartIcon className="w-6 h-6" />
-            )}
-          </div>
-
-          {/* Heart */}
-          <div
-            onMouseEnter={() => setHover((h) => ({ ...h, heart: true }))}
-            onMouseLeave={() => setHover((h) => ({ ...h, heart: false }))}
-            className="cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
-          >
-            {hover.heart ? (
-              <HeartSolid className="w-6 h-6" />
-            ) : (
-              <HeartIcon className="w-6 h-6" />
-            )}
-          </div>
 
           {/* Profile / Avatar */}
           <div
