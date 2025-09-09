@@ -105,21 +105,21 @@ function NavBar() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 w-full h-[80px] bg-gradient-to-r from-[#2b446a] to-[#325082] shadow-md shadow-gray-900/30 flex justify-between items-center px-4 md:px-8 z-[10000]">
+      <header className="fixed top-0 left-0 w-full h-[70px] bg-gradient-to-r from-[#2b446a] to-[#325082] shadow-md shadow-gray-900/30 flex justify-between items-center px-4 md:px-8 z-[10000]">
         {/* Left - Logo */}
         <div className="flex items-center">
           <Image
             src="/TrustLoopLogoW.png"
             alt="Logo"
-            width={80}
+            width={68}
             height={55}
             priority
           />
         </div>
 
         {/* Middle - Welcome & Nav Links (Desktop Only) */}
-        <div className="hidden md:flex flex-col items-center gap-y-[3px] mb-0.5 ml-[70px]">
-          <p className="text-white font-semibold text-lg tracking-wide">
+        <div className="hidden md:flex flex-col items-center gap-y-[1.5px] mb-[0.5px] ml-[70px]">
+          <p className="text-white font-semibold text-[16px] tracking-wide">
             Welcome to TrustLoop
           </p>
 
@@ -248,7 +248,7 @@ function NavBar() {
       </header>
 
       {/* Spacer to push content down */}
-      <div className="h-[100px]" />
+      <div className="h-[90px]" />
 
       {/* Overlay */}
       {showMenu && (

@@ -28,8 +28,14 @@ export async function GET(_req, { params }) {
   // include product so we can release it on expiry
   const txn = await Transaction.findById(id)
     .populate({ path: "product", select: "title images defaultImage price" })
-    .populate({ path: "seller", select: "name email" })
-    .populate({ path: "buyer", select: "name email" });
+    .populate({
+      path: "seller",
+      select: "name email phone phoneNumber mobile tel contact",
+    })
+    .populate({
+      path: "buyer",
+      select: "name email phone phoneNumber mobile tel contact",
+    });
 
   if (!txn) return new Response("Not found", { status: 404 });
 
@@ -39,13 +45,12 @@ export async function GET(_req, { params }) {
     me.role === "admin";
   if (!isParty) return new Response("Forbidden", { status: 403 });
 
-  // Auto-cancel expired pending orders AND release product
+  // --- Auto-cancel expired unpaid orders (and release product)
   if (
     txn.status === "PENDING_UPLOAD" &&
     txn.expiresAt &&
     txn.expiresAt.getTime() <= Date.now()
   ) {
-    // Treat unpaid expiry as buyer-side cancel
     txn.status = "CANCELLED_BY_BUYER";
     txn.updatedAt = new Date();
     txn.timeline.push({
@@ -64,7 +69,38 @@ export async function GET(_req, { params }) {
     }
   }
 
-  return Response.json(JSON.parse(JSON.stringify(txn)));
+  // --- Auto-confirm after seller delivered / meetup completed (3 days)
+  if (
+    ["SELLER_DELIVERED", "MEETUP_COMPLETED"].includes(txn.status) &&
+    txn.autoConfirmAt &&
+    txn.autoConfirmAt.getTime() <= Date.now()
+  ) {
+    txn.status = "BUYER_CONFIRMED";
+    txn.updatedAt = new Date();
+    txn.autoConfirmAt = null;
+    txn.timeline.push({
+      at: new Date(),
+      by: me._id, // or a system user id if you have one
+      action: "AUTO_CONFIRMED_AFTER_3_DAYS",
+      meta: { source: "get_auto_confirm" },
+    });
+    await txn.save();
+  }
+
+  // normalize phone into one field
+  const pickPhone = (u) =>
+    u?.phone ||
+    u?.phoneNumber ||
+    u?.mobile ||
+    u?.tel ||
+    u?.contact?.phone ||
+    "";
+
+  const out = JSON.parse(JSON.stringify(txn));
+  if (out?.buyer) out.buyer.phone = pickPhone(out.buyer);
+  if (out?.seller) out.seller.phone = pickPhone(out.seller);
+
+  return Response.json(out);
 }
 
 // PATCH /api/transactions/:id
@@ -224,7 +260,6 @@ export async function PATCH(req, { params }) {
     if (!["ESCROW_FUNDED", "SELLER_ACCEPTED"].includes(txn.status)) {
       return new Response("Not allowed in current state", { status: 409 });
     }
-
     if (txn.fulfillment?.method !== "DELIVERY") {
       return new Response("Not a delivery order", { status: 409 });
     }
@@ -237,10 +272,24 @@ export async function PATCH(req, { params }) {
     if (isNaN(sched.getTime()))
       return new Response("Invalid scheduledAt", { status: 400 });
 
-    const max = new Date();
-    max.setDate(max.getDate() + 7); // <= 7 days from now
+    // Window: from now up to 10 days
+    const now = new Date();
+    const max = new Date(now);
+    max.setDate(max.getDate() + 10);
+    if (sched < now)
+      return new Response("Schedule cannot be in the past", { status: 400 });
     if (sched > max)
-      return new Response("Schedule must be within 7 days", { status: 400 });
+      return new Response("Schedule must be within 10 days", { status: 400 });
+
+    // Optional but recommended: enforce max 3 edits on server (mirrors UI)
+    const editCount =
+      (txn.timeline || []).filter(
+        (e) =>
+          String(e?.by || "") === String(me._id) &&
+          String(e?.action || "").toUpperCase() === "SELLER_SET_DELIVERY"
+      ).length || 0;
+    if (editCount >= 3)
+      return new Response("Edit limit reached (3)", { status: 409 });
 
     txn.fulfillment = {
       ...(txn.fulfillment?.toObject?.() || txn.fulfillment || {}),
@@ -298,12 +347,36 @@ export async function PATCH(req, { params }) {
       return new Response("Not a meetup order", { status: 409 });
     }
 
+    // Prevent same person from proposing again while there's an open proposal
+    if (
+      txn.fulfillment?.meetupProposedAt &&
+      String(txn.fulfillment?.meetupProposedBy || "") === String(me._id)
+    ) {
+      return new Response("Other party must accept or counter", {
+        status: 409,
+      });
+    }
+
     const { meetupLocation = "", meetupProposedAt } = body || {};
     if (!meetupLocation)
       return new Response("meetupLocation required", { status: 400 });
+
     const proposed = new Date(meetupProposedAt);
     if (isNaN(proposed.getTime()))
       return new Response("Invalid meetupProposedAt", { status: 400 });
+
+    // Window: from now up to 10 days
+    const now = new Date();
+    const max = new Date(now);
+    max.setDate(max.getDate() + 10);
+    if (proposed < now)
+      return new Response("Proposed time cannot be in the past", {
+        status: 400,
+      });
+    if (proposed > max)
+      return new Response("Proposed time must be within 10 days", {
+        status: 400,
+      });
 
     txn.fulfillment = {
       ...(txn.fulfillment?.toObject?.() || txn.fulfillment || {}),
@@ -388,7 +461,13 @@ export async function PATCH(req, { params }) {
     }
 
     txn.status = "SELLER_DELIVERED";
-    txn.timeline.push({ by: me._id, action: "SELLER_DELIVERED" });
+    txn.autoConfirmAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // +3 days
+    txn.timeline.push({
+      at: new Date(),
+      by: me._id,
+      action: "SELLER_DELIVERED",
+      meta: { autoConfirmAt: txn.autoConfirmAt },
+    });
     await txn.save();
     return Response.json({ success: true, status: txn.status });
   }
@@ -406,7 +485,13 @@ export async function PATCH(req, { params }) {
     }
 
     txn.status = "MEETUP_COMPLETED";
-    txn.timeline.push({ by: me._id, action: "MEETUP_COMPLETED" });
+    txn.autoConfirmAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // +3 days
+    txn.timeline.push({
+      at: new Date(),
+      by: me._id,
+      action: "MEETUP_COMPLETED",
+      meta: { autoConfirmAt: txn.autoConfirmAt },
+    });
     await txn.save();
     return Response.json({ success: true, status: txn.status });
   }
@@ -421,7 +506,12 @@ export async function PATCH(req, { params }) {
     }
 
     txn.status = "BUYER_CONFIRMED";
-    txn.timeline.push({ by: me._id, action: "BUYER_CONFIRMED" });
+    txn.autoConfirmAt = null; // clear the timer
+    txn.timeline.push({
+      at: new Date(),
+      by: me._id,
+      action: "BUYER_CONFIRMED",
+    });
     await txn.save();
     return Response.json({ success: true, status: txn.status });
   }

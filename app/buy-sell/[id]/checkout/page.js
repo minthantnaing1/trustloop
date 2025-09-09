@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import Link from "next/link";
 import NavBar from "@/components/NavBar";
 import ConfirmOrderButton from "@/components/ConfirmOrderButton";
+import Stepper from "@/components/Stepper";
 
 export default async function CheckoutPage({ params }) {
   const { id } = await params;
@@ -43,40 +44,19 @@ export default async function CheckoutPage({ params }) {
     <>
       <NavBar />
       <main className="max-w-[1200px] mx-auto mb-[40px] px-4 w-full overflow-x-hidden">
-        {/* Header */}
-        <h1 className="text-2xl font-bold text-[#325082] mb-4">Checkout</h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold text-[#325082]">Checkout</h1>
+          <Link
+            href={`/buy-sell/${product._id}`}
+            className="text-[#325082] text-sm hover:underline"
+          >
+            ← Back to My Orders
+          </Link>
+        </div>
 
-        {/* Progress Stepper */}
+        {/* Progress Stepper (buyer, step 1) */}
         <div className="mb-5">
-          <ol className="flex items-center text-sm">
-            <li className="flex items-center font-semibold text-[#325082]">
-              <span className="w-6 h-6 rounded-full bg-[#325082] text-white flex items-center justify-center text-xs mr-2">
-                1
-              </span>
-              Review
-            </li>
-            <span className="mx-3 h-[2px] w-10 bg-[#cfd8e3] block" />
-            <li className="flex items-center text-gray-500">
-              <span className="w-6 h-6 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs mr-2">
-                2
-              </span>
-              Pay & Upload
-            </li>
-            <span className="mx-3 h-[2px] w-10 bg-[#cfd8e3] block" />
-            <li className="flex items-center text-gray-500">
-              <span className="w-6 h-6 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs mr-2">
-                3
-              </span>
-              Deliver
-            </li>
-            <span className="mx-3 h-[2px] w-10 bg-[#cfd8e3] block" />
-            <li className="flex items-center text-gray-500">
-              <span className="w-6 h-6 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs mr-2">
-                4
-              </span>
-              Payout
-            </li>
-          </ol>
+          <Stepper current={1} variant="buyer" className="px-1" />
         </div>
 
         {/* Content */}
@@ -248,13 +228,6 @@ export default async function CheckoutPage({ params }) {
                   </p>
                 </form>
               </div>
-
-              <Link
-                href={`/buy-sell/${product._id}`}
-                className="block text-center text-sm text-[#325082] hover:underline mt-4"
-              >
-                ← Back to Product
-              </Link>
             </div>
           </div>
         </div>

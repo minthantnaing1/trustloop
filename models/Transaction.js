@@ -91,6 +91,8 @@ const TransactionSchema = new mongoose.Schema({
 
   createdAt: { type: Date, default: Date.now, index: true },
   updatedAt: { type: Date, default: Date.now },
+
+  autoConfirmAt: { type: Date }, // when to auto-confirm if buyer forgets
 });
 
 // keep updatedAt fresh

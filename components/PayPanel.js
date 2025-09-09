@@ -43,7 +43,7 @@ export default function PayPanel({ txn }) {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "cancel", reason: "timeout" }),
-      }).finally(() => router.replace("/profile"));
+      }).finally(() => router.replace("/my-orders"));
     }
   }, [timeLeft, txn._id, router]);
 
@@ -137,7 +137,7 @@ export default function PayPanel({ txn }) {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "cancel", reason: "user_abandoned" }),
-    }).finally(() => router.replace("/profile"));
+    }).finally(() => router.replace("/my-orders"));
   }
 
   return (
@@ -288,7 +288,7 @@ export default function PayPanel({ txn }) {
               />
 
               <ActionButton
-                text="Pay later (cancel order)"
+                text="Cancel Order"
                 variant="cancelOrderOutlineClick"
                 onClick={payLater}
                 disabled={busy}
