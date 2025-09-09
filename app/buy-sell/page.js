@@ -29,6 +29,7 @@ export default function BuySellPage() {
     maxPrice: "",
     condition: "",
     location: "",
+    recipientNote: "",
   });
 
   const fetchProducts = async () => {

@@ -15,6 +15,7 @@ import {
   UserIcon,
 } from "@heroicons/react/24/outline";
 
+
 import {
   ShoppingCartIcon as CartSolid,
   HeartIcon as HeartSolid,
@@ -48,8 +49,7 @@ function NavBar() {
   const navLinks = [
     { label: "HOME", href: "/home" },
     { label: "BUY & SELL", href: "/buy-sell" },
-    { label: "AUCTION", href: "/auction" },
-    { label: "GIVEAWAY", href: "/giveaway" },
+    { label: "DONATION", href: "/donation" },
   ];
 
   return (

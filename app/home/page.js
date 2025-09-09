@@ -94,7 +94,7 @@ export default async function HomePage() {
             {[
               { label: "Buy & Sell", href: "/buy-sell" },
               { label: "Auction", href: "/auction" },
-              { label: "Giveaway", href: "/giveaway" },
+              { label: "Donation", href: "/donation" },
             ].map((item) => (
               <Link
                 href={item.href}

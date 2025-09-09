@@ -98,23 +98,38 @@ export default function ProductCard({
           )}
         </div>
 
-        {/* Info */}
-        <div className="h-[30%] flex flex-col justify-center text-[14px] gap-y-1 text-black leading-tight">
-          <h4 className="font-semibold truncate max-sm:text-[11px]">
-            {product.title}
-          </h4>
-          <p className="text-[12px] text-[#555] truncate max-sm:text-[10px]">
-            {product.category}
-          </p>
-          {product.price && (
-            <p className="text-[14px] text-[#222] font-semibold max-sm:text-[11px]">
-              {Number(product.price).toLocaleString()} ฿
-            </p>
-          )}
-          <p className="text-[13px] text-gray-600 max-sm:text-[9px]">
-            Posted: {timeAgo(product.createdAt)}
-          </p>
-        </div>
+{/* Info */}
+<div className="h-[30%] flex flex-col justify-center text-[14px] gap-y-1 text-black leading-tight">
+  <h4 className="font-semibold truncate max-sm:text-[11px]">
+    {product.title}
+  </h4>
+
+  <p className="text-[12px] text-[#555] truncate max-sm:text-[10px]">
+    {product.category}
+  </p>
+
+  {/* Always render a price line; show "Free" for donations or 0 */}
+  <p className="text-[14px] text-[#222] font-semibold max-sm:text-[11px]">
+    {(product?.type === 'donation' || Number(product?.price) === 0)
+      ? 'Free'
+      : `${Number(product.price).toLocaleString()} ฿`}
+  </p>
+
+  {/* Recipient note (if any) */}
+  {product?.recipientNote && (
+    <p className="text-[12px] text-[#325082] max-sm:text-[10px]">
+      <span className="font-medium">Recipient note:</span>{' '}
+      {product.recipientNote.length > 140
+        ? product.recipientNote.slice(0, 140) + '…'
+        : product.recipientNote}
+    </p>
+  )}
+
+  <p className="text-[13px] text-gray-600 max-sm:text-[9px]">
+    Posted: {timeAgo(product.createdAt)}
+  </p>
+</div>
+
       </div>
     </Link>
   );

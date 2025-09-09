@@ -14,6 +14,10 @@ export async function POST(req) {
     const body = await req.json();
     await connectDB();
 
+    ////Normalize donation payload: ensure type & price are consistent
+    if (body.type === 'donation_now') {
+      body.price = 0;
+    }
     const user = await User.findOne({ email: session.user.email });
     if (!user) {
       return new Response("User not found", { status: 404 });
