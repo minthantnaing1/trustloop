@@ -5,6 +5,7 @@ import Link from "next/link";
 import NavBar from "@/components/NavBar";
 import ConfirmOrderButton from "@/components/ConfirmOrderButton";
 import Stepper from "@/components/Stepper";
+import { ChevronLeftIcon } from "@heroicons/react/24/solid";
 
 export default async function CheckoutPage({ params }) {
   const { id } = await params;
@@ -48,9 +49,10 @@ export default async function CheckoutPage({ params }) {
           <h1 className="text-2xl font-bold text-[#325082]">Checkout</h1>
           <Link
             href={`/buy-sell/${product._id}`}
-            className="text-[#325082] text-sm hover:underline"
+            className="text-[#325082] text-sm hover:underline flex items-center gap-1"
           >
-            ← Back to My Orders
+            <ChevronLeftIcon className="h-4 w-4" />
+            Back to Product Detail
           </Link>
         </div>
 

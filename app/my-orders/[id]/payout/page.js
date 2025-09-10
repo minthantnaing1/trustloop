@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import Link from "next/link";
 import NavBar from "@/components/NavBar";
 import StatusPill from "@/components/StatusPill";
+import { ChevronLeftIcon } from "@heroicons/react/24/solid";
 
 export const dynamic = "force-dynamic";
 
@@ -48,9 +49,10 @@ export default async function SellerPayoutPage({ params }) {
             <h1 className="text-2xl font-bold text-[#325082]">Payout</h1>
             <Link
               href={`/my-orders/${id}`}
-              className="text-[#325082] text-sm hover:underline"
+              className="text-[#325082] text-sm hover:underline flex items-center gap-1"
             >
-              ← Back to Order
+              <ChevronLeftIcon className="h-4 w-4" />
+              Back to Order Details
             </Link>
           </div>
           <div className="rounded-xl bg-white p-6 border">
@@ -74,9 +76,10 @@ export default async function SellerPayoutPage({ params }) {
             <h1 className="text-2xl font-bold text-[#325082]">Payout</h1>
             <Link
               href={`/my-orders/${id}`}
-              className="text-[#325082] text-sm hover:underline"
+              className="text-[#325082] text-sm hover:underline flex items-center gap-1"
             >
-              ← Back to Order
+              <ChevronLeftIcon className="h-4 w-4" />
+              Back to Order Detail
             </Link>
           </div>
           <div className="rounded-xl bg-white p-6 border">
@@ -119,9 +122,10 @@ export default async function SellerPayoutPage({ params }) {
           <h1 className="text-2xl font-bold text-[#325082]">Payout</h1>
           <Link
             href={`/my-orders/${id}`}
-            className="text-[#325082] text-sm hover:underline"
+            className="text-[#325082] text-sm hover:underline flex items-center gap-1"
           >
-            ← Back to Order Detail
+            <ChevronLeftIcon className="h-4 w-4" />
+            Back to Order Detail
           </Link>
         </div>
 
@@ -260,7 +264,7 @@ export default async function SellerPayoutPage({ params }) {
                   </tr>
                   <tr className="bg-[#f9fbff]">
                     <td className="px-4 py-2 text-[#1f2f4c] font-semibold">
-                      Total Paid
+                      Total Paid (Buyer)
                     </td>
                     <td className="px-4 py-2 text-right font-semibold text-[#1f2f4c]">
                       {fmtTHB(total)}

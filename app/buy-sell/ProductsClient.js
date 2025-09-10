@@ -139,7 +139,7 @@ export default function ProductsClient({ initial }) {
     <>
       <NavBar />
 
-      <div className="max-w-[1200px] mx-auto px-4 w-full">
+      <div className="max-w-[1200px] mx-auto px-4 mb-6 w-full">
         {/* Header & Search */}
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 w-full gap-4">
           {/* Left: Title & Mobile Buttons */}
@@ -273,7 +273,7 @@ export default function ProductsClient({ initial }) {
         </section>
 
         {/* Other Products Section */}
-        <section className="mb-5">
+        <section>
           <h3 className="text-lg font-semibold mb-3">What you can buy</h3>
           {loading ? (
             <p className="text-center text-gray-400">Loading products...</p>

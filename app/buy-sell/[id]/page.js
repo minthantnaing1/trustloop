@@ -1,6 +1,8 @@
 import NavBar from "@/components/NavBar";
 import Image from "next/image";
 import Link from "next/link";
+import { connectDB } from "@/lib/db";
+import User from "@/models/User";
 import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import {
@@ -13,9 +15,7 @@ import ActionButton from "@/components/ActionButton";
 import ProductDeleteButton from "@/components/ProductDeleteButton";
 import ProductImages from "@/components/ProductImages";
 import CommentSection from "@/components/CommentSection";
-
-// NEW: add these two tiny client buttons (files below)
-import FavoriteButton from "./FavoriteButton";
+import FavoriteButton from "@/components/FavoriteButton";
 
 export default async function ProductDetailPage({ params }) {
   const { id } = await params;
@@ -46,16 +46,18 @@ export default async function ProductDetailPage({ params }) {
   const canBuyerInteract = !isOwner && product.isAvailable === true;
   const canSellerManage = isOwner && product.isAvailable === true;
 
-  const initialIsFav = Boolean(
-    product?.isFav ??
-      product?.isFavorited ??
-      (Array.isArray(product?.favoritedBy) &&
-        sessionEmail &&
-        product.favoritedBy.includes(sessionEmail)) ??
-      (Array.isArray(product?.favoriteUserIds) &&
-        session?.user?.id &&
-        product.favoriteUserIds.includes(session.user.id))
-  );
+  await connectDB();
+
+  let initialIsFav = false;
+  if (session?.user?.email) {
+    const me = await User.findOne({ email: session.user.email })
+      .select("favorites")
+      .lean();
+
+    initialIsFav = !!me?.favorites?.some(
+      (fid) => String(fid) === String(product._id)
+    );
+  }
 
   return (
     <>
@@ -126,30 +128,30 @@ export default async function ProductDetailPage({ params }) {
               {Number(product.price).toLocaleString()} ฿
             </p>
 
-            {/* Buyer action buttons — only when available (i.e., not locked by an active txn) */}
+            {/* Buyer action buttons — only when available */}
             <div className="flex flex-wrap justify-center gap-2 w-full">
               {canBuyerInteract && (
                 <>
-                  {/* NEW: real Add-to-Cart (DB) + redirect to /cart */}
-                 
-
+                  {/* Buy Now (left, a bit wider) */}
                   <Link
                     href={`/buy-sell/${product._id}/checkout`}
-                    className="flex-[1.1]"
+                    className="flex-5 sm:flex-9"
                   >
                     <ActionButton
                       text="🏷️ Buy Now"
-                      variant="buyOutlineClick"
+                      variant="buyPrimaryClick"
                       className="w-full"
                     />
                   </Link>
 
-                  {/* NEW: Favorite (toggle) */}
-                  <FavoriteButton
-                    productId={product._id?.toString()}
-                    initialIsFav={initialIsFav}
-                    className=""
-                  />
+                  {/* Add to Favourite (right, normal width) */}
+                  <div className="flex-1">
+                    <FavoriteButton
+                      productId={product._id?.toString()}
+                      initialIsFav={initialIsFav}
+                      className="w-full"
+                    />
+                  </div>
                 </>
               )}
             </div>

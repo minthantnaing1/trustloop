@@ -10,17 +10,37 @@ import ConfirmModal from "@/components/ConfirmModal";
 
 import {
   Bars3Icon,
+  ShoppingCartIcon,
   HeartIcon,
   UserIcon,
 } from "@heroicons/react/24/outline";
 
 import {
+  ShoppingCartIcon as CartSolid,
   HeartIcon as HeartSolid,
   UserIcon as UserIconSolid,
 } from "@heroicons/react/24/solid";
 
+// ------- Favorites count cache helpers (avoid first-paint delay)
+const GLOBAL_FAV_COUNT_KEY = "fav_count";
+function readFavCount() {
+  if (typeof window === "undefined") return 0;
+  try {
+    const n = parseInt(localStorage.getItem(GLOBAL_FAV_COUNT_KEY) || "0", 10);
+    return Number.isNaN(n) ? 0 : Math.max(0, n);
+  } catch {
+    return 0;
+  }
+}
+function writeFavCount(n) {
+  try {
+    localStorage.setItem(GLOBAL_FAV_COUNT_KEY, String(Math.max(0, n)));
+  } catch {}
+}
+
 function NavBar() {
   const [hover, setHover] = useState({
+    cart: false,
     heart: false,
     profile: false,
   });
@@ -29,10 +49,16 @@ function NavBar() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // ---- Optimistic avatar: load instantly from localStorage, then refresh from API
-  // ---- Optimistic avatar: avoid hydration error
+  // avatar
   const [me, setMe] = useState(null);
   const [avatarUrl, setAvatarUrl] = useState("");
+
+  // favorites count for heart badge (init from localStorage so it shows instantly)
+  const [favCount, setFavCount] = useState(0);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Load cached avatar on client only
   useEffect(() => {
@@ -49,37 +75,76 @@ function NavBar() {
   const pathname = usePathname();
 
   useEffect(() => {
-    // role (for Admin nav)
-    fetch("/api/me")
+    fetch("/api/users/me")
       .then((res) => res.json())
       .then((data) => {
+        // role for Admin nav
         if (data.role === "admin") setIsAdmin(true);
-      })
-      .catch(() => {});
 
-    // full user (for avatar); ignore 401
-    fetch("/api/users/me")
-      .then(async (res) => {
-        if (!res.ok) return null;
-        try {
-          return await res.json();
-        } catch {
-          return null;
-        }
-      })
-      .then((u) => {
-        if (!u) return;
-        setMe({ image: u.image || "", name: u.name || "" });
-        if (u.image) {
-          setAvatarUrl(u.image);
-          try {
-            localStorage.setItem("tl_avatar", u.image);
-            if (u.name) localStorage.setItem("tl_name", u.name);
-          } catch {}
+        // full user (for avatar)
+        const u = data.user;
+        if (u) {
+          setMe({ image: u.image || "", name: u.name || "" });
+          if (u.image) {
+            setAvatarUrl(u.image);
+            try {
+              localStorage.setItem("tl_avatar", u.image);
+              if (u.name) localStorage.setItem("tl_name", u.name);
+            } catch {}
+          }
         }
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    // 1) read cached count for instant paint after mount
+    try {
+      const cached = parseInt(localStorage.getItem("fav_count") || "0", 10);
+      if (!Number.isNaN(cached)) setFavCount(Math.max(0, cached));
+    } catch {}
+
+    // 2) fetch authoritative count
+    fetch("/api/users/favorites")
+      .then((r) => (r.ok ? r.json() : { favorites: [] }))
+      .then((data) => {
+        const n = Array.isArray(data.favorites) ? data.favorites.length : 0;
+        setFavCount(n);
+        try {
+          localStorage.setItem("fav_count", String(n));
+        } catch {}
+      })
+      .catch(() => {});
+
+    // 3) listen for optimistic updates from FavoriteButton
+    const onFavUpdated = (e) => {
+      const delta = Number(e?.detail?.delta || 0);
+      if (!Number.isNaN(delta)) {
+        setFavCount((c) => {
+          const next = Math.max(0, c + delta);
+          try {
+            localStorage.setItem("fav_count", String(next));
+          } catch {}
+          return next;
+        });
+      }
+    };
+    const onStorage = (e) => {
+      if (e.key === "fav_count") {
+        const n = parseInt(e.newValue || "0", 10);
+        if (!Number.isNaN(n)) setFavCount(Math.max(0, n));
+      }
+    };
+
+    window.addEventListener("favorites:updated", onFavUpdated);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("favorites:updated", onFavUpdated);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [mounted]);
 
   const navLinks = useMemo(
     () => [
@@ -96,26 +161,25 @@ function NavBar() {
     (href === "/buy-sell" && pathname.startsWith("/buy-sell/")) ||
     (href === "/buy-sell" && pathname === "/sell");
 
-  // Tiny inline blur placeholder (keeps circle shape clean)
   const blurDataURL =
     "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNmMmYyZjQiIC8+PC9zdmc+";
 
   return (
     <>
-      <header className="fixed top-0 left-0 w-full h-[70px] bg-gradient-to-r from-[#2b446a] to-[#325082] shadow-md shadow-gray-900/30 flex justify-between items-center px-4 md:px-8 z-[10000]">
+      <header className="fixed top-0 left-0 w-full h-[68px] bg-gradient-to-r from-[#2b446a] to-[#325082] shadow-md shadow-gray-900/30 flex justify-between items-center px-4 md:px-8 z-[10000]">
         {/* Left - Logo */}
         <div className="flex items-center">
           <Image
             src="/TrustLoopLogoW.png"
             alt="Logo"
-            width={68}
+            width={65}
             height={55}
             priority
           />
         </div>
 
         {/* Middle - Welcome & Nav Links (Desktop Only) */}
-        <div className="hidden md:flex flex-col items-center gap-y-[1.5px] mb-[0.5px] ml-[70px]">
+        <div className="hidden md:flex flex-col items-center gap-y-[0.5px] mb-[0.5px] ml-[70px]">
           <p className="text-white font-semibold text-[16px] tracking-wide">
             Welcome to TrustLoop
           </p>
@@ -141,17 +205,43 @@ function NavBar() {
 
         {/* Right - Action Icons */}
         <div className="flex items-center gap-6 text-white">
-          {/* Heart (only one) */}
-          <Link href="/favorites" className="inline-block" aria-label="Favorites">
+          {/* Cart */}
+          <div
+            onMouseEnter={() => setHover((h) => ({ ...h, cart: true }))}
+            onMouseLeave={() => setHover((h) => ({ ...h, cart: false }))}
+            className="cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
+          >
+            {hover.cart ? (
+              <CartSolid className="w-6 h-6" />
+            ) : (
+              <ShoppingCartIcon className="w-6 h-6" />
+            )}
+          </div>
+
+          {/* Heart with counter */}
+          <Link
+            href="/favorites"
+            className="inline-block"
+            aria-label="Favorites"
+          >
             <div
               onMouseEnter={() => setHover({ ...hover, heart: true })}
               onMouseLeave={() => setHover({ ...hover, heart: false })}
-              className="cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
+              className="relative cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
             >
               {hover.heart ? (
                 <HeartSolid className="w-6 h-6" />
               ) : (
                 <HeartIcon className="w-6 h-6" />
+              )}
+
+              {mounted && favCount > 0 && (
+                <span
+                  className="absolute -top-[6px] -right-[10px] min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-white text-[12px] leading-[18px] text-center font-semibold pointer-events-none"
+                  aria-label={`${favCount} favorites`}
+                >
+                  {favCount}
+                </span>
               )}
             </div>
           </Link>
@@ -206,7 +296,7 @@ function NavBar() {
       </header>
 
       {/* Spacer to push content down */}
-      <div className="h-[90px]" />
+      <div className="h-[88px]" />
 
       {/* Overlay */}
       {showMenu && (

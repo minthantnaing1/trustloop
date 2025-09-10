@@ -15,6 +15,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { fmtBKK, toLocalInputValue } from "@/utils/timeAgo";
 import Stepper from "@/components/Stepper";
+import ActionButton from "@/components/ActionButton";
 
 // tiny presentational element
 function Field({ icon: Icon, label, value }) {
@@ -110,7 +111,11 @@ export default function OrderDetail({ id }) {
     setScheduledAt(toLocalInputValue(f.scheduledAt));
     setMeetTime(toLocalInputValue(f.meetupProposedAt));
 
-    if (meRes?.ok) setMe(await meRes.json());
+    // inside load()
+    if (meRes?.ok) {
+      const m = await meRes.json();
+      setMe(m?.user || m); // <- store the real user document
+    }
   }
 
   useEffect(() => {
@@ -304,6 +309,16 @@ export default function OrderDetail({ id }) {
             >
               Product
             </Link>
+
+            {/* NEW: Payout button (seller only, after delivered/meetup completed/paid out) */}
+            {isSeller &&
+              (txn.status === "SELLER_DELIVERED" ||
+                txn.status === "MEETUP_COMPLETED" ||
+                txn.status === "PAID_OUT") && (
+                <Link href={`/my-orders/${id}/payout`}>
+                  <ActionButton text="Payout" variant="primaryClick" />
+                </Link>
+              )}
           </div>
         </div>
       </div>
@@ -366,20 +381,6 @@ export default function OrderDetail({ id }) {
 
         {/* Role-aware controls */}
         <div className="mt-6 border-t pt-4 border-[#e7ecf8]">
-          {/* Payout CTA for seller after completion (works for both Delivery & Meetup) */}
-          {isSeller &&
-            (txn.status === "SELLER_DELIVERED" ||
-              txn.status === "MEETUP_COMPLETED") && (
-              <div>
-                <Link
-                  href={`/my-orders/${id}/payout`}
-                  className="inline-flex items-center px-4 py-2 rounded-lg bg-[#325082] text-white hover:bg-[#2b446e]"
-                >
-                  Go to Payout
-                </Link>
-              </div>
-            )}
-
           {method === "DELIVERY" &&
             isSeller &&
             ["SELLER_ACCEPTED", "DELIVERY_IN_PROGRESS"].includes(

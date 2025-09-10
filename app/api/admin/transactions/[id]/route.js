@@ -172,9 +172,13 @@ export async function DELETE(_req, { params }) {
     if (!mongoose.Types.ObjectId.isValid(id))
       return new Response("Invalid id", { status: 400 });
 
-    const txn = await Transaction.findById(id, "buyerReceiptUrl");
+    // ↓ include product id so we can free the listing
+    const txn = await Transaction.findById(id).select(
+      "buyerReceiptUrl product"
+    );
     if (!txn) return new Response("Not found", { status: 404 });
 
+    // Optionally remove receipt from Cloudinary
     const pid = extractPublicId(txn.buyerReceiptUrl);
     if (pid) {
       try {
@@ -182,6 +186,14 @@ export async function DELETE(_req, { params }) {
       } catch (e) {
         console.warn("cloudinary destroy failed:", pid, e?.message);
       }
+    }
+
+    // ↓ make the product available again if there is one
+    if (txn.product) {
+      await Product.updateOne(
+        { _id: txn.product },
+        { $set: { isAvailable: true } }
+      );
     }
 
     await Transaction.deleteOne({ _id: id });

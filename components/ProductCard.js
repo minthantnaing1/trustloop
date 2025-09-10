@@ -42,7 +42,7 @@ export default function ProductCard({
             : "w-full h-[340px] max-[1025px]:h-[320px] max-[426px]:h-[280px] max-[376px]:h-[260px] max-[321px]:h-[230px]"
         }
         ${isHidden ? "bg-gray-200 opacity-60" : "bg-[#e2e2e2]"}
-        rounded-[10px] p-3 transition-all duration-300 cursor-pointer
+        rounded-[10px] p-3 transition-all duration-800 ease-in-out cursor-pointer
         ${
           isOwner
             ? "hover:scale-[0.96] active:scale-[0.92] hover:shadow-md shadow-gray-300"

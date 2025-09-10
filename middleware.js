@@ -5,9 +5,10 @@ const protectedRoutes = [
   /^\/admin(\/.*)?$/, // Protect /admin and its subroutes
   /^\/home$/,
   /^\/profile(\/.*)?$/,
-  /^\/my-orders$/,
+  /^\/my-orders(\/.*)?$/,
   /^\/sell$/,
   /^\/buy-sell(\/.*)?$/, // Protect all buy-sell subroutes
+  /^\/favorites$/,
 ];
 
 const authPageRoutes = ["/"];

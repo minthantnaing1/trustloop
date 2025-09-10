@@ -5,6 +5,7 @@ import NavBar from "@/components/NavBar";
 import Link from "next/link";
 import PayPanel from "@/components/PayPanel";
 import Stepper from "@/components/Stepper";
+import { ChevronLeftIcon } from "@heroicons/react/24/solid";
 
 export default async function PayPage({ params }) {
   const { id } = await params; // transactionId
@@ -30,14 +31,6 @@ export default async function PayPage({ params }) {
       <main className="max-w-[1200px] mx-auto mb-[40px] px-4 w-full overflow-x-hidden">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-[#325082]">Checkout</h1>
-          {productId && (
-            <Link
-              href={`/buy-sell/${productId}/checkout`}
-              className="text-[#325082] text-sm hover:underline"
-            >
-              ← Back to Checkout
-            </Link>
-          )}
         </div>
 
         {/* Progress Stepper (buyer, step 2) */}

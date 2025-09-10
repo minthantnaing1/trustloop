@@ -1,13 +1,42 @@
 // app/my-orders/page.js
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import NavBar from "@/components/NavBar";
 import ActionButton from "@/components/ActionButton";
 import StatusPill from "@/components/StatusPill";
 import Stepper from "@/components/Stepper";
+
+function isPendingUploadActive(txn) {
+  if (txn?.status !== "PENDING_UPLOAD") return false;
+  const exp = txn?.expiresAt ? new Date(txn.expiresAt).getTime() : 0;
+  return exp > Date.now();
+}
+
+function formatMMSS(ms) {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function Countdown({ expiresAt }) {
+  const [remainMs, setRemainMs] = useState(() =>
+    Math.max(0, new Date(expiresAt).getTime() - Date.now())
+  );
+
+  useEffect(() => {
+    const tick = () =>
+      setRemainMs(Math.max(0, new Date(expiresAt).getTime() - Date.now()));
+    tick();
+    const t = setInterval(tick, 1000);
+    return () => clearInterval(t);
+  }, [expiresAt]);
+
+  return <b className="font-mono tabular-nums">{formatMMSS(remainMs)}</b>;
+}
 
 function MethodTag({ method }) {
   if (!method) return null;
@@ -82,6 +111,76 @@ export default function MyOrdersPage() {
   const [errBuyer, setErrBuyer] = useState("");
   const [errSeller, setErrSeller] = useState("");
   const [pendingActionId, setPendingActionId] = useState(null);
+
+  // keep track of scheduled refresh timers so we can clean them up
+  const refreshTimersRef = useRef([]);
+
+  // re-fetch function for a single role
+  async function refreshRoleLists(which) {
+    try {
+      if (which === "buyer") {
+        const r = await fetch("/api/transactions/mine?role=buyer", {
+          cache: "no-store",
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const data = await r.json();
+        setBuyerTxns(Array.isArray(data) ? data : []);
+      } else {
+        const r = await fetch("/api/transactions/mine?role=seller", {
+          cache: "no-store",
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const data = await r.json();
+        setSellerTxns(Array.isArray(data) ? data : []);
+      }
+    } catch {
+      // ignore – page already handles error text on first load
+    }
+  }
+
+  function clearExpiryTimers() {
+    refreshTimersRef.current.forEach((t) => clearTimeout(t));
+    refreshTimersRef.current = [];
+  }
+
+  // schedule an automatic refresh right when any PENDING_UPLOAD expires
+  function scheduleExpiryRefresh(items, whichRole) {
+    clearExpiryTimers();
+    if (!Array.isArray(items)) return;
+
+    const now = Date.now();
+    for (const t of items) {
+      if (t?.status !== "PENDING_UPLOAD" || !t?.expiresAt) continue;
+      const ms = new Date(t.expiresAt).getTime() - now;
+      if (Number.isFinite(ms) && ms > 0) {
+        const handle = setTimeout(() => {
+          // small buffer to let server sweep run
+          refreshRoleLists(whichRole);
+        }, ms + 250);
+        refreshTimersRef.current.push(handle);
+      }
+    }
+  }
+
+  // when buyer list changes, schedule auto-refreshes for buyer
+  useEffect(() => {
+    if (role === "buyer") scheduleExpiryRefresh(buyerTxns, "buyer");
+    return () => clearExpiryTimers();
+  }, [buyerTxns, role]);
+
+  // when seller list changes, schedule auto-refreshes for seller
+  useEffect(() => {
+    if (role === "seller") scheduleExpiryRefresh(sellerTxns, "seller");
+    return () => clearExpiryTimers();
+  }, [sellerTxns, role]);
+
+  // extra safety: clear any pending timers when the page unmounts
+  useEffect(() => {
+    return () => {
+      refreshTimersRef.current.forEach((t) => clearTimeout(t));
+      refreshTimersRef.current = [];
+    };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -171,7 +270,7 @@ export default function MyOrdersPage() {
       <NavBar />
 
       <main
-        className="max-w-[1200px] mx-auto px-4 transition-all duration-[800ms]"
+        className="max-w-[1200px] mx-auto px-4 mb-6 transition-all duration-[800ms]"
         style={{ animation: "fadeSlide 800ms ease-out" }}
       >
         <div className="flex items-center justify-between gap-3 mb-6 flex-nowrap">
@@ -226,15 +325,19 @@ export default function MyOrdersPage() {
                 >
                   {/* Banner */}
                   <header className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 bg-slate-50">
-                    <div className="text-xs sm:text-[13px] text-slate-600">
+                    <div className="text-[14px] text-slate-600">
                       {isSeller ? "Buyer" : "Seller"}:&nbsp;
                       <span className="font-medium text-[#325082]">
                         {counterparty?.name || counterparty?.email || "-"}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <StatusPill status={t.status} />
+                    <div className="flex items-center justify-end gap-2">
+                      <span className="text-slate-500">Deliver Method:</span>
                       <MethodTag method={method} />
+                    </div>
+                    <div className="flex items-center justify-end gap-2">
+                      <span className="text-slate-500">Order status:</span>
+                      <StatusPill status={t.status} />
                     </div>
                   </header>
 
@@ -305,13 +408,41 @@ export default function MyOrdersPage() {
                         <span className="text-sm text-[#325082] underline underline-offset-2">
                           View timeline
                         </span>
-                        <Link href={`/my-orders/${id}`}>
-                          <ActionButton
-                            text="Order Detail"
-                            variant="primaryClick"
-                          />
-                        </Link>
+
+                        {/* 👇 Replace this single Link with a small group */}
+                        <div className="flex items-center gap-2">
+                          {/* NEW: Buyer can go back to pay page while still within 5 mins */}
+                          {role === "buyer" && isPendingUploadActive(t) && (
+                            <Link href={`buy-sell/pay/${id}`}>
+                              <ActionButton
+                                text="Pay & Upload"
+                                variant="outlineClick"
+                              />
+                            </Link>
+                          )}
+
+                          <Link href={`/my-orders/${id}`}>
+                            <ActionButton
+                              text="Order Detail"
+                              variant="primaryClick"
+                            />
+                          </Link>
+                        </div>
                       </div>
+                      {/* ⚠️ Warning note — same visibility logic as the Pay button */}
+                      {role === "buyer" &&
+                        isPendingUploadActive(t) &&
+                        t.expiresAt && (
+                          <div className="text-center mb-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900 text-sm">
+                            Payment pending — please click{" "}
+                            <span className="font-semibold">
+                              “Pay &amp; Upload”
+                            </span>{" "}
+                            and complete your payment within{" "}
+                            <Countdown expiresAt={t.expiresAt} /> or this order
+                            will be automatically cancelled.
+                          </div>
+                        )}
                     </summary>
 
                     <div className="border border-slate-200 rounded-md max-h-40 overflow-y-auto p-3">

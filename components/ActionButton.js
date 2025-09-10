@@ -25,9 +25,15 @@ export default function ActionButton({
       "h-[42px] w-[115px] border-[#325082] text-[#325082] bg-white text-sm hover:scale-[1.06] border-[2px]",
 
     cartPrimaryClick:
-      "border-transparent text-white bg-[#325082] py-2.5 rounded-md hover:scale-[1.03] border-[2px]",
+      "border-transparent text-white bg-[#325082] py-2.5 rounded-md hover:scale-[1.02] border-[2px]",
+    buyPrimaryClick:
+      "border-[#325082] text-white bg-[#325082] py-2.5 rounded-md hover:scale-[1.02] border-[2px]",
     buyOutlineClick:
-      "border-[#325082] text-[#325082] bg-white py-2.5 rounded-md hover:scale-[1.03] border-[2px]",
+      "border-[#325082] text-[#325082] bg-white py-2.5 rounded-md hover:scale-[1.02] border-[2px]",
+    favOutlineClick:
+      "border-rose-600 text-rose-600 bg-white py-2.5 rounded-md hover:scale-[1.05] border-[2px]",
+    favPrimaryClick:
+      "border-rose-600 text-white bg-rose-600 py-2.5 rounded-md hover:scale-[1.05] border-[2px]",
     iconOutlineHover:
       "border-[#325082] text-[#325082] bg-white hover:bg-[#325082] hover:border-transparent hover:text-white hover:scale-[1.1] text-[25px] px-4 rounded-md border-[1.5px]",
 
