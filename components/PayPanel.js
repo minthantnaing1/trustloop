@@ -155,19 +155,16 @@ export default function PayPanel({ txn }) {
           </div>
 
           <div className="mt-3 flex items-center justify-center">
-            <div className="p-3 rounded-xl border">
+            <div className="p-1 rounded-xl border">
               <img
-                src={
-                  process.env.NEXT_PUBLIC_ADMIN_PROMPTPAY_QR_URL ||
-                  "/promptpay-placeholder.png"
-                }
+                src="/AbelScan.jpg"
                 alt="PromptPay QR"
-                className="w-[240px] h-[240px] object-contain"
+                className="w-[320px] h-[320px] object-contain" // ⬅️ slightly bigger than before
               />
             </div>
           </div>
 
-          <p className="text-xs text-gray-500 mt-3">
+          <p className="text-sm text-center text-gray-500 mt-3">
             Send exactly{" "}
             <span className="font-semibold text-[#1f2f4c]">
               {Number(txn.total).toLocaleString()} ฿
@@ -175,10 +172,16 @@ export default function PayPanel({ txn }) {
             to the TrustLoop admin account, then upload your payment receipt
             below.
           </p>
+
+          <div className="mt-3 bg-yellow-50 border border-yellow-300 text-yellow-800 text-[12px] rounded-md px-3 py-2 text-center">
+            Please upload your payment slip with 5 minutes — if time runs out or
+            you leave, the order will be auto-cancelled (you can still return
+            via My Orders within that time).
+          </div>
         </div>
 
         {/* Right: order + upload */}
-        <div className="w-full lg:w-[420px]">
+        <div className="w-full lg:w-[450px]">
           <div className="rounded-xl border overflow-hidden">
             <div className="p-4 bg-gradient-to-br from-[#f3f6fb] to-white">
               <h3 className="font-semibold text-[#325082]">Order</h3>
@@ -296,11 +299,6 @@ export default function PayPanel({ txn }) {
               />
 
               {err ? <p className="text-xs text-red-600 mt-2">{err}</p> : null}
-
-              <p className="text-[11px] text-gray-500 mt-3">
-                If time runs out or you leave this page without uploading a
-                receipt, the order will be cancelled automatically.
-              </p>
             </div>
           </div>
         </div>

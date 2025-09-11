@@ -16,6 +16,7 @@ import {
 import { fmtBKK, toLocalInputValue } from "@/utils/timeAgo";
 import Stepper from "@/components/Stepper";
 import ActionButton from "@/components/ActionButton";
+import SlipLink from "@/components/SlipLink";
 
 // tiny presentational element
 function Field({ icon: Icon, label, value }) {
@@ -292,22 +293,21 @@ export default function OrderDetail({ id }) {
           <div className="text-sm text-gray-600">
             Updated {fmtBKK(txn.updatedAt || txn.createdAt)}
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6 text-sm">
             {txn.buyerReceiptUrl && (
-              <a
-                href={txn.buyerReceiptUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm underline text-[#325082] underline-offset-2"
-              >
-                Receipt
-              </a>
+              <SlipLink url={txn.buyerReceiptUrl} title="Buyer Payment Slip">
+                {isBuyer ? (
+                  <>View Payment Slip (me)</>
+                ) : (
+                  <>View Buyer Payment Slip</>
+                )}
+              </SlipLink>
             )}
             <Link
               href={`/buy-sell/${txn.product?._id || ""}`}
-              className="text-sm underline text-[#325082] underline-offset-2"
+              className="text-sm underline text-black hover:text-[#325082] underline-offset-2"
             >
-              Product
+              Product Details
             </Link>
 
             {/* NEW: Payout button (seller only, after delivered/meetup completed/paid out) */}
@@ -448,7 +448,9 @@ export default function OrderDetail({ id }) {
                   <div className="flex flex-wrap gap-3">
                     {txn.status === "SELLER_ACCEPTED" && (
                       <>
-                        <button
+                        <ActionButton
+                          text="Save Delivery Details"
+                          variant="primaryClick"
                           disabled={busy || !canEditDelivery}
                           onClick={() => {
                             if (!validateDeliveryWindow(scheduledAt)) {
@@ -473,12 +475,12 @@ export default function OrderDetail({ id }) {
                               notes,
                             });
                           }}
-                          className="px-4 py-2 rounded-lg bg-[#eef4ff] text-[#1f3b66] ring-1 ring-[#dbe6ff] hover:bg-[#e6f0ff]"
-                        >
-                          Save Delivery Details
-                        </button>
+                          className="!bg-[#eef4ff] !text-[#1f3b66] !ring-1 !ring-[#dbe6ff] hover:!bg-[#e6f0ff]"
+                        />
 
-                        <button
+                        <ActionButton
+                          text="Start Delivery"
+                          variant="primaryClick"
                           disabled={busy}
                           onClick={() => {
                             if (
@@ -492,23 +494,21 @@ export default function OrderDetail({ id }) {
                             }
                             doPatch({ action: "mark_delivery_in_progress" });
                           }}
-                          className="px-4 py-2 rounded-lg bg-[#325082] text-white hover:bg-[#2b446e]"
-                        >
-                          Start Delivery
-                        </button>
+                          className="!bg-[#325082] hover:!bg-[#2b446e]"
+                        />
                       </>
                     )}
 
                     {txn.status === "DELIVERY_IN_PROGRESS" && (
-                      <button
+                      <ActionButton
+                        text="Mark Delivered"
+                        variant="primaryClick"
                         disabled={busy}
                         onClick={() =>
                           doPatch({ action: "seller_mark_delivered" })
                         }
-                        className="px-4 py-2 rounded-lg bg-[#6b5bd2]/10 text-[#3b2f8f] ring-1 ring-[#cfc8ff] hover:bg-[#6b5bd2]/20"
-                      >
-                        Mark Delivered
-                      </button>
+                        className="!bg-[#6b5bd2]/10 !text-[#3b2f8f] !ring-1 !ring-[#cfc8ff] hover:!bg-[#6b5bd2]/20"
+                      />
                     )}
                   </div>
 
@@ -569,7 +569,9 @@ export default function OrderDetail({ id }) {
                     {/* Propose / Accept */}
                     <div className="flex flex-wrap gap-3">
                       {(!hasProposal || !proposedByMe) && (
-                        <button
+                        <ActionButton
+                          text="Propose Meetup"
+                          variant="primaryClick"
                           disabled={
                             busy ||
                             !meetLoc ||
@@ -591,20 +593,18 @@ export default function OrderDetail({ id }) {
                               ).toISOString(),
                             });
                           }}
-                          className="px-4 py-2 rounded-lg bg-[#eef4ff] text-[#1f3b66] ring-1 ring-[#dbe6ff] hover:bg-[#e6f0ff]"
-                        >
-                          Propose Meetup
-                        </button>
+                          className="!bg-[#eef4ff] !text-[#1f3b66] !ring-1 !ring-[#dbe6ff] hover:!bg-[#e6f0ff]"
+                        />
                       )}
 
                       {hasProposal && me && !proposedByMe && (
-                        <button
+                        <ActionButton
+                          text="Accept Proposal"
+                          variant="primaryClick"
                           disabled={busy}
                           onClick={() => doPatch({ action: "accept_meetup" })}
-                          className="px-4 py-2 rounded-lg bg-[#325082] text-white hover:bg-[#2b446e]"
-                        >
-                          Accept Proposal
-                        </button>
+                          className="!bg-[#325082] hover:!bg-[#2b446e]"
+                        />
                       )}
                     </div>
                   </>
@@ -613,15 +613,15 @@ export default function OrderDetail({ id }) {
                 {/* After delivery started, only “mark completed” remains */}
                 {isSeller && txn.status === "DELIVERY_IN_PROGRESS" && (
                   <div className="flex flex-wrap gap-3">
-                    <button
+                    <ActionButton
+                      text="Mark Meetup Completed"
+                      variant="primaryClick"
                       disabled={busy}
                       onClick={() =>
                         doPatch({ action: "mark_meetup_completed" })
                       }
-                      className="px-4 py-2 rounded-lg bg-[#6fd3e6]/10 text-[#086b7f] ring-1 ring-[#bfeef6] hover:bg-[#6fd3e6]/20"
-                    >
-                      Mark Meetup Completed
-                    </button>
+                      className="!bg-[#6fd3e6]/10 !text-[#086b7f] !ring-1 !ring-[#bfeef6] hover:!bg-[#6fd3e6]/20"
+                    />
                   </div>
                 )}
 
@@ -654,13 +654,13 @@ export default function OrderDetail({ id }) {
                   </div>
                 )}
 
-                <button
+                <ActionButton
+                  text="Confirm Received"
+                  variant="primaryClick"
                   disabled={busy}
                   onClick={() => doPatch({ action: "buyer_confirm" })}
-                  className="px-4 py-2 rounded-lg bg-[#10b981]/90 text-white hover:bg-[#0ea371]"
-                >
-                  Confirm Received
-                </button>
+                  className="!bg-[#10b981]/90 hover:!bg-[#0ea371]"
+                />
               </div>
             )}
         </div>

@@ -29,8 +29,8 @@ export default async function CheckoutPage({ params }) {
         { headers: { Cookie: cookieStore.toString() }, cache: "no-store" }
       );
       if (meRes.ok) {
-        const me = await meRes.json();
-        userLocation = me?.location || "";
+        const { user } = await meRes.json();
+        userLocation = user?.location || "";
       }
     } catch {
       // ignore – show empty input if fetch fails
@@ -74,42 +74,62 @@ export default async function CheckoutPage({ params }) {
                     "/placeholder.png"
                   }
                   alt={product.title}
-                  className="w-[160px] h-[160px] rounded-xl object-cover border"
+                  className="w-[150px] h-[150px] sm:w-[200px] sm:h-[200px] rounded-xl object-cover border"
                 />
-                <div className="flex-1">
-                  <h2 className="text-lg font-semibold text-[#1f2f4c]">
+                <div className="flex-1 flex flex-col justify-start">
+                  <h2 className="text-lg font-bold text-[#1f2f4c]">
                     {product.title}
                   </h2>
-                  <p className="text-[#1f2f4c] mt-1 font-medium">
+                  <p className="text-[#1f2f4c] mt-1 font-semibold">
                     {price.toLocaleString()} ฿
                   </p>
 
-                  <div className="mt-2 text-sm text-gray-600">
+                  <div className="mt-2 text-[14px] text-gray-600">
                     <div>
                       Seller:{" "}
-                      <span className="font-medium text-[#1f2f4c]">
+                      <span className="font-semibold text-[#1f2f4c]">
                         {product.owner?.name || "-"}
                       </span>
                     </div>
                     <div className="mt-1">
                       Category:{" "}
-                      <span className="text-gray-700">
+                      <span className="font-semibold text-gray-700">
                         {product.category || "-"}
                       </span>
                     </div>
                     <div className="mt-1">
-                      Default Meetup (from listing):{" "}
-                      <span className="text-gray-700">
+                      Condition:{" "}
+                      <span className="font-semibold text-gray-700">
+                        {product.condition || "-"}
+                      </span>
+                    </div>
+                    <div className="mt-1">
+                      Seller&apos;s Location:{" "}
+                      <span className="font-semibold text-gray-700">
                         {product.location || "-"}
                       </span>
                     </div>
                   </div>
-
-                  {/* Trust badge */}
-                  <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#e9eff7] border border-[#cdd9ef] text-[#325082] text-xs font-medium">
-                    <span>🔒 Secure Escrow by TrustLoop</span>
-                  </div>
                 </div>
+              </div>
+
+              {/* Trust badge */}
+              <div className="mt-3 inline-flex items-center justify-center gap-2 w-full py-2 rounded-full bg-[#e9eff7] border border-[#cdd9ef] text-[#325082] text-xs font-semibold">
+                <span>🔒 Secure Escrow by TrustLoop</span>
+              </div>
+
+              {/* What happens on this page */}
+              <div className="mt-6">
+                <h3 className="text-sm font-semibold text-[#325082] mb-2">
+                  Steps on this page
+                </h3>
+                <ul className="text-sm text-gray-700 space-y-1 list-disc pl-5">
+                  <li>
+                    Select your preferred delivery method (meetup or delivery).
+                  </li>
+                  <li>Fill or choose your meetup / delivery location.</li>
+                  <li>Review the order details and confirm your order.</li>
+                </ul>
               </div>
 
               {/* What happens next */}
@@ -119,9 +139,12 @@ export default async function CheckoutPage({ params }) {
                 </h3>
                 <ul className="text-sm text-gray-700 space-y-1 list-disc pl-5">
                   <li>
-                    We’ll create the order and move you to the payment page.
+                    We&apos;ll create the order and move you to the payment
+                    page.
                   </li>
-                  <li>Pay to the admin account and upload your receipt.</li>
+                  <li>
+                    Pay to the admin account and upload your payment slip.
+                  </li>
                   <li>Seller delivers or meets you; you confirm receipt.</li>
                   <li>Admin releases payout to the seller.</li>
                 </ul>
@@ -129,7 +152,7 @@ export default async function CheckoutPage({ params }) {
             </div>
 
             {/* Right: order summary + method/location */}
-            <div className="w-full lg:w-[420px]">
+            <div className="w-full lg:w-[460px]">
               <div className="rounded-xl border overflow-hidden">
                 <div className="p-4 bg-gradient-to-br from-[#f3f6fb] to-white">
                   <h3 className="font-semibold text-[#325082]">
@@ -164,9 +187,9 @@ export default async function CheckoutPage({ params }) {
                         <span className="text-sm">Delivery</span>
                       </label>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-600 mt-2 text-center">
                       Meetup time can be discussed after seller accepts the
-                      order.
+                      order in order details
                     </p>
                   </fieldset>
 
@@ -182,7 +205,7 @@ export default async function CheckoutPage({ params }) {
                       placeholder='e.g., "AU Dorm 2" or "Bangna Campus"'
                       className="w-full rounded-lg border border-[#dbe6ff] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#325082]/30"
                     />
-                    <p className="text-[11px] text-gray-500 mt-1">
+                    <p className="text-xs text-gray-600 ml-3 mt-1">
                       Prefilled from your profile (
                       <span className="font-medium">User Location</span>). You
                       can customize it for this order.
@@ -223,10 +246,11 @@ export default async function CheckoutPage({ params }) {
                     )}
                   </div>
 
-                  <p className="text-xs text-gray-500 leading-relaxed">
-                    By confirming, you agree to TrustLoop’s escrow process.
-                    You’ll pay on the next screen and upload a receipt. Funds
-                    are held until you confirm you’ve received the item.
+                  <p className="text-xs text-center text-gray-600 -mt-1 leading-relaxed">
+                    By confirming, you agree to TrustLoop&apos;s escrow process.
+                    You&apos;ll pay on the next screen and upload a receipt.
+                    Funds are held until you confirm you&apos;ve received the
+                    item.
                   </p>
                 </form>
               </div>

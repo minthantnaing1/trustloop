@@ -136,6 +136,16 @@ export async function PATCH(req, { params }) {
         action: "ADMIN_PAID_OUT",
         meta: { url: payoutUrl },
       });
+
+      // ⬇️ ADD: credit seller revenue with the net amount (no fees)
+      const revenueAmount = Number(
+        txn.sellerNet ?? txn.total - (txn.fee || 0) ?? txn.price ?? 0
+      );
+      await User.updateOne(
+        { _id: txn.seller },
+        { $inc: { revenue: revenueAmount } }
+      );
+
       txn.updatedAt = new Date();
       await txn.save();
 

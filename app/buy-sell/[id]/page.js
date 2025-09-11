@@ -170,7 +170,7 @@ export default async function ProductDetailPage({ params }) {
               Condition: {product.condition || "-"}
             </div>
             <div className="bg-[#e2e2e2] p-3 rounded-md">
-              Meetup Location: {product.location || "-"}
+              Seller&apos;s Location: {product.owner?.location || "-"}
             </div>
 
             <div className="flex items-center gap-4 mt-3 p-3 rounded-md bg-[#f0f0f0] border border-[#ccc]">

@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import ActionButton from "@/components/ActionButton";
+import { PhoneIcon } from "@heroicons/react/24/outline";
 
 export default function AdminPayoutPanel({ txn }) {
   const router = useRouter();
@@ -92,12 +93,14 @@ export default function AdminPayoutPanel({ txn }) {
             <div className="text-sm font-semibold text-[#1f2f4c] mb-3">
               Seller Scan Code
             </div>
+
             {scanUrl ? (
-              <div className="flex items-center justify-center">
+              // ⬇️ CHANGED: fixed-height viewer
+              <div className="w-full max-w-[560px] mx-auto h-[420px] sm:h-[460px] rounded-2xl overflow-hidden bg-white flex items-center justify-center">
                 <img
                   src={scanUrl}
                   alt="Seller scan code"
-                  className="w-full max-w-[560px] h-auto rounded-2xl object-contain"
+                  className="max-w-full max-h-full object-contain"
                 />
               </div>
             ) : (
@@ -106,6 +109,7 @@ export default function AdminPayoutPanel({ txn }) {
                 <code>defaultScanCode</code>).
               </p>
             )}
+
             <p className="text-[11px] text-gray-500 mt-3">
               Make sure the amount matches exactly before marking as paid.
             </p>
@@ -117,16 +121,18 @@ export default function AdminPayoutPanel({ txn }) {
             </div>
             {txn?.adminPayoutReceiptUrl ? (
               <div className="flex flex-col items-start">
-                <img
-                  src={txn.adminPayoutReceiptUrl}
-                  alt="Payout receipt"
-                  className="w-full max-w-[560px] rounded-2xl object-contain"
-                />
+                <div className="w-full max-w-[560px] h-[420px] sm:h-[460px] rounded-2xl overflow-hidden bg-white flex items-center justify-center">
+                  <img
+                    src={txn.adminPayoutReceiptUrl}
+                    alt="Payout receipt"
+                    className="max-w-full max-h-full object-contain"
+                  />
+                </div>
                 <a
                   href={txn.adminPayoutReceiptUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-[#325082] underline mt-2"
+                  className="text-sm text-[#325082] underline mt-2 inline-block"
                 >
                   Open full image
                 </a>
@@ -159,7 +165,12 @@ export default function AdminPayoutPanel({ txn }) {
             </div>
             <div className="text-sm text-gray-600">{seller?.email}</div>
             {seller?.phone && (
-              <div className="text-sm text-gray-600">📞 {seller.phone}</div>
+              <div className="text-sm text-gray-700 inline-flex items-center gap-1">
+                <PhoneIcon className="w-4 h-4" />
+                <a href={`tel:${seller.phone}`} className="underline">
+                  {seller.phone}
+                </a>
+              </div>
             )}
           </Card>
 
@@ -222,7 +233,7 @@ export default function AdminPayoutPanel({ txn }) {
                 text={busy ? "Saving…" : "Mark as Paid"}
                 variant="submitPrimaryClick"
                 onClick={markPaid}
-                disabled={busy || !canPay || !file}
+                disabled={busy || !canPay}
                 className="mt-3 w-full"
               />
 

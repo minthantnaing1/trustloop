@@ -27,12 +27,16 @@ const UserSchema = new mongoose.Schema({
   revenue: { type: Number, default: 0 }, // Income from selling
   expenses: { type: Number, default: 0 }, // Cost from buying
 
-  // Preferences
+  // Required Fields for Transactions
   location: { type: String }, // e.g., "AU Dorm 2" or "Bangna Campus"
   defaultScanCode: String, // Default QR or scanner setting
+  bankAccountName: { type: String, default: "" },
+  bankAccountNumber: { type: String, default: "" },
 
   // Favorites (added)
-  favorites: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product", default: [] }],
+  favorites: [
+    { type: mongoose.Schema.Types.ObjectId, ref: "Product", default: [] },
+  ],
 
   // Timestamps
   createdAt: { type: Date, default: Date.now },

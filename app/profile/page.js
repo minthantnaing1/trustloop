@@ -133,19 +133,119 @@ export default async function ProfilePage() {
           </div>
         </section>
 
-        {/* Centered phone and location below the top section */}
-        <div className="flex flex-col items-center mt-4 mb-6 space-y-2">
-          <p className="text-base text-gray-800">
-            <span className="font-semibold">Phone – </span>
-            <span className="font-normal">{user.phone || "Not set"}</span>
-          </p>
-          <p className="text-base text-gray-800">
-            <span className="font-semibold">Location – </span>
-            <span className="font-normal">
-              {user.location?.trim() || "Not set"}
-            </span>
-          </p>
-        </div>
+        {/* Contact & Payment */}
+        <section className="mt-6 mb-8">
+          <div className="bg-white rounded-[12px] p-6 shadow-sm">
+            <div className="flex flex-col md:flex-row gap-8 items-start">
+              {/* Left: Scan / QR (refined card) */}
+              <div className="md:w-1/3 w-full">
+                <div className="rounded-2xl border border-[#e7ecf8] bg-white shadow-sm overflow-hidden">
+                  {/* Card header */}
+                  <div className="flex items-center justify-between px-4 py-2 border-b border-[#f0f4ff]">
+                    <h3 className="text-sm font-semibold text-[#1f2f4c]">
+                      Default Scan Code
+                    </h3>
+                    {user.defaultScanCode && (
+                      <a
+                        href={user.defaultScanCode}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-[#325082] underline"
+                      >
+                        Open full size
+                      </a>
+                    )}
+                  </div>
+
+                  {/* Image area */}
+                  <div className="relative w-full bg-[#f6f9ff] border-t border-[#e7ecf8]">
+                    {user.defaultScanCode ? (
+                      <>
+                        <div className="h-[200px] flex items-center justify-center p-1">
+                          <img
+                            src={user.defaultScanCode}
+                            alt="Default scan code"
+                            className="max-h-full max-w-full object-contain transition-transform duration-300 hover:scale-[1.02]"
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500 text-center px-3 pb-2">
+                          This QR will be used for payouts and transfers as
+                          default.
+                        </p>
+                      </>
+                    ) : (
+                      <div className="h-[200px] flex items-center justify-center text-gray-500 text-sm">
+                        <div className="text-center">
+                          <div className="mb-2">No scan code uploaded</div>
+                          <Link
+                            href="/profile/edit"
+                            className="text-[#325082] underline"
+                          >
+                            Add one
+                          </Link>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right: Info rows (full width on mobile) */}
+              <div className="md:flex-1 w-full">
+                <h3 className="text-sm font-semibold text-[#1f2f4c] mb-4">
+                  Contact & Payment
+                </h3>
+
+                {/* Equal-height rows, label/value columns */}
+                <div className="w-full rounded-lg border border-[#eef2fb] overflow-hidden bg-[#fbfdff]">
+                  {/* Phone */}
+                  <div className="grid grid-cols-[140px_minmax(0,1fr)] sm:grid-cols-[180px_minmax(0,1fr)] items-center h-12 px-3 sm:px-4 border-b border-[#e7ecf8]">
+                    <span className="text-sm text-gray-500">Phone -</span>
+                    <span className="text-sm font-medium text-gray-900 text-right truncate">
+                      {user.phone ? (
+                        <a href={`tel:${user.phone}`} className="underline">
+                          {user.phone}
+                        </a>
+                      ) : (
+                        "Not set"
+                      )}
+                    </span>
+                  </div>
+
+                  {/* Default Location */}
+                  <div className="grid grid-cols-[140px_minmax(0,1fr)] sm:grid-cols-[180px_minmax(0,1fr)] items-center h-12 px-3 sm:px-4 border-b border-[#e7ecf8]">
+                    <span className="text-sm text-gray-500">
+                      Default Location -
+                    </span>
+                    <span className="text-sm font-medium text-gray-900 text-right truncate">
+                      {user.location?.trim() || "Not set"}
+                    </span>
+                  </div>
+
+                  {/* Bank Account Name */}
+                  <div className="grid grid-cols-[140px_minmax(0,1fr)] sm:grid-cols-[180px_minmax(0,1fr)] items-center h-12 px-3 sm:px-4 border-b border-[#e7ecf8]">
+                    <span className="text-sm text-gray-500">
+                      Bank Account Name -
+                    </span>
+                    <span className="text-sm font-medium text-gray-900 text-right truncate">
+                      {user.bankAccountName || "Not set"}
+                    </span>
+                  </div>
+
+                  {/* Bank Account Number */}
+                  <div className="grid grid-cols-[140px_minmax(0,1fr)] sm:grid-cols-[180px_minmax(0,1fr)] items-center h-12 px-3 sm:px-4">
+                    <span className="text-sm text-gray-500">
+                      Bank Account Number -
+                    </span>
+                    <span className="text-sm font-medium text-gray-900 text-right truncate">
+                      {user.bankAccountNumber || "Not set"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* Your Bought Items */}
         <section className="mb-8 bg-[#f9fafb] rounded-[12px] p-4">

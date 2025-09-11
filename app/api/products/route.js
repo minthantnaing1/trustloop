@@ -44,6 +44,7 @@ export async function GET(req) {
     const maxPrice = parseFloat(searchParams.get("maxPrice")) || 999999999;
     const condition = searchParams.get("condition");
     const location = searchParams.get("location");
+    const type = searchParams.get("type"); // ← add this for type
 
     const user = session?.user?.email
       ? await User.findOne({ email: session.user.email })
@@ -62,6 +63,7 @@ export async function GET(req) {
     if (category) filters.category = category;
     if (condition) filters.condition = condition;
     if (location) filters.location = { $regex: location, $options: "i" };
+    if (type) filters.type = type; // ← add this (e.g., "sell")
 
     const products = await Product.find(filters)
       .populate("owner")

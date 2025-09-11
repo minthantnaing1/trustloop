@@ -75,7 +75,11 @@ export async function PATCH(req, { params }) {
       "faculty",
       "year",
       "location",
+      "defaultScanCode",
+      "bankAccountName",
+      "bankAccountNumber",
     ];
+
     allowedFields.forEach((field) => {
       if (body[field] !== undefined) {
         user[field] = body[field];

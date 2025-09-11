@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import NavBar from "@/components/NavBar";
 import ActionButton from "@/components/ActionButton";
@@ -20,6 +20,22 @@ export default function SellPage() {
   const [images, setImages] = useState([]); // array of File
   const [defaultIndex, setDefaultIndex] = useState(0);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const res = await fetch("/api/users/me", { cache: "no-store" });
+        if (!res.ok) return;
+        const { user } = await res.json();
+        if (user?.location) {
+          setForm((prev) => ({ ...prev, location: user.location }));
+        }
+      } catch (e) {
+        console.error("Failed to fetch user", e);
+      }
+    }
+    fetchUser();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -282,9 +298,13 @@ export default function SellPage() {
               name="location"
               value={form.location}
               onChange={handleChange}
-              placeholder="Meetup Location"
+              placeholder="Your Location"
               className="bg-[#f1f1f1] p-3 rounded-[8px] min-h-[80px] outline-none"
             />
+            <p className="text-xs text-gray-500 -mt-3 ml-2">
+              Prefilled from your profile location — you can change it for this
+              product.
+            </p>
           </div>
         </div>
       </main>

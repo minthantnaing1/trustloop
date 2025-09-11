@@ -1,14 +1,19 @@
+// admin/transactions/page.js
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import AdminTxnRowActions from "@/components/admin/AdminTxnRowActions";
-import AdminReceiptLink from "@/components/admin/AdminReceiptLink";
+import SlipLink from "@/components/SlipLink";
 import ConfirmModal from "@/components/ConfirmModal";
 import TxnToolbar from "@/components/admin/TxnToolbar";
 import StatusPill from "@/components/StatusPill";
+import ActionButton from "@/components/ActionButton";
 import { TrashIcon } from "@heroicons/react/24/solid";
 
 export default function AdminTransactionsPage() {
+  const router = useRouter();
+
   const [txns, setTxns] = useState(null);
   const [err, setErr] = useState("");
 
@@ -101,18 +106,22 @@ export default function AdminTransactionsPage() {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr>
+                  <th className="p-2 border-b font-medium w-10 text-center">
+                    #
+                  </th>
+                  {/* NEW */}
                   <th className="p-2 border-b font-medium">Product</th>
                   <th className="p-2 border-b font-medium">Buyer</th>
                   <th className="p-2 border-b font-medium">Seller</th>
                   <th className="p-2 border-b font-medium">Total</th>
                   <th className="p-2 border-b font-medium">Updated</th>
-                  <th className="p-2 border-b font-medium">Receipt</th>
+                  <th className="p-2 border-b font-medium">Buyer Slip</th>
                   <th className="p-2 border-b font-medium">Status</th>
                   <th className="p-2 border-b font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((t) => {
+                {filtered.map((t, idx) => {
                   const txnId = t._id?.toString?.() || t._id;
                   const awaiting = t.status === "AWAITING_ADMIN_REVIEW";
                   const editable =
@@ -133,12 +142,17 @@ export default function AdminTransactionsPage() {
                         if (deleteMode) askDelete(txnId);
                       }}
                     >
+                      {/* Row number */}
+                      <td className="p-2 text-center text-gray-600">
+                        {idx + 1}
+                      </td>
+                      {/* NEW */}
+                      {/* Product */}
                       <td className="p-2">
                         <div className="font-medium">
                           {t.product?.title || "-"}
                         </div>
                       </td>
-
                       {/* Buyer */}
                       <td className="p-2">
                         <div className="leading-tight">
@@ -148,7 +162,6 @@ export default function AdminTransactionsPage() {
                           </div>
                         </div>
                       </td>
-
                       {/* Seller */}
                       <td className="p-2">
                         <div className="leading-tight">
@@ -158,16 +171,26 @@ export default function AdminTransactionsPage() {
                           </div>
                         </div>
                       </td>
-
                       <td className="p-2">
                         ฿{Number(t.total).toLocaleString()}
                       </td>
                       <td className="p-2">
                         {new Date(t.updatedAt || t.createdAt).toLocaleString()}
                       </td>
+                      {/* Receipt / Slip */}
                       <td className="p-2">
                         {t.buyerReceiptUrl ? (
-                          <AdminReceiptLink url={t.buyerReceiptUrl} />
+                          deleteMode ? (
+                            // Disabled state while in delete mode
+                            <span className="text-[#325082]/40">View Slip</span>
+                          ) : (
+                            <SlipLink
+                              url={t.buyerReceiptUrl}
+                              title="Buyer Payment Slip"
+                            >
+                              View Slip
+                            </SlipLink>
+                          )
                         ) : (
                           <span className="text-gray-400">—</span>
                         )}
@@ -192,16 +215,23 @@ export default function AdminTransactionsPage() {
                             </span>
                           </button>
                         ) : t.status === "BUYER_CONFIRMED" ? (
-                          <a
-                            href={`/admin/transactions/${txnId}/payout`}
-                            className="inline-flex items-center px-3 py-2 rounded-md bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700"
-                          >
-                            Payout
-                          </a>
+                          // Use ActionButton for Payout
+                          <ActionButton
+                            text="Payout"
+                            variant="primaryClick"
+                            className="bg-emerald-600 hover:bg-emerald-700"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(
+                                `/admin/transactions/${txnId}/payout`
+                              );
+                            }}
+                          />
                         ) : t.status === "PAID_OUT" ? (
                           <a
                             href={`/admin/transactions/${txnId}/payout`}
                             className="text-sm underline text-[#325082] underline-offset-2"
+                            onClick={(e) => e.stopPropagation()}
                           >
                             View Payout
                           </a>
@@ -233,7 +263,7 @@ export default function AdminTransactionsPage() {
 
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="p-4 text-center text-gray-500">
+                    <td colSpan={9} className="p-4 text-center text-gray-500">
                       No transactions found.
                     </td>
                   </tr>

@@ -54,7 +54,7 @@ export async function GET(req) {
     const match = statusParam === "ALL" ? {} : { status: statusParam };
 
     const docs = await Transaction.find(match)
-      .sort({ updatedAt: -1 })
+      .sort({ createdAt: -1 })
       .limit(200)
       .populate({ path: "product", select: "title price defaultImage" })
       .populate({ path: "buyer", select: "email name" })

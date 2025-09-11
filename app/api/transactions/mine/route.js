@@ -30,10 +30,11 @@ export async function GET(req) {
     status: "PENDING_UPLOAD",
     expiresAt: { $lte: now },
     $or: [{ buyer: me._id }, { seller: me._id }],
-  }).select("_id product timeline");
+  }).select("_id product status updatedAt expiresAt timeline"); // ⬅️ include the fields you change
 
   for (const tx of expired) {
     tx.status = "CANCELLED_BY_BUYER";
+    tx.cancelReason = "timeout";
     tx.updatedAt = now;
     tx.timeline.push({
       at: now,

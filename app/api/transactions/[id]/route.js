@@ -30,11 +30,14 @@ export async function GET(_req, { params }) {
     .populate({ path: "product", select: "title images defaultImage price" })
     .populate({
       path: "seller",
-      select: "name email phone phoneNumber mobile tel contact",
+      // add defaultScanCode (+ bank fields if you need them)
+      select:
+        "name email phone defaultScanCode bankAccountName bankAccountNumber",
     })
     .populate({
       path: "buyer",
-      select: "name email phone phoneNumber mobile tel contact",
+      select:
+        "name email phone defaultScanCode bankAccountName bankAccountNumber",
     });
 
   if (!txn) return new Response("Not found", { status: 404 });
@@ -52,6 +55,7 @@ export async function GET(_req, { params }) {
     txn.expiresAt.getTime() <= Date.now()
   ) {
     txn.status = "CANCELLED_BY_BUYER";
+    txn.cancelReason = "timeout";
     txn.updatedAt = new Date();
     txn.timeline.push({
       at: new Date(),
@@ -512,6 +516,14 @@ export async function PATCH(req, { params }) {
       by: me._id,
       action: "BUYER_CONFIRMED",
     });
+
+    // ⬇️ ADD: add what the buyer paid to their expenses
+    const spendAmount = Number(txn.total || 0);
+    await User.updateOne(
+      { _id: txn.buyer },
+      { $inc: { expenses: spendAmount } }
+    );
+
     await txn.save();
     return Response.json({ success: true, status: txn.status });
   }

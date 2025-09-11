@@ -48,6 +48,7 @@ export default function ProductsClient({ initial }) {
       maxPrice: nextFilters.maxPrice,
       condition: nextFilters.condition,
       location: nextFilters.location,
+      type: "sell",
     });
 
     const res = await fetch(`/api/products?${query.toString()}`, {
