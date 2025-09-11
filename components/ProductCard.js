@@ -1,40 +1,13 @@
 import Link from "next/link";
-import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 import timeAgo from "@/utils/timeAgo";
 
-export default function ProductCard({
-  product,
-  isOwner = false,
-  showHideMode = false,
-  onToggleHide,
-}) {
-  // Correct flags
+export default function ProductCard({ product, isOwner = false }) {
   const isHidden = Boolean(product.isHidden); // seller-controlled
   const reserved = !Boolean(product.isAvailable); // transaction-controlled
 
-  // In your page, `newStatus` means "unhide?"
-  // So if item is currently hidden -> newStatus should be true (unhide)
-  // If item is visible -> newStatus should be false (hide)
-  const askUnhide = product.isHidden === true;
-
-  function handleCardClick(e) {
-    if (showHideMode && isOwner && onToggleHide) {
-      e.preventDefault();
-      onToggleHide(product._id, askUnhide);
-    }
-  }
-
-  const title = isHidden
-    ? "This post is hidden. Click to make it visible again."
-    : "This post is visible. Click to hide it from others.";
-
   return (
-    <Link
-      href={showHideMode && isOwner ? "#" : `/buy-sell/${product._id}`}
-      title={showHideMode && isOwner ? title : product.title}
-    >
+    <Link href={`/buy-sell/${product._id}`} title={product.title}>
       <div
-        onClick={handleCardClick}
         className={`relative flex flex-col justify-between
         ${
           isOwner
@@ -49,24 +22,6 @@ export default function ProductCard({
             : "hover:-translate-y-2 active:scale-[0.95] shadow-md shadow-gray-400 hover:shadow-gray-500"
         }`}
       >
-        {/* Hide/Unhide quick toggle in hide mode */}
-        {showHideMode && isOwner && (
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              onToggleHide(product._id, askUnhide);
-            }}
-            className="absolute top-1 right-1 p-1 bg-transparent border border-gray-300 rounded-full shadow hover:bg-white z-10"
-            title={title}
-          >
-            {isHidden ? (
-              <EyeSlashIcon className="h-5 w-5 text-gray-700" />
-            ) : (
-              <EyeIcon className="h-5 w-5 text-green-600" />
-            )}
-          </button>
-        )}
-
         {/* Image */}
         <div className="relative h-[70%] bg-[#ccc] rounded-[8px] mb-2 overflow-hidden">
           {product.defaultImage && (

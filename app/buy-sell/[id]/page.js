@@ -16,6 +16,7 @@ import ProductDeleteButton from "@/components/ProductDeleteButton";
 import ProductImages from "@/components/ProductImages";
 import CommentSection from "@/components/CommentSection";
 import FavoriteButton from "@/components/FavoriteButton";
+import HideToggleButton from "@/components/HideToggleButton";
 
 export default async function ProductDetailPage({ params }) {
   const { id } = await params;
@@ -77,25 +78,10 @@ export default async function ProductDetailPage({ params }) {
           {/* Owner Action Buttons (hidden when product is locked by an active txn) */}
           {isOwner && canSellerManage && (
             <div className="flex gap-3 items-center sm:ml-auto sm:flex-row flex-wrap">
-              <span
-                className={`inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full transition-transform duration-500 ease-in-out transform group hover:scale-[1.1] ${
-                  !product.isHidden
-                    ? "bg-green-100 text-green-700"
-                    : "bg-gray-200 text-gray-600"
-                } group`}
-              >
-                {!product.isHidden ? (
-                  <>
-                    <EyeIcon className="h-4 w-4 taransform transition-transform duration-700 ease-in-out group-hover:rotate-[360deg]" />
-                    Unhidden
-                  </>
-                ) : (
-                  <>
-                    <EyeSlashIcon className="h-4 w-4 transform transition-transform duration-700 ease-in-out group-hover:rotate-[360deg]" />
-                    Hidden
-                  </>
-                )}
-              </span>
+              <HideToggleButton
+                productId={product._id}
+                initialHidden={product.isHidden}
+              />
 
               <Link href={`/buy-sell/${product._id}/edit`}>
                 <ActionButton

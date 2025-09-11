@@ -1,10 +1,10 @@
-// SERVER component
+// app/buy/page.js
 import { cookies } from "next/headers";
 import ProductsClient from "./ProductsClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function BuySellPage() {
+export default async function BuyPage() {
   const cookieStore = await cookies();
 
   const res = await fetch(
