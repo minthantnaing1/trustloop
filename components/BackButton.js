@@ -16,7 +16,7 @@ export default function BackButton({ text, href }) {
   const content = (
     <>
       <ChevronLeftIcon className="h-4 w-4" />
-      {text || "Back to Previous Page"}
+      {text || "Back to Previous"}
     </>
   );
 
@@ -36,7 +36,7 @@ export default function BackButton({ text, href }) {
   return (
     <button
       onClick={handleClick}
-      className="text-[#325082] text-[15px] hover:underline flex items-center gap-1"
+      className="text-[#325082] text-sm hover:underline flex items-center gap-1"
     >
       {content}
     </button>

@@ -54,7 +54,7 @@ export default function MyProductCard({
         <div
           className={`relative flex-none snap-start flex flex-col justify-between
             w-[calc(50vw-28px)] sm:w-[220px] md:w-[240px] lg:w-[260px]
-            h-[250px] sm:h-[260px]
+            h-[200px] sm:h-[220px]
             bg-white border border-gray-300 rounded-[2.5px] overflow-hidden
             shadow-md hover:shadow-lg transition-all duration-500 cursor-pointer
             hover:-translate-y-1 active:scale-[0.98] ${className}`}
@@ -90,7 +90,7 @@ export default function MyProductCard({
       <div
         className={`relative flex-none snap-start flex flex-col justify-between
           w-[calc(50vw-28px)] sm:w-[220px] md:w-[240px] lg:w-[260px]
-          h-[250px] sm:h-[260px]
+          h-[200px] sm:h-[220px]
           bg-white border border-gray-300 rounded-[2.5px] overflow-hidden
           shadow-md hover:shadow-lg transition-all duration-500 cursor-pointer
           hover:-translate-y-1 active:scale-[0.98] ${className}`}

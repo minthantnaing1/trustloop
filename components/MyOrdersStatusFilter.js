@@ -3,10 +3,17 @@
 import { STATUS_CODES, getStatusLabel } from "@/components/StatusPill";
 
 export default function MyOrdersStatusFilter({
+  role, // 👈 add this
   value = "ALL",
   onChange,
   className = "",
 }) {
+  // When buyer, hide PAID_OUT as a separate option
+  const options =
+    role === "buyer"
+      ? STATUS_CODES.filter((c) => c !== "PAID_OUT")
+      : STATUS_CODES;
+
   return (
     <div className={`relative ${className}`}>
       <select
@@ -14,11 +21,11 @@ export default function MyOrdersStatusFilter({
         onChange={(e) => onChange?.(e.target.value)}
         className="px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-sm shadow-sm
                    focus:outline-none focus:ring-2 focus:ring-[#325082] focus:border-[#325082]
-                   hover:border-gray-400 transition-colors pr-5.5 appearance-none"
+                   hover:border-gray-400 transition-colors pr-6 appearance-none"
         style={{ backgroundImage: "none" }}
       >
         <option value="ALL">All</option>
-        {STATUS_CODES.map((code) => (
+        {options.map((code) => (
           <option key={code} value={code}>
             {getStatusLabel(code)}
           </option>

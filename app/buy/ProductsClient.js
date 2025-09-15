@@ -106,14 +106,14 @@ export default function ProductsClient({ initial }) {
     <>
       <NavBar />
 
-      <div className="max-w-[1200px] mx-auto px-4 mb-6 w-full">
+      <div className="max-w-[1200px] mx-auto px-3 mb-6 w-full">
         {/* Strict 25% / 50% / 25% layout to keep search perfectly centered */}
         <div className="grid grid-cols-1 sm:grid-cols-[25%_50%_25%] items-center gap-4 mb-4 w-full -mt-4.5 sm:mt-0">
           {/* Left (25%): Section title */}
           <div className="sm:justify-self-start">
-            <h2 className="text-lg font-semibold text-black hidden sm:block">
-              Products
-            </h2>
+            <h1 className="text-2xl font-bold text-[#325082] hidden sm:block">
+              Buy
+            </h1>
           </div>
 
           {/* Middle (50%): Centered Search */}
@@ -156,13 +156,15 @@ export default function ProductsClient({ initial }) {
 
         {/* Grid */}
         <section>
-          <h3 className="text-lg font-semibold mb-3">Items you can buy</h3>
+          <h3 className="text-lg font-semibold text-[#325082] mb-3">
+            Available Products
+          </h3>
           {loading ? (
             <p className="text-center text-gray-400">Loading products...</p>
           ) : otherProducts.length === 0 ? (
             <p className="text-center text-gray-500">No products found.</p>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 w-full max-[426px]:gap-[10px]">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 w-full max-[426px]:gap-[8px]">
               {otherProducts.map((product) => (
                 <ProductCard
                   key={product._id}

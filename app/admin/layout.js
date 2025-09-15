@@ -3,12 +3,13 @@
 
 import { useState } from "react";
 import AdminSidebar from "@/components/admin/AdminSidebar";
+import LoadingOverlay from "@/components/LoadingOverlay";
 
 export default function AdminRouteLayout({ children }) {
-  const [collapsed, setCollapsed] = useState(true); // start expanded (or true if you prefer)
+  const [collapsed, setCollapsed] = useState(true); // start collapsed
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full relative">
       <AdminSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
       <main
         className={`transition-all duration-500 px-6 pt-10 w-full overflow-auto ${
@@ -18,6 +19,9 @@ export default function AdminRouteLayout({ children }) {
       >
         {children}
       </main>
+
+      {/* Same overlay as the main site */}
+      <LoadingOverlay />
     </div>
   );
 }

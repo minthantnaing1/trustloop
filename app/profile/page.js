@@ -78,7 +78,7 @@ export default async function ProfilePage() {
   return (
     <>
       <NavBar />
-      <main className="max-w-[1200px] mx-auto mb-5 px-5">
+      <main className="max-w-[1200px] mx-auto mb-9 px-3">
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold text-[#325082]">My Profile</h1>
@@ -154,12 +154,12 @@ export default async function ProfilePage() {
                 <div className="rounded-[3px] border border-[#e7ecf8] bg-white shadow-sm overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-2 border-b border-[#f0f4ff]">
                     <h3 className="text-sm font-semibold text-[#1f2f4c]">
-                      Default Scan Code
+                      My Default Qr Scan
                     </h3>
                     {user.defaultScanCode && (
                       <SlipLink
                         url={user.defaultScanCode}
-                        title="Default Scan Code"
+                        title="My Default Qr Scan"
                       >
                         Open full size
                       </SlipLink>
@@ -253,18 +253,18 @@ export default async function ProfilePage() {
         {/* Bought Items */}
         <section className="mb-8">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[16px] font-semibold">Your Bought Items</h2>
+            <h2 className="text-[16px] font-semibold">My Bought Items</h2>
             {/* Previously /buy-sell —> route to orders */}
             <Link
               href="/my-orders?role=buyer&status=BUYER_CONFIRMED"
               className="text-[#325082] underline text-sm"
             >
-              See all
+              View all...
             </Link>
           </div>
 
           {boughtProducts.length ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {boughtProducts.slice(0, 8).map((p, i) => (
                 <MyProductCard
                   key={p._id || i}
@@ -287,17 +287,15 @@ export default async function ProfilePage() {
         {/* Currently Selling */}
         <section className="mb-8">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[16px] font-semibold">
-              Items You Are Currently Selling
-            </h2>
+            <h2 className="text-[16px] font-semibold">My Selling Items</h2>
             {/* Manage listings page */}
             <Link href="/sell" className="text-[#325082] underline text-sm">
-              Manage Listings
+              Manage listings
             </Link>
           </div>
 
           {sellingPlain.length ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
               {sellingPlain.slice(0, 8).map((p, i) => (
                 <MyProductCard
                   key={p._id || i}
@@ -311,7 +309,7 @@ export default async function ProfilePage() {
           ) : (
             <div className="text-sm text-gray-500">
               No active listings.&nbsp;
-              <Link href="/sell/new" className="underline text-[#325082]">
+              <Link href="/sell/post" className="underline text-[#325082]">
                 Post a product
               </Link>
             </div>
@@ -319,20 +317,20 @@ export default async function ProfilePage() {
         </section>
 
         {/* Sold Items */}
-        <section className="mb-12">
+        <section className="mb-8">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[16px] font-semibold">Your Sold Items</h2>
+            <h2 className="text-[16px] font-semibold">My Sold Items</h2>
             {/* Previously /buy-sell —> orders */}
             <Link
               href="/my-orders?role=seller&status=PAID_OUT"
               className="text-[#325082] underline text-sm"
             >
-              See all
+              View all...
             </Link>
           </div>
 
           {soldProducts.length ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
               {soldProducts.slice(0, 8).map((p, i) => (
                 <MyProductCard
                   key={p._id || i}

@@ -27,7 +27,7 @@ export default async function BuyProductPage({ params }) {
     return (
       <>
         <NavBar />
-        <main className="max-w-[1200px] mx-auto px-4">
+        <main className="max-w-[1200px] mx-auto px-3">
           {/* center the card within the viewport area */}
           <div className="min-h-[calc(100vh-210px)] flex items-center justify-center">
             <div className="max-w-xl w-full bg-white border border-slate-200 rounded-2xl p-6 shadow-sm text-center">

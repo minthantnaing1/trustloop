@@ -57,8 +57,8 @@ export async function GET(req) {
       .sort({ createdAt: -1 })
       .limit(200)
       .populate({ path: "product", select: "title price defaultImage" })
-      .populate({ path: "buyer", select: "email name" })
-      .populate({ path: "seller", select: "email name" })
+      .populate({ path: "buyer", select: "email name phone" })
+      .populate({ path: "seller", select: "email name phone" })
       .lean();
 
     const items = (docs || []).map((t) => ({

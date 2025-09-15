@@ -53,9 +53,13 @@ export default function AdminTxnRowActions({ txnId, onDone }) {
         text="Reject"
         variant="dangerOutlineHover"
         onClick={() => {
-          // optional: collect a reason; remove this prompt if you don’t want it
-          const reason =
-            window.prompt("Reason for rejection? (optional)") || "";
+          const input = window.prompt("Reason for rejection?"); // required
+          if (input === null) return; // user pressed Cancel -> do nothing
+          const reason = input.trim();
+          if (!reason) {
+            alert("Please provide a reason to reject.");
+            return;
+          }
           call("reject", { reason });
         }}
         disabled={busy}

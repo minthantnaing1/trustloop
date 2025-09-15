@@ -9,7 +9,7 @@ import ConfirmModal from "@/components/ConfirmModal";
 import TxnToolbar from "@/components/admin/TxnToolbar";
 import StatusPill from "@/components/StatusPill";
 import ActionButton from "@/components/ActionButton";
-import { TrashIcon } from "@heroicons/react/24/solid";
+import { TrashIcon, PhoneIcon } from "@heroicons/react/24/solid";
 
 export default function AdminTransactionsPage() {
   const router = useRouter();
@@ -73,6 +73,27 @@ export default function AdminTransactionsPage() {
     setConfirmOpen(true);
   }
 
+  function MethodTag({ method }) {
+    if (!method) return <span className="text-gray-400">—</span>;
+    const label =
+      method === "DELIVERY"
+        ? "Delivery"
+        : method === "MEETUP"
+        ? "Meetup"
+        : method;
+    const tone =
+      method === "DELIVERY"
+        ? "ring-indigo-200/70 bg-indigo-50/60 text-indigo-700"
+        : "ring-emerald-200/70 bg-emerald-50/60 text-emerald-700";
+    return (
+      <span
+        className={`inline-flex items-center px-2 py-0.5 text-[11px] font-medium ring-1 rounded-full ${tone}`}
+      >
+        {label}
+      </span>
+    );
+  }
+
   return (
     <>
       <h1 className="text-2xl font-bold text-[#325082] mb-2">Transactions</h1>
@@ -116,6 +137,7 @@ export default function AdminTransactionsPage() {
                   <th className="p-2 border-b font-medium">Total</th>
                   <th className="p-2 border-b font-medium">Updated</th>
                   <th className="p-2 border-b font-medium">Buyer Slip</th>
+                  <th className="p-2 border-b font-medium">Delivery Method</th>
                   <th className="p-2 border-b font-medium">Status</th>
                   <th className="p-2 border-b font-medium">Actions</th>
                 </tr>
@@ -157,18 +179,36 @@ export default function AdminTransactionsPage() {
                       <td className="p-2">
                         <div className="leading-tight">
                           <div className="font-medium">{t.buyer.name}</div>
-                          <div className="text-xs text-gray-600">
+                          <div className="text-sm text-gray-600">
                             {t.buyer.email}
                           </div>
+                          {t.buyer.phone && (
+                            <a
+                              href={`tel:${t.buyer.phone}`}
+                              className="flex items-center gap-1 text-sm text-[#325082] hover:underline mt-0.5"
+                            >
+                              <PhoneIcon className="w-3 h-3" />
+                              {t.buyer.phone}
+                            </a>
+                          )}
                         </div>
                       </td>
                       {/* Seller */}
                       <td className="p-2">
                         <div className="leading-tight">
                           <div className="font-medium">{t.seller.name}</div>
-                          <div className="text-xs text-gray-600">
+                          <div className="text-sm text-gray-600">
                             {t.seller.email}
                           </div>
+                          {t.seller.phone && (
+                            <a
+                              href={`tel:${t.seller.phone}`}
+                              className="flex items-center gap-1 text-sm text-[#325082] hover:underline mt-0.5"
+                            >
+                              <PhoneIcon className="w-3 h-3" />
+                              {t.seller.phone}
+                            </a>
+                          )}
                         </div>
                       </td>
                       <td className="p-2">
@@ -194,6 +234,10 @@ export default function AdminTransactionsPage() {
                         ) : (
                           <span className="text-gray-400">—</span>
                         )}
+                      </td>
+                      {/* Delivery Method */}
+                      <td className="p-2">
+                        <MethodTag method={t.fulfillment?.method} />
                       </td>
                       <td className="p-2">
                         <StatusPill status={t.status} />

@@ -9,7 +9,7 @@ const STATUS_META = {
     fg: "text-orange-700",
   },
   AWAITING_ADMIN_REVIEW: {
-    label: "Awaiting Review",
+    label: "Awaiting Admin Review",
     bg: "bg-yellow-100",
     fg: "text-yellow-700",
   },
@@ -39,7 +39,7 @@ const STATUS_META = {
     fg: "text-cyan-700",
   },
   BUYER_CONFIRMED: {
-    label: "Buyer Confirmed",
+    label: "Item Received",
     bg: "bg-emerald-100",
     fg: "text-emerald-700",
   },

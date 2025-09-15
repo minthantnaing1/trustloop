@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import ActionButton from "@/components/ActionButton";
+import Stepper from "@/components/Stepper";
 
 export default function SellPostClient({ initialLocation = "" }) {
   const router = useRouter();
@@ -94,26 +95,15 @@ export default function SellPostClient({ initialLocation = "" }) {
   };
 
   return (
-    <main className="max-w-[1200px] mx-auto mb-5 px-5">
+    <main className="max-w-[1200px] mx-auto mb-6 px-3">
       {/* Top Bar */}
-      <div className="flex justify-between items-center mb-6">
-        <ActionButton
-          text="Cancel"
-          variant="outlineClick"
-          onClick={() => router.push("/sell")}
-          disabled={loading}
-        />
+      <div className="flex justify-start items-center mb-6">
+        <h1 className="text-2xl font-bold text-[#325082]">Sell a Product</h1>
+      </div>
 
-        <h2 className="text-2xl font-semibold text-[#325082] text-center">
-          Sell a Product
-        </h2>
-
-        <ActionButton
-          text={loading ? "Processing..." : "Confirm To Sell"}
-          variant="primaryClick"
-          onClick={handleSubmit}
-          disabled={loading}
-        />
+      {/* Progress Stepper (buyer, step 1) */}
+      <div className="mb-5">
+        <Stepper current={1} variant="seller" className="px-1" />
       </div>
 
       <div className="flex flex-col lg:flex-row flex-wrap gap-[30px] items-start">
@@ -279,6 +269,20 @@ export default function SellPostClient({ initialLocation = "" }) {
             product.
           </p>
         </div>
+      </div>
+      <div className="flex justify-between mt-3 pt-4 border-t border-[#e7ecf8]">
+        <ActionButton
+          text="Cancel"
+          variant="outlineClick"
+          onClick={() => router.push("/sell")}
+          disabled={loading}
+        />
+        <ActionButton
+          text={loading ? "Processing..." : "Confirm To Sell"}
+          variant="primaryClick"
+          onClick={handleSubmit}
+          disabled={loading}
+        />
       </div>
     </main>
   );

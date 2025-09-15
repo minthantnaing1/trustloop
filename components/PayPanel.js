@@ -93,7 +93,9 @@ export default function PayPanel({ txn }) {
   // submit (upload then PATCH)
   async function handleUpload() {
     if (!file) {
-      setErr("Please upload an image of your transaction slip first.");
+      setErr(
+        "Please upload an image of your payment slip first before submitting."
+      );
       return;
     }
     if (timeLeft !== null && timeLeft <= 0) {

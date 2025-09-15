@@ -61,8 +61,8 @@ export default function ProductCard({
     if (isHidden) {
       return (
         <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-          <span className="text-xs md:text-sm text-white font-semibold bg-black/60 px-2 py-1 rounded">
-            Hidden from public
+          <span className="w-full text-center text-xs md:text-sm text-white font-semibold bg-black/60 px-1 py-2">
+            Hidden from Public
           </span>
         </div>
       );
@@ -70,12 +70,13 @@ export default function ProductCard({
 
     if (!reserved) return null;
 
-    // Seller view: show buyer name (card routes appropriately via `href`)
     if (isOwner && product.buyerName) {
       return (
-        <span className="absolute top-2 left-2 text-[11px] md:text-xs font-semibold bg-amber-400 text-amber-900 px-2 py-0.5 rounded-[2px]">
-          Reserved by {product.buyerName}
-        </span>
+        <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+          <span className="w-full text-center text-xs md:text-sm text-white font-semibold bg-[#325082]/90 px-1 py-2">
+            Reserved by {product.buyerName}
+          </span>
+        </div>
       );
     }
 
@@ -86,11 +87,13 @@ export default function ProductCard({
       product.buyerEmail === currentUserEmail;
 
     return (
-      <span className="absolute top-2 left-2 max-w-[94.5%] whitespace-normal break-words text-[11px] md:text-xs font-semibold bg-amber-400 text-amber-900 px-3 py-0.5 rounded-[2px]">
-        {iAmBuyer
-          ? "Reserved by Me"
-          : "This item is currently reserved or unavailable."}
-      </span>
+      <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+        <span className="w-full text-center text-xs md:text-sm text-white font-semibold bg-black/60 px-1 py-2">
+          {iAmBuyer
+            ? "Reserved by Me"
+            : "This Item is currently Reserved or Unavailable."}
+        </span>
+      </div>
     );
   };
 
@@ -148,7 +151,7 @@ export default function ProductCard({
       <Link href={href} title={product.title} className={className}>
         <div
           className={`relative w-full h-[280px] max-[1025px]:h-[260px] max-[426px]:h-[230px] max-[376px]:h-[210px]
-          overflow-hidden cursor-pointer bg-white border border-gray-300 rounded-[3px] hover:ring-[#cfd8ff]
+          overflow-hidden cursor-pointer bg-white border border-gray-300 rounded-[2.5px] hover:ring-[#cfd8ff]
           shadow-md hover:scale-[1.02] hover:shadow-lg transition-all duration-500 easse-in-out`}
         >
           <FavOverlay />
@@ -196,9 +199,9 @@ export default function ProductCard({
       <Link href={href} title={product.title} className={className}>
         <div
           className={`relative flex flex-col w-full 
-          h-[300px] max-[1025px]:h-[270px] max-[426px]:h-[240px] max-[376px]:h-[220px] 
-          bg-white border border-gray-300 rounded-[3px] cursor-pointer overflow-hidden
-          shadow-md hover:shadow-lg transition-all duration-500 ease-in-out
+          h-[300px] max-[1025px]:h-[270px] max-[426px]:h-[255px] max-[376px]:h-[250px] 
+          bg-white border border-gray-300 rounded-[2.5px] cursor-pointer overflow-hidden
+          shadow-lg hover:shadow-lg transition-all duration-500 ease-in-out
           ${isOwner ? "hover:scale-[0.98]" : "hover:-translate-y-1"}`}
         >
           <FavOverlay />
@@ -231,8 +234,8 @@ export default function ProductCard({
     <Link href={href} title={product.title} className={className}>
       <div
         className={`relative flex flex-col w-full 
-        h-[300px] max-[1025px]:h-[270px] max-[426px]:h-[240px] max-[376px]:h-[220px] 
-        bg-white border border-gray-300 rounded-[3px] cursor-pointer overflow-hidden
+        h-[300px] max-[1025px]:h-[270px] max-[426px]:h-[255px] max-[376px]:h-[250px] 
+        bg-white border border-gray-300 rounded-[2.5px] cursor-pointer overflow-hidden
         shadow-md hover:shadow-lg transition-all duration-500 ease-in-out
         ${isOwner ? "hover:scale-[0.98]" : "hover:-translate-y-1"}`}
       >

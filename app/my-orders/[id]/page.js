@@ -9,7 +9,7 @@ export default async function Page({ params }) {
   return (
     <>
       <NavBar />
-      <main className="max-w-[1200px] mx-auto px-4 mb-6">
+      <main className="max-w-[1200px] mx-auto px-3 mb-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-[#325082]">Order Details</h1>

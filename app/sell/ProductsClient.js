@@ -106,14 +106,14 @@ export default function ProductsClient({ initial }) {
     <>
       <NavBar />
 
-      <div className="max-w-[1200px] mx-auto px-4 mb-6 w-full">
+      <div className="max-w-[1200px] mx-auto px-3 mb-6 w-full">
         {/* Header as strict 25% / 50% / 25% grid to keep search perfectly centered */}
         <div className="grid grid-cols-1 sm:grid-cols-[25%_50%_25%] items-center gap-4 mb-2 w-full -mt-4.5 sm:mt-0">
           {/* Left (25%): Title (or any left text) */}
           <div className="sm:justify-self-start">
-            <h2 className="text-lg font-semibold text-black hidden sm:block">
-              Your Listings
-            </h2>
+            <h1 className="text-2xl font-bold text-[#325082] hidden sm:block">
+              Sell
+            </h1>
           </div>
 
           {/* Middle (50%): Centered Search */}
@@ -157,7 +157,9 @@ export default function ProductsClient({ initial }) {
         {/* Section header with left text and right button (previous design) */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-lg font-semibold">Items you&apos;re selling</h3>
+            <h3 className="text-lg font-semibold text-[#325082]">
+              My Selling Items
+            </h3>
             <Link href="/sell/post">
               <ActionButton text="+ Sell Your Items" variant="primaryClick" />
             </Link>
@@ -180,7 +182,7 @@ export default function ProductsClient({ initial }) {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 w-full max-[426px]:gap-[10px]">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 w-full max-[426px]:gap-[8px]">
               {ownProducts.map((product) => (
                 <ProductCard
                   key={product._id}

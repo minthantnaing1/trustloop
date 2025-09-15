@@ -28,7 +28,7 @@ export default async function PayPage({ params }) {
   return (
     <>
       <NavBar />
-      <main className="max-w-[1200px] mx-auto mb-[40px] px-4 w-full overflow-x-hidden">
+      <main className="max-w-[1200px] mx-auto mb-[40px] px-3 w-full overflow-x-hidden">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-[#325082]">Checkout</h1>
         </div>

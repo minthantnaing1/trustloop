@@ -1,5 +1,6 @@
 // app/layout.js
 import "@/app/globals.css";
+import LoadingOverlay from "@/components/LoadingOverlay"; // client component
 
 export const metadata = {
   title: "TrustLoop",
@@ -21,7 +22,11 @@ export default function RootLayout({ children }) {
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* Global page-loading overlay (client) */}
+        <LoadingOverlay />
+      </body>
     </html>
   );
 }

@@ -308,9 +308,25 @@ export async function PATCH(req, { params }) {
       return new Response("Not allowed in current state", { status: 409 });
     }
 
+    // ⬇️ pull reason from the already-parsed body (or re-parse if needed)
+    // If you already did: const body = await req.json(); above, this will work.
+    const { cancelReason = "" } = body || {};
+    const reason = String(cancelReason).trim().slice(0, 300);
+
+    if (!reason) {
+      return new Response("Cancellation reason is required.", { status: 400 });
+    }
+
     txn.status = "CANCELLED_BY_SELLER";
     txn.cancelledBy = me._id;
-    txn.timeline.push({ by: me._id, action: "CANCELLED_BY_SELLER" });
+    txn.cancelReason = reason; // ⬅️ persist reason
+    txn.timeline.push({
+      by: me._id,
+      at: new Date(),
+      action: "CANCELLED_BY_SELLER",
+      meta: { reason }, // ⬅️ show it in timeline
+    });
+
     await txn.save();
 
     if (txn.product) {

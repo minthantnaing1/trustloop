@@ -57,9 +57,9 @@ export default function ProfileEditPage() {
   return (
     <>
       <NavBar />
-      <main className="max-w-[1200px] mx-auto mb-6 px-4">
-        <h1 className="text-xl font-semibold mb-4 text-[#325082]">
-          Edit Your Profile
+      <main className="max-w-[1200px] mx-auto mb-6 px-3">
+        <h1 className="text-2xl font-bold text-[#325082] mb-6">
+          Edit My Profile
         </h1>
 
         <div className="bg-white p-4 rounded-lg shadow">
@@ -267,7 +267,7 @@ export default function ProfileEditPage() {
           </div>
 
           {/* Buttons */}
-          <div className="flex justify-between gap-3 mt-6 pt-4 border-t border-[#e7ecf8]">
+          <div className="flex justify-between mt-6 pt-4 border-t border-[#e7ecf8]">
             <ActionButton
               text="Cancel"
               variant="outlineClick"

@@ -102,24 +102,10 @@ export default function EditProductClient({ initialProduct }) {
   return (
     <>
       <NavBar />
-      <main className="max-w-[1200px] mx-auto mb-5 px-5">
+      <main className="max-w-[1200px] mx-auto mb-6 px-5">
         {/* Top Bar */}
-        <div className="flex justify-between items-center mb-6">
-          <ActionButton
-            text="Cancel"
-            variant="outlineClick"
-            onClick={() => router.push(`/sell/${id}`)}
-            disabled={loading}
-          />
-          <h2 className="text-2xl font-semibold text-[#325082] text-center">
-            Edit Product
-          </h2>
-          <ActionButton
-            text={loading ? "Saving..." : "Update Product"}
-            variant="primaryClick"
-            onClick={handleUpdate}
-            disabled={loading}
-          />
+        <div className="flex justify-start items-center mb-6">
+          <h1 className="text-2xl font-bold text-[#325082]">Edit My Product</h1>
         </div>
 
         <div className="flex flex-col lg:flex-row flex-wrap gap-[30px] items-start">
@@ -266,6 +252,20 @@ export default function EditProductClient({ initialProduct }) {
               className="bg-[#f1f1f1] p-3 rounded-[8px] min-h-[80px] outline-none"
             />
           </div>
+        </div>
+        <div className="flex justify-between mt-3 pt-4 border-t border-[#e7ecf8]">
+          <ActionButton
+            text="Cancel"
+            variant="outlineClick"
+            onClick={() => router.push(`/sell/${id}`)}
+            disabled={loading}
+          />
+          <ActionButton
+            text={loading ? "Saving..." : "Update Product"}
+            variant="primaryClick"
+            onClick={handleUpdate}
+            disabled={loading}
+          />
         </div>
       </main>
     </>

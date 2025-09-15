@@ -316,7 +316,7 @@ export default function OrderDetail({ id }) {
           {/* Right: Product info */}
           <div className="rounded-[3px] bg-[#f6f9ff] p-4 ring-1 ring-[#e6eeff] md:flex-1">
             <div className="text-lg font-bold text-[#325082] mb-2">
-              Product:
+              {isSeller ? "My Product:" : "Product:"}
             </div>
             <h3 className="text-lg font-semibold text-[#325082]">
               {txn.product?.title || "-"}
@@ -336,11 +336,12 @@ export default function OrderDetail({ id }) {
                   </span>
                 </span>
               </div>
-              {txn.product?.description && (
-                <p className="font-medium mt-2.5">
-                  {txn.product.description || "-"}
-                </p>
-              )}
+              <div className="mt-2.5">
+                Description:{" "}
+                <span className="font-medium">
+                  {txn.product?.description || "-"}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -375,6 +376,7 @@ export default function OrderDetail({ id }) {
             {isSeller &&
               (txn.status === "SELLER_DELIVERED" ||
                 txn.status === "MEETUP_COMPLETED" ||
+                txn.status === "BUYER_CONFIRMED" ||
                 txn.status === "PAID_OUT") && (
                 <Link href={`/my-orders/${id}/payout`}>
                   <ActionButton text="Payout" variant="primaryClick" />

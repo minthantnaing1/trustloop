@@ -62,14 +62,16 @@ export default async function AdminPage() {
           <table className="w-full text-left text-sm">
             <thead>
               <tr>
+                <th className="p-2 border-b font-medium w-10 text-center">#</th>
                 <th className="p-2 border-b font-medium">Name</th>
                 <th className="p-2 border-b font-medium">Email</th>
                 <th className="p-2 border-b font-medium">Role</th>
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => (
+              {users.map((u, idx) => (
                 <tr key={u._id} className="hover:bg-gray-50">
+                  <td className="p-2 text-center text-gray-600">{idx + 1}</td>
                   <td className="p-2">{u.name}</td>
                   <td className="p-2">{u.email}</td>
                   <td className="p-2 capitalize">{u.role}</td>
@@ -107,6 +109,7 @@ export default async function AdminPage() {
           <table className="w-full text-left text-sm">
             <thead>
               <tr>
+                <th className="p-2 border-b font-medium w-10 text-center">#</th>
                 <th className="p-2 border-b font-medium">Name</th>
                 <th className="p-2 border-b font-medium">Price</th>
                 <th className="p-2 border-b font-medium">Category</th>
@@ -116,8 +119,9 @@ export default async function AdminPage() {
               </tr>
             </thead>
             <tbody>
-              {products.map((p) => (
+              {products.map((p, idx) => (
                 <tr key={p._id} className="hover:bg-gray-50">
+                  <td className="p-2 text-center text-gray-600">{idx + 1}</td>
                   <td className="p-2">{p.title}</td>
                   <td className="p-2">฿{Number(p.price).toLocaleString()}</td>
                   <td className="p-2 capitalize">{p.category}</td>
@@ -158,22 +162,22 @@ export default async function AdminPage() {
           <p className="text-3xl font-bold">{recentTxns.length}</p>
         </div>
         <div className="bg-white p-5 rounded-xl shadow-md text-center">
-          <p className="text-sm text-gray-500">Pending Upload</p>
-          <p className="text-3xl font-bold">{tByStatus("PENDING_UPLOAD")}</p>
-        </div>
-        <div className="bg-white p-5 rounded-xl shadow-md text-center">
           <p className="text-sm text-gray-500">Awaiting Review</p>
           <p className="text-3xl font-bold">
             {tByStatus("AWAITING_ADMIN_REVIEW")}
           </p>
         </div>
         <div className="bg-white p-5 rounded-xl shadow-md text-center">
-          <p className="text-sm text-gray-500">Paid Out</p>
-          <p className="text-3xl font-bold">{tByStatus("PAID_OUT")}</p>
+          <p className="text-sm text-gray-500">Escrow Funded</p>
+          <p className="text-3xl font-bold">{tByStatus("ESCROW_FUNDED")}</p>
         </div>
         <div className="bg-white p-5 rounded-xl shadow-md text-center">
-          <p className="text-sm text-gray-500">Cancelled</p>
-          <p className="text-3xl font-bold">{tByStatus("CANCELLED")}</p>
+          <p className="text-sm text-gray-500">Buyer Received Item</p>
+          <p className="text-3xl font-bold">{tByStatus("BUYER_CONFIRMED")}</p>
+        </div>
+        <div className="bg-white p-5 rounded-xl shadow-md text-center">
+          <p className="text-sm text-gray-500">Paid Out</p>
+          <p className="text-3xl font-bold">{tByStatus("PAID_OUT")}</p>
         </div>
       </section>
 
@@ -186,6 +190,7 @@ export default async function AdminPage() {
           <table className="w-full text-left text-sm">
             <thead>
               <tr>
+                <th className="p-2 border-b font-medium w-10 text-center">#</th>
                 <th className="p-2 border-b font-medium">Product</th>
                 <th className="p-2 border-b font-medium">Buyer</th>
                 <th className="p-2 border-b font-medium">Seller</th>
@@ -195,8 +200,9 @@ export default async function AdminPage() {
               </tr>
             </thead>
             <tbody>
-              {recentTxns.map((t) => (
+              {recentTxns.map((t, idx) => (
                 <tr key={t._id} className="hover:bg-gray-50">
+                  <td className="p-2 text-center text-gray-600">{idx + 1}</td>
                   <td className="p-2">{t.product?.title || "-"}</td>
                   <td className="p-2">
                     {t.buyer?.email || t.buyer?.name || "-"}

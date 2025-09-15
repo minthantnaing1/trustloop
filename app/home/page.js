@@ -47,7 +47,7 @@ export default async function HomePage() {
         </section>
 
         {/* Features */}
-        <section className="bg-white py-16">
+        <section className="bg-[#f9fafb] py-1">
           <div className="max-w-[1100px] mx-auto px-5 grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
             {[
               {
@@ -72,7 +72,7 @@ export default async function HomePage() {
             ].map((item, index) => (
               <div
                 key={index}
-                className="bg-[#f8fafc] rounded-xl shadow-md hover:shadow-lg transition p-6 flex flex-col items-center"
+                className="bg-[#f3f4f6] rounded-[10px] shadow-md hover:shadow-lg transition p-6 flex flex-col items-center"
               >
                 {item.icon}
                 <h3 className="font-semibold text-[#325082] mb-2">

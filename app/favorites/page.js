@@ -19,7 +19,7 @@ export default async function FavoritesPage() {
     return (
       <>
         <NavBar />
-        <main className="max-w-[1200px] mx-auto px-4">
+        <main className="max-w-[1200px] mx-auto px-3">
           <h1 className="text-2xl font-bold text-[#325082]">My Favorites</h1>
           <p className="text-slate-600">
             Please sign in to see the items you liked.
@@ -77,12 +77,12 @@ export default async function FavoritesPage() {
   return (
     <>
       <NavBar />
-      <main className="max-w-[1200px] mx-auto px-4 mb-4">
+      <main className="max-w-[1200px] mx-auto px-3 mb-4">
         <div className="flex items-center justify-between mb-5">
           <h1 className="text-2xl font-bold text-[#325082]">
             My Favorites{" "}
             {items.length > 0 && (
-              <span className="text-lg font-normal text-slate-500">
+              <span className="text-lg font-semibold text-[#325082]">
                 ({items.length} item{items.length > 1 ? "s" : ""})
               </span>
             )}

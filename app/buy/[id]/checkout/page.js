@@ -44,7 +44,7 @@ export default async function CheckoutPage({ params }) {
   return (
     <>
       <NavBar />
-      <main className="max-w-[1200px] mx-auto mb-[40px] px-4 w-full overflow-x-hidden">
+      <main className="max-w-[1200px] mx-auto mb-[40px] px-3 w-full overflow-x-hidden">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-[#325082]">Checkout</h1>
           <BackButton />
@@ -98,7 +98,7 @@ export default async function CheckoutPage({ params }) {
                       </span>
                     </div>
                     <div className="mt-1">
-                      Seller&apos;s Location:{" "}
+                      Product Location:{" "}
                       <span className="font-semibold text-gray-700">
                         {product.location || "-"}
                       </span>
@@ -108,7 +108,7 @@ export default async function CheckoutPage({ params }) {
               </div>
 
               {/* Trust badge */}
-              <div className="mt-3 inline-flex items-center justify-center gap-2 w-full py-2 rounded-full bg-[#e9eff7] border border-[#cdd9ef] text-[#325082] text-xs font-semibold">
+              <div className="mt-3 inline-flex items-center justify-center gap-2 w-full py-2 rounded-[5px] bg-[#e9eff7] border border-[#cdd9ef] text-[#325082] text-xs font-semibold">
                 <span>🔒 Secure Escrow by TrustLoop</span>
               </div>
 
@@ -190,7 +190,7 @@ export default async function CheckoutPage({ params }) {
                   {/* Location / Address */}
                   <div>
                     <label className="block text-xs font-semibold text-[#325082] mb-1">
-                      Location / Address for this order
+                      Fill or choose your Location / Address for this order
                     </label>
                     <input
                       type="text"

@@ -23,7 +23,7 @@ export default function ProductDetails({
   return (
     <>
       <NavBar />
-      <main className="max-w-[1200px] mx-auto mb-[40px] px-5 w-full">
+      <main className="max-w-[1200px] mx-auto mb-[40px] px-3 w-full">
         {/* Top Section */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center mb-4 gap-2">
           {/* Left: Back Button (always left) */}
@@ -107,7 +107,7 @@ export default function ProductDetails({
               Condition: {product.condition || "-"}
             </div>
             <div className="bg-[#e2e2e2] p-3 rounded-md">
-              Seller&apos;s Location: {product.owner?.location || "-"}
+              Product Location: {product.owner?.location || "-"}
             </div>
 
             <div className="flex items-center gap-4 mt-3 p-3 rounded-md bg-[#f0f0f0] border border-[#ccc]">

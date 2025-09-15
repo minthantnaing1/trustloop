@@ -37,7 +37,7 @@ export default function HeroCarousel() {
       <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent pointer-events-none"></div>
 
       {/* Persistent Overlay Text & Button */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white px-4">
+      <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white mb-2 px-4">
         <h1 className="text-3xl sm:text-5xl font-bold mb-4 drop-shadow-lg">
           Welcome to TrustLoop
         </h1>

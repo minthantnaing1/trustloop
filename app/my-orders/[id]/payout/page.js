@@ -5,6 +5,7 @@ import Link from "next/link";
 import NavBar from "@/components/NavBar";
 import StatusPill from "@/components/StatusPill";
 import BackButton from "@/components/BackButton";
+import SlipLink from "@/components/SlipLink";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export default async function SellerPayoutPage({ params }) {
     return (
       <>
         <NavBar />
-        <main className="max-w-[1200px] mx-auto px-4 py-6">
+        <main className="max-w-[1200px] mx-auto px-3 py-6">
           <div className="rounded-xl bg-white p-6 border">Unauthorized</div>
         </main>
       </>
@@ -44,7 +45,7 @@ export default async function SellerPayoutPage({ params }) {
     return (
       <>
         <NavBar />
-        <main className="max-w-[1200px] mx-auto px-4 py-6">
+        <main className="max-w-[1200px] mx-auto px-3 py-6">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold text-[#325082]">Payout</h1>
             <BackButton />
@@ -104,7 +105,7 @@ export default async function SellerPayoutPage({ params }) {
   return (
     <>
       <NavBar />
-      <main className="max-w-[1200px] mx-auto px-4">
+      <main className="max-w-[1200px] mx-auto px-3">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-[#325082]">Payout</h1>
@@ -166,21 +167,19 @@ export default async function SellerPayoutPage({ params }) {
                 <>
                   {adminReceiptUrl ? (
                     <div className="flex flex-col items-center">
-                      <div className="rounded-2xl overflow-hidden ring-1 ring-[#e6eeff]">
+                      <div className="rounded-2xl mb-2 overflow-hidden shadow-sm ring-1 ring-[#e6eeff]">
                         <img
                           src={adminReceiptUrl}
                           alt="Admin payout receipt"
                           className="w-[360px] h-[480px] object-contain bg-white"
                         />
                       </div>
-                      <a
-                        href={adminReceiptUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-[#325082] underline mt-2"
+                      <SlipLink
+                        url={adminReceiptUrl}
+                        title="Admin Transfer Slip"
                       >
-                        Open full image
-                      </a>
+                        Open full size
+                      </SlipLink>
                     </div>
                   ) : (
                     <p className={small}>—</p>

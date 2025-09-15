@@ -108,15 +108,19 @@ function RoleSwitch({ role, setRole }) {
 /* ------------------ INNER CLIENT (uses useSearchParams) ------------------ */
 function MyOrdersClient() {
   const router = useRouter();
-  const [role, setRole] = useState("buyer");
+  const searchParams = useSearchParams();
+  const roleParam = searchParams.get("role");
+  const statusParam = searchParams.get("status");
+
+  const [role, setRole] = useState(
+    roleParam === "seller" || roleParam === "buyer" ? roleParam : "buyer"
+  );
   const [buyerTxns, setBuyerTxns] = useState(null);
   const [sellerTxns, setSellerTxns] = useState(null);
   const [errBuyer, setErrBuyer] = useState("");
   const [errSeller, setErrSeller] = useState("");
   const [pendingActionId, setPendingActionId] = useState(null);
-  const searchParams = useSearchParams();
-  const initialStatus = searchParams.get("status") || "ALL";
-  const [statusFilter, setStatusFilter] = useState(initialStatus);
+  const [statusFilter, setStatusFilter] = useState(statusParam || "ALL");
 
   // keep track of scheduled refresh timers so we can clean them up
   const refreshTimersRef = useRef([]);
@@ -189,14 +193,6 @@ function MyOrdersClient() {
   }, []);
 
   useEffect(() => {
-    const r = searchParams.get("role");
-    const s = searchParams.get("status");
-    if (r === "buyer" || r === "seller") setRole(r);
-    if (s) setStatusFilter(s);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
     let mounted = true;
     (async () => {
       try {
@@ -227,13 +223,13 @@ function MyOrdersClient() {
     };
   }, []);
 
-  async function actOnTxn(id, action) {
+  async function actOnTxn(id, action, extra = {}) {
     try {
       setPendingActionId(id);
       const res = await fetch(`/api/transactions/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, ...extra }), // include cancelReason
       });
       if (!res.ok) throw new Error(await res.text());
 
@@ -266,8 +262,22 @@ function MyOrdersClient() {
   const list = useMemo(() => {
     if (!Array.isArray(rawList)) return rawList;
     if (statusFilter === "ALL") return rawList;
+
+    // Combine only for BUYER tab
+    if (role === "buyer" && statusFilter === "BUYER_CONFIRMED") {
+      return rawList.filter(
+        (t) => t.status === "BUYER_CONFIRMED" || t.status === "PAID_OUT"
+      );
+    }
+
     return rawList.filter((t) => t.status === statusFilter);
-  }, [rawList, statusFilter]);
+  }, [rawList, statusFilter, role]);
+
+  useEffect(() => {
+    if (role === "buyer" && statusFilter === "PAID_OUT") {
+      setStatusFilter("BUYER_CONFIRMED"); // alias to the combined view
+    }
+  }, [role, statusFilter]);
 
   const err = role === "buyer" ? errBuyer : errSeller;
 
@@ -288,7 +298,7 @@ function MyOrdersClient() {
       `}</style>
 
       <main
-        className="max-w-[1200px] mx-auto px-4 mb-6 transition-all duration-[800ms]"
+        className="max-w-[1200px] mx-auto px-3 mb-6 transition-all duration-[800ms]"
         style={{ animation: "fadeSlide 800ms ease-out" }}
       >
         <div className="mb-4">
@@ -297,6 +307,7 @@ function MyOrdersClient() {
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-[#325082]">My Orders</h1>
               <MyOrdersStatusFilter
+                role={role}
                 value={statusFilter}
                 onChange={setStatusFilter}
               />
@@ -310,9 +321,10 @@ function MyOrdersClient() {
               <h1 className="text-2xl font-bold text-[#325082]">My Orders</h1>
               <RoleSwitch role={role} setRole={setRole} />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mt-2">
               <span className="text-md font-bold text-[#325082]">Filter:</span>
               <MyOrdersStatusFilter
+                role={role}
                 value={statusFilter}
                 onChange={setStatusFilter}
               />
@@ -430,7 +442,16 @@ function MyOrdersClient() {
                               text="Cancel the Order"
                               variant="dangerOutlineHover"
                               disabled={pendingActionId === id}
-                              onClick={() => actOnTxn(id, "seller_cancel")}
+                              onClick={() => {
+                                const reason = prompt(
+                                  "Please enter a reason for cancellation:"
+                                );
+                                if (reason && reason.trim()) {
+                                  actOnTxn(id, "seller_cancel", {
+                                    cancelReason: reason.trim(),
+                                  });
+                                }
+                              }}
                             />
                           </>
                         )}
