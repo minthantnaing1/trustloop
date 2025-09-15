@@ -30,9 +30,13 @@ export default function FavoriteButton({
 
   const toggle = (e) => {
     if (stopNavigation && e) {
+      // Block the Link navigation but keep THIS button's click working
       e.preventDefault();
       e.stopPropagation();
     }
+
+    // If already mutating, ignore extra taps
+    if (pending) return;
 
     startTransition(async () => {
       const next = !isFav;
@@ -57,10 +61,10 @@ export default function FavoriteButton({
         return;
       }
 
-      // notify navbar
+      // Tell listeners exactly what happened
       window.dispatchEvent(
         new CustomEvent("favorites:updated", {
-          detail: { delta: next ? +1 : -1 },
+          detail: { delta: next ? +1 : -1, productId, isFav: next },
         })
       );
     });
@@ -72,9 +76,12 @@ export default function FavoriteButton({
       <button
         type="button"
         aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
-        disabled={pending}
+        aria-disabled={pending ? "true" : "false"}
+        data-suppress-overlay="true"
         onClick={toggle}
-        className={`absolute top-1.5 right-1.5 z-10 ${className}`}
+        className={`absolute top-1.5 right-1.5 z-10 ${
+          pending ? "opacity-60" : ""
+        } ${className}`}
       >
         <span
           className="relative inline-flex h-9 w-9 items-center justify-center
@@ -96,7 +103,13 @@ export default function FavoriteButton({
     <ActionButton
       onClick={toggle}
       disabled={pending}
-      text={isFav ? "♥" : "♡"}
+      text={
+        isFav ? (
+          <HeartSolid className="w-5 h-5" />
+        ) : (
+          <HeartOutline className="w-5 h-5" />
+        )
+      }
       variant={isFav ? "favPrimaryClick" : "favOutlineClick"}
       className={`w-full ${className}`}
     />

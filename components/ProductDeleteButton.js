@@ -17,7 +17,7 @@ export default function ProductDeleteButton({ productId }) {
       });
 
       if (res.ok) {
-        router.push("/buy-sell");
+        router.push("/sell");
       } else {
         alert("Failed to delete product.");
       }

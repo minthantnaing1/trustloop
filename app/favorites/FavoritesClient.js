@@ -1,14 +1,21 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import ProductCard from "@/components/ProductCard";
 
 export default function FavoritesClient({ items, currentUserEmail = "" }) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    const onFavChanged = () => router.refresh(); // re-fetch page data
+    const onFavChanged = (e) => {
+      const { isFav } = e?.detail || {};
+      // Only refresh when a favorite was ADDED (coming from elsewhere)
+      if (isFav === true) {
+        startTransition(() => router.refresh());
+      }
+    };
     window.addEventListener("favorites:updated", onFavChanged);
     return () => window.removeEventListener("favorites:updated", onFavChanged);
   }, [router]);

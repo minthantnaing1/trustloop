@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import ActionButton from "@/components/ActionButton";
 import Stepper from "@/components/Stepper";
 
 export default function SellPostClient({ initialLocation = "" }) {
   const router = useRouter();
+
+  useEffect(() => {
+    router.prefetch("/sell");
+  }, [router]);
 
   const [form, setForm] = useState({
     title: "",
@@ -39,12 +43,10 @@ export default function SellPostClient({ initialLocation = "" }) {
 
   const handleSubmit = async () => {
     const { title, price, category, condition } = form;
-
     if (!title || !price || !category || !condition) {
       alert("Please fill in all required fields.");
       return;
     }
-
     if (images.length === 0) {
       alert("Please select at least one image.");
       return;
@@ -53,20 +55,19 @@ export default function SellPostClient({ initialLocation = "" }) {
     try {
       setLoading(true);
 
-      const uploadedUrls = [];
-      for (const file of images) {
-        const formData = new FormData();
-        formData.append("file", file);
-
-        const res = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        const data = await res.json();
-        if (!data.url) throw new Error("Upload failed");
-        uploadedUrls.push(data.url);
-      }
+      const uploadedUrls = await Promise.all(
+        images.map(async (file) => {
+          const formData = new FormData();
+          formData.append("file", file);
+          const res = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+          const data = await res.json();
+          if (!data.url) throw new Error("Upload failed");
+          return data.url;
+        })
+      );
 
       const defaultImage = uploadedUrls[defaultIndex];
 
@@ -82,14 +83,14 @@ export default function SellPostClient({ initialLocation = "" }) {
       });
 
       if (res.ok) {
-        // You can switch to `/sell/${created._id}` if your API returns the product
-        router.push("/sell");
-      } else {
-        alert("Error submitting product.");
+        router.replace("/sell");
+        return; // ✅ important: do not fall through to any setLoading(false)
       }
-    } catch {
+
+      alert("Error submitting product.");
+      setLoading(false);
+    } catch (err) {
       alert("Something went wrong.");
-    } finally {
       setLoading(false);
     }
   };

@@ -26,7 +26,7 @@ export default async function SellerPayoutPage({ params }) {
       <>
         <NavBar />
         <main className="max-w-[1200px] mx-auto px-3 py-6">
-          <div className="rounded-xl bg-white p-6 border">Unauthorized</div>
+          <div className="rounded-[5px] bg-white p-6 border">Unauthorized</div>
         </main>
       </>
     );
@@ -50,7 +50,7 @@ export default async function SellerPayoutPage({ params }) {
             <h1 className="text-2xl font-bold text-[#325082]">Payout</h1>
             <BackButton />
           </div>
-          <div className="rounded-xl bg-white p-6 border">
+          <div className="rounded-[5px] bg-white p-6 border">
             Transaction not found.
           </div>
         </main>
@@ -66,12 +66,12 @@ export default async function SellerPayoutPage({ params }) {
     return (
       <>
         <NavBar />
-        <main className="max-w-[1200px] mx-auto px-4">
+        <main className="max-w-[1200px] mx-auto px-3">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold text-[#325082]">Payout</h1>
             <BackButton />
           </div>
-          <div className="rounded-xl bg-white p-6 border">
+          <div className="rounded-[5px] bg-white p-6 border">
             You are not the seller for this transaction.
           </div>
         </main>
@@ -97,15 +97,15 @@ export default async function SellerPayoutPage({ params }) {
   const adminReceiptUrl =
     txn?.adminPayoutReceiptUrl || payout?.receiptUrl || "";
 
-  const card = "rounded-xl bg-white shadow p-6";
-  const subCard = "rounded-xl bg-[#f9fbff] p-4 shadow-sm";
+  const card = "rounded-[5px] bg-white shadow p-6";
+  const subCard = "rounded-[5px] bg-[#f9fbff] p-4 shadow-sm";
   const title = "text-xl font-semibold text-[#1f2d4d]";
   const small = "text-sm text-gray-600";
 
   return (
     <>
       <NavBar />
-      <main className="max-w-[1200px] mx-auto px-3">
+      <main className="max-w-[1200px] mx-auto mb-6 px-3">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-[#325082]">Payout</h1>
@@ -129,16 +129,6 @@ export default async function SellerPayoutPage({ params }) {
 
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className={subCard}>
-                  <div className="text-sm text-gray-500">Product</div>
-                  <div className="font-semibold text-[#1f2f4c]">
-                    {product?.title || "-"}
-                  </div>
-                  <div className="text-sm text-gray-600 mt-1">
-                    Total: {fmtTHB(total)}
-                  </div>
-                </div>
-
-                <div className={subCard}>
                   <div className="text-sm text-gray-500">Parties</div>
                   <div className="text-[13px] text-gray-600">
                     <div>
@@ -152,12 +142,21 @@ export default async function SellerPayoutPage({ params }) {
                     <div className="truncate">{seller?.email}</div>
                   </div>
                 </div>
+                <div className={subCard}>
+                  <div className="text-sm text-gray-500">Product</div>
+                  <div className="font-semibold text-[#1f2f4c]">
+                    {product?.title || "-"}
+                  </div>
+                  <div className="text-sm text-gray-600 mt-1">
+                    Total: {fmtTHB(total)}
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Admin slip / status */}
             <div className={card}>
-              <div className="text-sm font-semibold text-[#1f2f4c] mb-2">
+              <div className="text-sm font-semibold text-[#1f2f4c] mb-3">
                 {payoutStatus === "PAID"
                   ? "Admin Transfer Slip"
                   : "Payout Status"}
@@ -167,19 +166,21 @@ export default async function SellerPayoutPage({ params }) {
                 <>
                   {adminReceiptUrl ? (
                     <div className="flex flex-col items-center">
-                      <div className="rounded-2xl mb-2 overflow-hidden shadow-sm ring-1 ring-[#e6eeff]">
+                      <div className="w-full max-w-[560px] h-[200px] sm:h-[380px] overflow-hidden ring-1 ring-[#e6eeff] flex items-center justify-center">
                         <img
                           src={adminReceiptUrl}
                           alt="Admin payout receipt"
-                          className="w-[360px] h-[480px] object-contain bg-white"
+                          className="max-w-full max-h-full object-contain"
                         />
                       </div>
-                      <SlipLink
-                        url={adminReceiptUrl}
-                        title="Admin Transfer Slip"
-                      >
-                        Open full size
-                      </SlipLink>
+                      <div className="mt-2">
+                        <SlipLink
+                          url={adminReceiptUrl}
+                          title="Admin Transfer Slip"
+                        >
+                          Open full size
+                        </SlipLink>
+                      </div>
                     </div>
                   ) : (
                     <p className={small}>—</p>
@@ -220,7 +221,7 @@ export default async function SellerPayoutPage({ params }) {
             </div>
 
             {/* Highlighted amount you receive */}
-            <div className="rounded-xl bg-gradient-to-r from-[#eef4ff] to-[#f8fbff] p-4 ring-1 ring-[#e6eeff]">
+            <div className="rounded-[5px] bg-gradient-to-r from-[#eef4ff] to-[#f8fbff] p-4 ring-1 ring-[#e6eeff]">
               <div className="text-xs text-[#1f3b66]/70">
                 Amount You Receive
               </div>
@@ -230,7 +231,7 @@ export default async function SellerPayoutPage({ params }) {
             </div>
 
             {/* Breakdown */}
-            <div className="mt-4 overflow-hidden rounded-xl ring-1 ring-[#e6eeff]">
+            <div className="mt-4 overflow-hidden rounded-[5px] ring-1 ring-[#e6eeff]">
               <table className="w-full text-sm">
                 <tbody className="divide-y divide-[#eef4ff]">
                   <tr>

@@ -70,13 +70,12 @@ export async function POST(req) {
     return new Response("Cannot buy your own product", { status: 400 });
   }
 
-  // 3) Create the transaction with a 5-minute expiry
+  // fees/totals
   const fee = Number(process.env.PLATFORM_FEE || 10);
   const price = Number(product.price || 0);
   const total = price + fee;
-  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-  // Build fulfillment from buyer choice
+  // fulfillment from buyer choice
   const fulfillment =
     method === "DELIVERY"
       ? {
@@ -95,13 +94,13 @@ export async function POST(req) {
       product: product._id,
       seller: product.owner._id,
       buyer: buyerUser._id,
-      status: "PENDING_UPLOAD",
+      status: "PENDING_UPLOAD", // unpaid state
       price,
       fee,
       total,
       sellerNet: price,
-      expiresAt,
-      fulfillment, // NEW
+      // expiresAt: undefined      // ← do NOT set here
+      fulfillment,
       timeline: [
         {
           by: buyerUser._id,
@@ -113,7 +112,6 @@ export async function POST(req) {
 
     return Response.json({ transactionId: txn._id, reused: false });
   } catch (e) {
-    // If creation fails, release the product
     await Product.updateOne(
       { _id: productId },
       { $set: { isAvailable: true } }

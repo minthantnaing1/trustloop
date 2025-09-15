@@ -1,8 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ActionButton from "@/components/ActionButton";
+import SlipLink from "@/components/SlipLink";
+import StatusPill from "@/components/StatusPill";
 import { PhoneIcon } from "@heroicons/react/24/outline";
 
 export default function AdminPayoutPanel({ txn }) {
@@ -12,6 +14,12 @@ export default function AdminPayoutPanel({ txn }) {
   const [preview, setPreview] = useState(null);
   const [file, setFile] = useState(null);
   const fileRef = useRef(null);
+
+  // ← keep UI reactive after submit (no redirect)
+  const [status, setStatus] = useState(txn?.status || "");
+  const [adminReceiptUrl, setAdminReceiptUrl] = useState(
+    txn?.adminPayoutReceiptUrl || ""
+  );
 
   const canPay = txn?.status === "BUYER_CONFIRMED";
   const alreadyPaid = txn?.status === "PAID_OUT";
@@ -39,7 +47,7 @@ export default function AdminPayoutPanel({ txn }) {
 
   async function markPaid() {
     if (!file) {
-      setErr("Please upload the payout receipt image first.");
+      setErr("Please upload the transfer payment slip first.");
       return;
     }
     setBusy(true);
@@ -53,7 +61,7 @@ export default function AdminPayoutPanel({ txn }) {
       if (!up.ok || !upData?.url)
         throw new Error(upData?.error || "Upload failed");
 
-      // 2) mark as paid
+      // 2) mark as paid (admin endpoint)
       const res = await fetch(`/api/admin/transactions/${txn._id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -61,28 +69,38 @@ export default function AdminPayoutPanel({ txn }) {
       });
       if (!res.ok) throw new Error(await res.text());
 
-      router.replace("/admin/transactions");
+      // ✅ Update local UI instead of redirecting
+      setAdminReceiptUrl(upData.url);
+      setStatus("PAID_OUT");
+      clearFile(); // optional: clear preview
+      setBusy(false);
     } catch (e) {
       setErr(e.message || "Failed to mark paid");
       setBusy(false);
     }
   }
 
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    };
+  }, [preview]);
+
   const Card = ({ children, className = "" }) => (
-    <div className={`rounded-xl bg-[#f9fbff] p-4 shadow-sm ${className}`}>
+    <div className={`rounded-[3px] bg-[#f9fbff] p-4 shadow-sm ${className}`}>
       {children}
     </div>
   );
 
   return (
-    <div className="rounded-xl bg-white shadow p-6">
+    <div className="rounded-[3px] bg-white shadow mb-6 p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-semibold text-[#1f2f4c]">
           Payout to Seller
         </h2>
         <span className="text-sm text-gray-500">
-          Status: <b>{txn?.status}</b>
+          Status: <StatusPill status={txn.status} />
         </span>
       </div>
 
@@ -91,21 +109,29 @@ export default function AdminPayoutPanel({ txn }) {
         {!alreadyPaid ? (
           <Card className="lg:col-span-2">
             <div className="text-sm font-semibold text-[#1f2f4c] mb-3">
-              Seller Scan Code
+              Seller Qr Scan
             </div>
 
             {scanUrl ? (
-              // ⬇️ CHANGED: fixed-height viewer
-              <div className="w-full max-w-[560px] mx-auto h-[420px] sm:h-[460px] rounded-2xl overflow-hidden bg-white flex items-center justify-center">
-                <img
-                  src={scanUrl}
-                  alt="Seller scan code"
-                  className="max-w-full max-h-full object-contain"
-                />
-              </div>
+              <>
+                <div className="flex flex-col items-center">
+                  <div className="w-full max-w-[560px] mx-auto h-[200px] sm:h-[380px] overflow-hidden ring-1 ring-[#e6eeff] flex items-center justify-center">
+                    <img
+                      src={scanUrl}
+                      alt="Seller scan code"
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  </div>
+                  <div className="mt-2">
+                    <SlipLink url={scanUrl} title="Seller Qr Scan">
+                      View full image
+                    </SlipLink>
+                  </div>
+                </div>
+              </>
             ) : (
               <p className="text-sm text-gray-600">
-                Seller has not uploaded a scan code yet (profile:{" "}
+                Seller has not uploaded a qr scan yet (profile:{" "}
                 <code>defaultScanCode</code>).
               </p>
             )}
@@ -117,25 +143,22 @@ export default function AdminPayoutPanel({ txn }) {
         ) : (
           <Card className="lg:col-span-2">
             <div className="text-sm font-semibold text-[#1f2f4c] mb-3">
-              Admin Payout Receipt
+              Admin Transfer Slip
             </div>
-            {txn?.adminPayoutReceiptUrl ? (
-              <div className="flex flex-col items-start">
-                <div className="w-full max-w-[560px] h-[420px] sm:h-[460px] rounded-2xl overflow-hidden bg-white flex items-center justify-center">
+            {adminReceiptUrl ? (
+              <div className="flex flex-col items-center">
+                <div className="w-full max-w-[560px] h-[200px] sm:h-[380px] overflow-hidden ring-1 ring-[#e6eeff] flex items-center justify-center">
                   <img
-                    src={txn.adminPayoutReceiptUrl}
+                    src={adminReceiptUrl}
                     alt="Payout receipt"
                     className="max-w-full max-h-full object-contain"
                   />
                 </div>
-                <a
-                  href={txn.adminPayoutReceiptUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-[#325082] underline mt-2 inline-block"
-                >
-                  Open full image
-                </a>
+                <div className="mt-2">
+                  <SlipLink url={adminReceiptUrl} title="Admin Transfer Slip">
+                    View full image
+                  </SlipLink>
+                </div>
               </div>
             ) : (
               <p className="text-sm text-gray-600">—</p>
@@ -185,7 +208,7 @@ export default function AdminPayoutPanel({ txn }) {
           {!alreadyPaid && (
             <Card>
               <label className="block text-sm font-semibold text-[#1f2f4c] mb-2">
-                Upload payout receipt
+                Upload payout transfer slip
               </label>
 
               <input

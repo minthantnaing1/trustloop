@@ -1,4 +1,8 @@
 // app/api/users/me/route.js
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
@@ -11,6 +15,10 @@ export async function GET() {
   if (!session?.user?.email) {
     return new Response(JSON.stringify({ role: "guest", user: null }), {
       status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-store",
+      },
     });
   }
 
@@ -19,6 +27,12 @@ export async function GET() {
   // Always return role + user (if found). Default role is "user".
   return new Response(
     JSON.stringify({ role: user?.role || "user", user: user || null }),
-    { status: 200 }
+    {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-store",
+      },
+    }
   );
 }

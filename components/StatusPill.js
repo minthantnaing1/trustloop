@@ -39,7 +39,7 @@ const STATUS_META = {
     fg: "text-cyan-700",
   },
   BUYER_CONFIRMED: {
-    label: "Item Received",
+    label: "Buyer Received Item",
     bg: "bg-emerald-100",
     fg: "text-emerald-700",
   },

@@ -23,6 +23,29 @@ export default async function PayPage({ params }) {
 
   if (!res.ok) return <div>Transaction not found.</div>;
   const txn = await res.json();
+
+  // after: const txn = await res.json();
+
+  if (!txn.expiresAt && txn.status === "PENDING_UPLOAD") {
+    const armRes = await fetch(
+      `${process.env.NEXT_PUBLIC_BASE_URL}/api/transactions/${id}`,
+      {
+        method: "PATCH",
+        headers: {
+          Cookie: cookieStore.toString(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ action: "start_payment_window" }),
+        cache: "no-store",
+      }
+    );
+
+    if (armRes.ok) {
+      const { expiresAt } = await armRes.json();
+      txn.expiresAt = expiresAt; // pass to PayPanel below
+    }
+  }
+
   const productId = txn?.product?._id ?? txn?.product ?? null;
 
   return (

@@ -69,7 +69,7 @@ export default function ProductDetails({
             </p>
 
             {/* Buyer action buttons */}
-            <div className="flex flex-wrap justify-center gap-2 w-full">
+            <div className="flex flex-wrap justify-center gap-2 w-full h-full">
               {canBuyerInteract && (
                 <>
                   <Link
@@ -87,7 +87,7 @@ export default function ProductDetails({
                     <FavoriteButton
                       productId={product._id?.toString()}
                       initialIsFav={initialIsFav}
-                      className="w-full"
+                      className="w-full h-full"
                     />
                   </div>
                 </>

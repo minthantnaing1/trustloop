@@ -1,7 +1,7 @@
 // sell/[id]/edit/EditProductClient.js
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import NavBar from "@/components/NavBar";
 import ActionButton from "@/components/ActionButton";
@@ -9,6 +9,10 @@ import ActionButton from "@/components/ActionButton";
 export default function EditProductClient({ initialProduct }) {
   const router = useRouter();
   const id = initialProduct?._id;
+
+  useEffect(() => {
+    if (id) router.prefetch(`/sell/${id}`);
+  }, [router, id]);
 
   const [form, setForm] = useState({
     title: initialProduct?.title || "",
@@ -61,11 +65,10 @@ export default function EditProductClient({ initialProduct }) {
     try {
       setLoading(true);
 
-      const finalImages = [];
-      for (const img of images) {
-        if (img.url) {
-          finalImages.push(img.url);
-        } else {
+      // Upload only the new files; keep existing URLs as-is — all in parallel
+      const finalImages = await Promise.all(
+        images.map(async (img) => {
+          if (img.url) return img.url;
           const formData = new FormData();
           formData.append("file", img.file);
           const res = await fetch("/api/upload", {
@@ -74,11 +77,11 @@ export default function EditProductClient({ initialProduct }) {
           });
           const data = await res.json();
           if (!data.url) throw new Error("Upload failed");
-          finalImages.push(data.url);
-        }
-      }
+          return data.url;
+        })
+      );
 
-      const defaultImage = finalImages[defaultIndex];
+      const defaultImage = finalImages[defaultIndex] ?? finalImages[0];
 
       const res = await fetch(`/api/products/${id}`, {
         method: "PATCH",
@@ -87,14 +90,15 @@ export default function EditProductClient({ initialProduct }) {
       });
 
       if (res.ok) {
-        router.push(`/sell/${id}`);
-      } else {
-        const msg = await res.text();
-        alert(msg || "Error updating product.");
+        router.replace(`/sell/${id}`);
+        return; // keep loading=true until route changes
       }
+
+      const msg = await res.text();
+      alert(msg || "Error updating product.");
+      setLoading(false);
     } catch (err) {
       alert("Something went wrong.");
-    } finally {
       setLoading(false);
     }
   };

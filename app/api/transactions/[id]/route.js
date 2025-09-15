@@ -196,6 +196,29 @@ export async function PATCH(req, { params }) {
   const body = await req.json().catch(() => ({}));
   const { action } = body || {};
 
+  if (action === "start_payment_window") {
+    if (txn.status !== "PENDING_UPLOAD") {
+      return new Response("Invalid state", { status: 400 });
+    }
+    if (!txn.expiresAt) {
+      txn.expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+      txn.timeline.push({
+        at: new Date(),
+        by: me._id,
+        action: "PAYMENT_WINDOW_STARTED",
+        meta: { minutes: 5 },
+      });
+      await txn.save();
+    }
+    return new Response(JSON.stringify({ expiresAt: txn.expiresAt }), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-store",
+      },
+    });
+  }
+
   // ---- Buyer uploads receipt (Cloudinary URL only) ----
   if (action === "upload_receipt") {
     const { buyerReceiptUrl, buyerReceiptPublicId = "" } = body || {};

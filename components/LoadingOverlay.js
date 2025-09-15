@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
-const SHOW_DELAY_MS = 1000; // show overlay only for slow navigations
+const SHOW_DELAY_MS = 800; // show overlay only for slow navigations
 const TRANSITION_MS = 500; // fade/scale duration
 
 export default function LoadingOverlay() {
@@ -50,10 +50,33 @@ export default function LoadingOverlay() {
     }
 
     function onClickCapture(e) {
+      // If something already handled this click, ignore
+      if (e.defaultPrevented) return;
+
+      // If any element in the path marks "skip overlay", ignore
+      const path = typeof e.composedPath === "function" ? e.composedPath() : [];
+      if (
+        path &&
+        path.some(
+          (el) => el && el.dataset && el.dataset.suppressOverlay === "true"
+        )
+      ) {
+        return;
+      }
+
       if (isModifiedEvent(e)) return;
 
       const a = findAnchor(e.target);
       if (!a || !a.href) return;
+
+      // Allow anchors to opt-out too
+      if (
+        a.dataset &&
+        (a.dataset.suppressOverlay === "true" ||
+          a.getAttribute("role") === "button")
+      ) {
+        return;
+      }
 
       if (!isSameOrigin(a.href)) return; // external
       const dest = new URL(a.href, window.location.href);

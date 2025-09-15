@@ -263,7 +263,7 @@ export default function AdminTransactionsPage() {
                           <ActionButton
                             text="Payout"
                             variant="primaryClick"
-                            className="bg-emerald-600 hover:bg-emerald-700"
+                            className="bg-emerald-700 border-emerald-700 hover:bg-emerald-800 hover:border-emerald-800"
                             onClick={(e) => {
                               e.stopPropagation();
                               router.push(
