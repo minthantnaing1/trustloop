@@ -1,6 +1,7 @@
 import { connectDB } from "@/lib/db";
-import Product from "@/models/Product";
 import User from "@/models/User";
+import Product from "@/models/Product";
+import Transaction from "@/models/Transaction";
 import { auth } from "@/auth";
 
 // ✅ CREATE PRODUCT
@@ -69,8 +70,49 @@ export async function GET(req) {
       .populate("owner")
       .sort({ createdAt: -1 });
 
+    // attach buyer/info for reserved products (and include the order status)
+    const reservedIds = products
+      .filter((p) => p.isAvailable === false)
+      .map((p) => p._id);
+
+    let productsOut = products.map((p) => (p.toObject ? p.toObject() : p));
+
+    if (reservedIds.length) {
+      // get the most recent txn per product and include status
+      const txns = await Transaction.find({ product: { $in: reservedIds } })
+        .populate({ path: "buyer", select: "name email" })
+        .sort({ createdAt: -1 })
+        .lean();
+
+      const infoByProduct = {};
+      for (const t of txns) {
+        const pid = String(t.product);
+        if (infoByProduct[pid]) continue; // keep the most recent one only
+        infoByProduct[pid] = {
+          buyerName: t?.buyer?.name || t?.buyer?.email || "",
+          buyerEmail: t?.buyer?.email || "",
+          buyerOrderId: String(t._id),
+          buyerOrderStatus: t?.status || "",
+        };
+      }
+
+      productsOut = productsOut.map((p) => {
+        const info = infoByProduct[String(p._id)];
+        if (info) {
+          p.buyerName = info.buyerName;
+          p.buyerEmail = info.buyerEmail;
+          p.buyerOrderId = info.buyerOrderId;
+          p.buyerOrderStatus = info.buyerOrderStatus;
+        }
+        return p;
+      });
+    }
+
     return new Response(
-      JSON.stringify({ products, userEmail: session?.user?.email || "" }),
+      JSON.stringify({
+        products: productsOut,
+        userEmail: session?.user?.email || "",
+      }),
       { status: 200 }
     );
   } catch (err) {

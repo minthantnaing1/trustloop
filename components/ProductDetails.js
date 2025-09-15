@@ -1,93 +1,47 @@
+// components/ProductDetails.js
 import NavBar from "@/components/NavBar";
 import Image from "next/image";
 import Link from "next/link";
-import { connectDB } from "@/lib/db";
-import User from "@/models/User";
-import { cookies } from "next/headers";
-import { auth } from "@/auth";
-import {
-  EyeIcon,
-  EyeSlashIcon,
-  PencilIcon,
-  ChevronLeftIcon,
-} from "@heroicons/react/24/solid";
 import ActionButton from "@/components/ActionButton";
 import ProductDeleteButton from "@/components/ProductDeleteButton";
 import ProductImages from "@/components/ProductImages";
 import CommentSection from "@/components/CommentSection";
 import FavoriteButton from "@/components/FavoriteButton";
 import HideToggleButton from "@/components/HideToggleButton";
+import BackButton from "@/components/BackButton";
+import { PencilIcon } from "@heroicons/react/24/solid";
 
-export default async function ProductDetailPage({ params }) {
-  const { id } = await params;
-  const cookieStore = await cookies();
-
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_BASE_URL}/api/products/${id}`,
-    {
-      headers: {
-        Cookie: cookieStore.toString(),
-      },
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) {
-    return <div>Product not found.</div>;
-  }
-
-  const product = await res.json();
-  const session = await auth();
-  const sessionEmail = session?.user?.email || "";
-  const isOwner = sessionEmail === product.owner?.email;
-
-  // Availability drives the UI:
-  // - false => there is an active transaction (not cancelled/rejected), so hide buyer + seller controls
-  // - true  => cancelled/rejected/no txn, show buyer actions and seller manage actions
+export default function ProductDetails({
+  product,
+  sessionEmail,
+  initialIsFav,
+  isOwner,
+}) {
   const canBuyerInteract = !isOwner && product.isAvailable === true;
   const canSellerManage = isOwner && product.isAvailable === true;
-
-  await connectDB();
-
-  let initialIsFav = false;
-  if (session?.user?.email) {
-    const me = await User.findOne({ email: session.user.email })
-      .select("favorites")
-      .lean();
-
-    initialIsFav = !!me?.favorites?.some(
-      (fid) => String(fid) === String(product._id)
-    );
-  }
 
   return (
     <>
       <NavBar />
       <main className="max-w-[1200px] mx-auto mb-[40px] px-5 w-full">
         {/* Top Section */}
-        <div className="flex justify-between items-start mb-4 flex-col sm:flex-row gap-4">
-          {/* Back Button */}
-          <Link
-            href="/buy-sell"
-            className="text-[#325082] text-sm hover:underline flex items-center gap-1"
-          >
-            <ChevronLeftIcon className="h-4 w-4" />
-            Back to Buy & Sell
-          </Link>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center mb-4 gap-2">
+          {/* Left: Back Button (always left) */}
+          <BackButton />
 
-          {/* Owner Action Buttons (hidden when product is locked by an active txn) */}
+          {/* Right: Owner Actions */}
           {isOwner && canSellerManage && (
-            <div className="flex gap-3 items-center sm:ml-auto sm:flex-row flex-wrap">
+            <div className="flex gap-2 sm:gap-3 items-center w-full sm:w-auto self-end sm:self-auto sm:ml-auto justify-end flex-wrap">
               <HideToggleButton
                 productId={product._id}
                 initialHidden={product.isHidden}
               />
 
-              <Link href={`/buy-sell/${product._id}/edit`}>
+              <Link href={`/sell/${product._id}/edit`}>
                 <ActionButton
                   text="Edit"
                   variant="outlineHover"
-                  icon={<PencilIcon className="w-5 h-5" />}
+                  icon={<PencilIcon className="w-4.5 h-4.5" />}
                 />
               </Link>
 
@@ -104,7 +58,7 @@ export default async function ProductDetailPage({ params }) {
             defaultImage={product.defaultImage}
           />
 
-          {/* Right: Product Info (below images on mobile) */}
+          {/* Right: Product Info */}
           <div className="flex-1 flex flex-col gap-3">
             <h2 className="text-xl font-bold text-[#325082]">
               {product.title}
@@ -114,13 +68,12 @@ export default async function ProductDetailPage({ params }) {
               {Number(product.price).toLocaleString()} ฿
             </p>
 
-            {/* Buyer action buttons — only when available */}
+            {/* Buyer action buttons */}
             <div className="flex flex-wrap justify-center gap-2 w-full">
               {canBuyerInteract && (
                 <>
-                  {/* Buy Now (left, a bit wider) */}
                   <Link
-                    href={`/buy-sell/${product._id}/checkout`}
+                    href={`/buy/${product._id}/checkout`}
                     className="flex-5 sm:flex-9"
                   >
                     <ActionButton
@@ -130,7 +83,6 @@ export default async function ProductDetailPage({ params }) {
                     />
                   </Link>
 
-                  {/* Add to Favourite (right, normal width) */}
                   <div className="flex-1">
                     <FavoriteButton
                       productId={product._id?.toString()}
@@ -142,7 +94,6 @@ export default async function ProductDetailPage({ params }) {
               )}
             </div>
 
-            {/* If the product is unavailable, you can optionally show a small notice */}
             {!product.isAvailable && (
               <p className="text-sm text-gray-600 mt-1">
                 This item is currently in an active transaction.
@@ -178,11 +129,10 @@ export default async function ProductDetailPage({ params }) {
               </div>
             </div>
 
-            {/* Public Comments Section */}
             <CommentSection
               productId={product._id.toString()}
               initialComments={product.comments || []}
-              userEmail={session?.user?.email}
+              userEmail={sessionEmail}
               productOwnerEmail={product.owner?.email}
             />
           </div>

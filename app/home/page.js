@@ -1,8 +1,8 @@
 import { auth } from "@/auth";
 import NavBar from "@/components/NavBar";
-import Image from "next/image";
 import Link from "next/link";
 import HeroCarousel from "@/components/HeroCarousel";
+import ActionButton from "@/components/ActionButton";
 import {
   UserGroupIcon,
   BoltIcon,
@@ -91,16 +91,17 @@ export default async function HomePage() {
           </h2>
           <div className="flex flex-wrap justify-center gap-6">
             {[
-              { label: "Buy & Sell", href: "/buy-sell" },
+              { label: "Buy", href: "/buy" },
+              { label: "Sell", href: "/sell" },
               { label: "Auction", href: "/auction" },
               { label: "Giveaway", href: "/giveaway" },
             ].map((item) => (
-              <Link
-                href={item.href}
-                key={item.href}
-                className="bg-[#325082] hover:bg-[#2b446a] text-white px-8 py-4 rounded-xl font-semibold transition min-w-[160px]"
-              >
-                {item.label}
+              <Link key={item.href} href={item.href} className="min-w-[140px]">
+                <ActionButton
+                  text={item.label}
+                  variant="primaryHover" // 👈 reuse your theme variant
+                  className="w-full h-[52px] text-lg"
+                />
               </Link>
             ))}
           </div>

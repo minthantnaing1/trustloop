@@ -17,6 +17,7 @@ import { fmtBKK, toLocalInputValue } from "@/utils/timeAgo";
 import Stepper from "@/components/Stepper";
 import ActionButton from "@/components/ActionButton";
 import SlipLink from "@/components/SlipLink";
+import Timeline from "@/components/Timeline";
 
 // tiny presentational element
 function Field({ icon: Icon, label, value }) {
@@ -84,10 +85,13 @@ export default function OrderDetail({ id }) {
   const [carrier, setCarrier] = useState("");
   const [tracking, setTracking] = useState("");
   const [notes, setNotes] = useState("");
+  const [deliveryMsg, setDeliveryMsg] = useState("");
 
   // meetup inputs
   const [meetLoc, setMeetLoc] = useState("");
   const [meetTime, setMeetTime] = useState("");
+  const [meetWarn, setMeetWarn] = useState("");
+  const [sameWarn, setSameWarn] = useState("");
 
   // min/max windows
   const meetMin = useMemo(() => nowLocalInput(), []);
@@ -217,9 +221,9 @@ export default function OrderDetail({ id }) {
   }, [deliveryEdits, txn]);
 
   const card =
-    "rounded-2xl bg-white/95 shadow-md ring-1 ring-[#e6eeff] backdrop-blur";
+    "rounded-[3px] bg-white/95 shadow-md ring-1 ring-[#e6eeff] backdrop-blur";
   const sectionTitle =
-    "text-[15px] font-semibold text-[#1f3b66] bg-[#eef4ff] rounded-lg px-3 py-2 inline-flex items-center gap-2";
+    "text-lg font-semibold text-[#325082] bg-transparent border-[#325082] rounded-[3px] inline-flex items-center gap-2";
 
   if (err) return <p className="text-red-600 mb-3">{err}</p>;
   if (!txn) return <p className="text-gray-500">Loading…</p>;
@@ -232,6 +236,30 @@ export default function OrderDetail({ id }) {
     hasProposal &&
     me &&
     String(txn.fulfillment?.meetupProposedBy || "") === String(me._id || "");
+
+  // current proposal vs your inputs (to prevent re-submitting identical proposal)
+  const currentLoc = txn.fulfillment?.meetupLocation || "";
+  const currentTimeIso = txn.fulfillment?.meetupProposedAt
+    ? new Date(txn.fulfillment.meetupProposedAt).toISOString()
+    : "";
+  const inputTimeIso = meetTime ? new Date(meetTime).toISOString() : "";
+  const isSameProposal =
+    currentLoc.trim() === (meetLoc || "").trim() &&
+    currentTimeIso === inputTimeIso;
+
+  // compare form inputs vs saved fulfillment (normalize date to ISO)
+  const savedScheduledIso = txn?.fulfillment?.scheduledAt
+    ? new Date(txn.fulfillment.scheduledAt).toISOString()
+    : "";
+  const inputScheduledIso = scheduledAt
+    ? new Date(scheduledAt).toISOString()
+    : "";
+
+  const isDeliveryUnchanged =
+    savedScheduledIso === inputScheduledIso &&
+    (carrier || "") === (txn?.fulfillment?.carrier || "") &&
+    (tracking || "") === (txn?.fulfillment?.tracking || "") &&
+    (notes || "") === (txn?.fulfillment?.notes || "");
 
   return (
     <div className="space-y-6">
@@ -248,10 +276,7 @@ export default function OrderDetail({ id }) {
       <div className={`${card} p-6`}>
         <div className="flex flex-wrap gap-4 items-start justify-between">
           <div>
-            <div className="text-sm text-[#6881b5]">Transaction</div>
-            <h2 className="text-xl font-semibold text-[#1f2d4d] truncate">
-              {txn.product?.title || "-"}
-            </h2>
+            <div className="text-lg font-bold text-[#325082]">Transaction</div>
           </div>
           <div className="flex items-center gap-3">
             <StatusPill status={txn.status} />
@@ -264,9 +289,10 @@ export default function OrderDetail({ id }) {
           </div>
         </div>
 
-        {/* Only the other party */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-          <div className="rounded-xl bg-[#f6f9ff] p-4 ring-1 ring-[#e6eeff] md:col-span-2">
+        {/* Party info (left) + Product info (right) */}
+        <div className="mt-6 flex flex-col md:flex-row gap-6">
+          {/* Left: Other party */}
+          <div className="rounded-[3px] bg-[#f6f9ff] p-4 ring-1 ring-[#e6eeff] md:flex-1">
             <div className={sectionTitle}>
               <UserCircleIcon className="w-5 h-5" />
               {otherRoleLabel}
@@ -286,6 +312,37 @@ export default function OrderDetail({ id }) {
               )}
             </div>
           </div>
+
+          {/* Right: Product info */}
+          <div className="rounded-[3px] bg-[#f6f9ff] p-4 ring-1 ring-[#e6eeff] md:flex-1">
+            <div className="text-lg font-bold text-[#325082] mb-2">
+              Product:
+            </div>
+            <h3 className="text-lg font-semibold text-[#325082]">
+              {txn.product?.title || "-"}
+            </h3>
+            <div className="mt-2 space-y-1 text-sm text-gray-700">
+              <div className="flex items-center justify-between">
+                <span>
+                  Category:{" "}
+                  <span className="font-medium">
+                    {txn.product?.category || "-"}
+                  </span>
+                </span>
+                <span>
+                  Condition:{" "}
+                  <span className="font-medium">
+                    {txn.product?.condition || "-"}
+                  </span>
+                </span>
+              </div>
+              {txn.product?.description && (
+                <p className="font-medium mt-2.5">
+                  {txn.product.description || "-"}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Footer links */}
@@ -297,20 +354,24 @@ export default function OrderDetail({ id }) {
             {txn.buyerReceiptUrl && (
               <SlipLink url={txn.buyerReceiptUrl} title="Buyer Payment Slip">
                 {isBuyer ? (
-                  <>View Payment Slip (me)</>
+                  <>View My Payment Slip</>
                 ) : (
                   <>View Buyer Payment Slip</>
                 )}
               </SlipLink>
             )}
+
             <Link
-              href={`/buy-sell/${txn.product?._id || ""}`}
-              className="text-sm underline text-black hover:text-[#325082] underline-offset-2"
+              href={
+                isSeller
+                  ? `/sell/${txn.product?._id || ""}`
+                  : `/buy/${txn.product?._id || ""}`
+              }
+              className="text-sm underline text-[#325082] hover:text-[#6881b5] underline-offset-2"
             >
-              Product Details
+              {isSeller ? "My Product Details" : "Product Details"}
             </Link>
 
-            {/* NEW: Payout button (seller only, after delivered/meetup completed/paid out) */}
             {isSeller &&
               (txn.status === "SELLER_DELIVERED" ||
                 txn.status === "MEETUP_COMPLETED" ||
@@ -395,13 +456,16 @@ export default function OrderDetail({ id }) {
                     <input
                       type="datetime-local"
                       value={scheduledAt}
-                      onChange={(e) => setScheduledAt(e.target.value)}
+                      onChange={(e) => {
+                        setScheduledAt(e.target.value);
+                        setDeliveryMsg("");
+                      }}
                       min={deliveryMin}
                       max={deliveryMax}
                       disabled={busy || txn.status === "DELIVERY_IN_PROGRESS"}
-                      className="w-full rounded-lg border px-3 py-2 text-sm disabled:bg-gray-100"
+                      className="w-full rounded-[3px] border border-gray-300 shadow-sm px-3 py-2 text-sm disabled:bg-gray-100"
                     />
-                    <p className="text-[11px] text-gray-500 mt-1">
+                    <p className="text-[12px] text-gray-500 mt-1">
                       Choose a time from now up to {DELIVERY_MAX_DAYS} days
                       ahead.
                     </p>
@@ -413,9 +477,12 @@ export default function OrderDetail({ id }) {
                     <input
                       type="text"
                       value={carrier}
-                      onChange={(e) => setCarrier(e.target.value)}
+                      onChange={(e) => {
+                        setCarrier(e.target.value);
+                        setDeliveryMsg("");
+                      }}
                       disabled={busy || txn.status === "DELIVERY_IN_PROGRESS"}
-                      className="w-full rounded-lg border px-3 py-2 text-sm disabled:bg-gray-100"
+                      className="w-full rounded-[3px] border border-gray-300 shadow-sm px-3 py-2 text-sm disabled:bg-gray-100"
                     />
                   </div>
                   <div>
@@ -425,9 +492,12 @@ export default function OrderDetail({ id }) {
                     <input
                       type="text"
                       value={tracking}
-                      onChange={(e) => setTracking(e.target.value)}
+                      onChange={(e) => {
+                        setTracking(e.target.value);
+                        setDeliveryMsg("");
+                      }}
                       disabled={busy || txn.status === "DELIVERY_IN_PROGRESS"}
-                      className="w-full rounded-lg border px-3 py-2 text-sm disabled:bg-gray-100"
+                      className="w-full rounded-[3px] border border-gray-300 shadow-sm px-3 py-2 text-sm disabled:bg-gray-100"
                     />
                   </div>
                   <div>
@@ -437,45 +507,57 @@ export default function OrderDetail({ id }) {
                     <input
                       type="text"
                       value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
+                      onChange={(e) => {
+                        setNotes(e.target.value);
+                        setDeliveryMsg("");
+                      }}
                       disabled={busy || txn.status === "DELIVERY_IN_PROGRESS"}
-                      className="w-full rounded-lg border px-3 py-2 text-sm disabled:bg-gray-100"
+                      className="w-full rounded-[3px] border border-gray-300 shadow-sm px-3 py-2 text-sm disabled:bg-gray-100"
                     />
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-wrap items-center gap-3 mt-2">
                     {txn.status === "SELLER_ACCEPTED" && (
                       <>
                         <ActionButton
-                          text="Save Delivery Details"
-                          variant="primaryClick"
+                          text="Set Delivery Details"
+                          variant="outlineClick"
                           disabled={busy || !canEditDelivery}
                           onClick={() => {
+                            setDeliveryMsg("");
+
+                            // must set Ship/ETA
+                            if (!scheduledAt) {
+                              setDeliveryMsg(
+                                "Set a Ship/ETA time before setting delivery details."
+                              );
+                              return;
+                            }
                             if (!validateDeliveryWindow(scheduledAt)) {
-                              alert(
+                              setDeliveryMsg(
                                 `Ship/ETA must be from now to ${DELIVERY_MAX_DAYS} days ahead.`
                               );
                               return;
                             }
-                            if (!canEditDelivery) {
-                              alert(
-                                "You have reached the maximum of 3 delivery schedule changes."
+
+                            // block if nothing changed
+                            if (isDeliveryUnchanged) {
+                              setDeliveryMsg(
+                                "Nothing has changed to be updated."
                               );
                               return;
                             }
+
                             doPatch({
                               action: "seller_set_delivery",
-                              scheduledAt: scheduledAt
-                                ? new Date(scheduledAt).toISOString()
-                                : null,
+                              scheduledAt: new Date(scheduledAt).toISOString(),
                               carrier,
                               tracking,
                               notes,
                             });
                           }}
-                          className="!bg-[#eef4ff] !text-[#1f3b66] !ring-1 !ring-[#dbe6ff] hover:!bg-[#e6f0ff]"
                         />
 
                         <ActionButton
@@ -483,19 +565,28 @@ export default function OrderDetail({ id }) {
                           variant="primaryClick"
                           disabled={busy}
                           onClick={() => {
-                            if (
-                              scheduledAt &&
-                              !validateDeliveryWindow(scheduledAt)
-                            ) {
-                              alert(
+                            setDeliveryMsg("");
+                            if (!scheduledAt) {
+                              setDeliveryMsg(
+                                "Set a Ship/ETA time before starting delivery."
+                              );
+                              return;
+                            }
+                            if (!validateDeliveryWindow(scheduledAt)) {
+                              setDeliveryMsg(
                                 `Ship/ETA must be from now to ${DELIVERY_MAX_DAYS} days ahead.`
                               );
                               return;
                             }
                             doPatch({ action: "mark_delivery_in_progress" });
                           }}
-                          className="!bg-[#325082] hover:!bg-[#2b446e]"
                         />
+
+                        {deliveryMsg && (
+                          <span className="text-[12px] text-amber-700">
+                            {deliveryMsg}
+                          </span>
+                        )}
                       </>
                     )}
 
@@ -507,13 +598,12 @@ export default function OrderDetail({ id }) {
                         onClick={() =>
                           doPatch({ action: "seller_mark_delivered" })
                         }
-                        className="!bg-[#6b5bd2]/10 !text-[#3b2f8f] !ring-1 !ring-[#cfc8ff] hover:!bg-[#6b5bd2]/20"
                       />
                     )}
                   </div>
 
                   {txn.status === "SELLER_ACCEPTED" && (
-                    <div className="text-[11px] text-gray-500">
+                    <div className="text-[12px] text-gray-500">
                       {canEditDelivery
                         ? `${
                             3 - deliveryEdits
@@ -542,8 +632,12 @@ export default function OrderDetail({ id }) {
                         <input
                           type="text"
                           value={meetLoc}
-                          onChange={(e) => setMeetLoc(e.target.value)}
-                          className="w-full rounded-lg border px-3 py-2 text-sm"
+                          onChange={(e) => {
+                            setMeetLoc(e.target.value);
+                            setMeetWarn("");
+                            setSameWarn("");
+                          }}
+                          className="w-full rounded-[3px] border border-gray-300 px-3 py-2 text-sm"
                           placeholder="ABAC Hua Mak Gate 2"
                         />
                       </div>
@@ -554,12 +648,16 @@ export default function OrderDetail({ id }) {
                         <input
                           type="datetime-local"
                           value={meetTime}
-                          onChange={(e) => setMeetTime(e.target.value)}
+                          onChange={(e) => {
+                            setMeetTime(e.target.value);
+                            setMeetWarn("");
+                            setSameWarn("");
+                          }}
                           min={meetMin}
                           max={meetMax}
-                          className="w-full rounded-lg border px-3 py-2 text-sm"
+                          className="w-full rounded-[3px] border border-gray-300 px-3 py-2 text-sm"
                         />
-                        <p className="text-[11px] text-gray-500 mt-1">
+                        <p className="text-[12px] text-gray-500 mt-1">
                           Choose a time from now up to {MEETUP_MAX_DAYS} days
                           ahead.
                         </p>
@@ -572,19 +670,30 @@ export default function OrderDetail({ id }) {
                         <ActionButton
                           text="Propose Meetup"
                           variant="primaryClick"
-                          disabled={
-                            busy ||
-                            !meetLoc ||
-                            !meetTime ||
-                            !validateMeetupWindow(meetTime)
-                          }
+                          disabled={busy}
                           onClick={() => {
+                            setMeetWarn("");
+                            setSameWarn("");
+
+                            if (!meetLoc || !meetTime) {
+                              setMeetWarn(
+                                "Please set both Location and Proposed Time before pressing Propose Meetup Button."
+                              );
+                              return;
+                            }
                             if (!validateMeetupWindow(meetTime)) {
-                              alert(
+                              setMeetWarn(
                                 `Please pick a meetup time from now to ${MEETUP_MAX_DAYS} days ahead.`
                               );
                               return;
                             }
+                            if (isSameProposal) {
+                              setSameWarn(
+                                "You're proposing the same location and time as the current proposal. Change something to propose again."
+                              );
+                              return;
+                            }
+
                             doPatch({
                               action: "propose_meetup",
                               meetupLocation: meetLoc,
@@ -593,20 +702,30 @@ export default function OrderDetail({ id }) {
                               ).toISOString(),
                             });
                           }}
-                          className="!bg-[#eef4ff] !text-[#1f3b66] !ring-1 !ring-[#dbe6ff] hover:!bg-[#e6f0ff]"
                         />
                       )}
 
                       {hasProposal && me && !proposedByMe && (
                         <ActionButton
                           text="Accept Proposal"
-                          variant="primaryClick"
+                          variant="outlineClick"
                           disabled={busy}
                           onClick={() => doPatch({ action: "accept_meetup" })}
-                          className="!bg-[#325082] hover:!bg-[#2b446e]"
                         />
                       )}
                     </div>
+
+                    {/* Warnings under the buttons */}
+                    {meetWarn && (
+                      <div className="text-[12px] text-amber-700">
+                        {meetWarn}
+                      </div>
+                    )}
+                    {sameWarn && (
+                      <div className="text-[12px] text-amber-700">
+                        {sameWarn}
+                      </div>
+                    )}
                   </>
                 )}
 
@@ -620,7 +739,6 @@ export default function OrderDetail({ id }) {
                       onClick={() =>
                         doPatch({ action: "mark_meetup_completed" })
                       }
-                      className="!bg-[#6fd3e6]/10 !text-[#086b7f] !ring-1 !ring-[#bfeef6] hover:!bg-[#6fd3e6]/20"
                     />
                   </div>
                 )}
@@ -645,7 +763,7 @@ export default function OrderDetail({ id }) {
                     className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-amber-900 text-sm"
                     aria-live="polite"
                   >
-                    Please confirm you’ve received the item. Otherwise this
+                    Please confirm you&apos;ve received the item. Otherwise this
                     order will be auto-confirmed in{" "}
                     <b className="font-mono tabular-nums">
                       {formatRemaining(remainMs)}
@@ -659,7 +777,6 @@ export default function OrderDetail({ id }) {
                   variant="primaryClick"
                   disabled={busy}
                   onClick={() => doPatch({ action: "buyer_confirm" })}
-                  className="!bg-[#10b981]/90 hover:!bg-[#0ea371]"
                 />
               </div>
             )}
@@ -672,24 +789,7 @@ export default function OrderDetail({ id }) {
           <ClipboardDocumentListIcon className="w-5 h-5" />
           Timeline
         </div>
-
-        {Array.isArray(txn.timeline) && txn.timeline.length > 0 ? (
-          <ul className="mt-4 space-y-2">
-            {[...txn.timeline].reverse().map((e, i) => (
-              <li
-                key={i}
-                className="flex items-center justify-between rounded-lg bg-[#f8fbff] ring-1 ring-[#e6eeff] px-3 py-2"
-              >
-                <div className="text-sm text-gray-800">{e.action || "-"}</div>
-                <div className="text-xs text-gray-500">
-                  {e.at ? fmtBKK(e.at) : "-"}
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div className="mt-4 text-sm text-gray-500">No events yet.</div>
-        )}
+        <Timeline events={txn.timeline} />
       </div>
     </div>
   );

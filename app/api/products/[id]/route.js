@@ -1,10 +1,11 @@
 import { connectDB } from "@/lib/db";
-import Product from "@/models/Product";
 import User from "@/models/User";
+import Product from "@/models/Product";
+import Transaction from "@/models/Transaction";
 import { auth } from "@/auth";
 import cloudinary from "@/lib/cloudinary";
 
-// ✅ Get Single Product by ID
+// ✅ Get Single Product by ID (with reserved access guard)
 export async function GET(_req, { params }) {
   const { id } = await params; // ✅ Await added to fix CMD error
 
@@ -20,8 +21,33 @@ export async function GET(_req, { params }) {
 
     const isOwner = session?.user?.email === product.owner.email;
 
+    // Hidden items: only owner can view
     if (product.isHidden && !isOwner) {
       return new Response("Product not found", { status: 404 });
+    }
+
+    // Reserved/unavailable items: only owner OR the actual buyer can view
+    if (product.isAvailable === false) {
+      const viewerEmail = session?.user?.email || null;
+      const viewer = viewerEmail
+        ? await User.findOne({ email: viewerEmail }).select("_id")
+        : null;
+
+      const isOwnerView =
+        viewer &&
+        String(product.owner?._id || product.owner) === String(viewer?._id);
+
+      const txn = await Transaction.findOne({ product: product._id })
+        .sort({ createdAt: -1 })
+        .select("buyer");
+
+      const isBuyerView =
+        viewer && txn && String(txn.buyer) === String(viewer._id);
+
+      if (!isOwnerView && !isBuyerView) {
+        // Let /buy/[id] render your "listing isn’t available" UI
+        return new Response("Unavailable", { status: 403 });
+      }
     }
 
     return new Response(JSON.stringify(product), { status: 200 });
@@ -50,6 +76,11 @@ export async function DELETE(_req, { params }) {
 
     if (product.owner.email !== session.user.email) {
       return new Response("Unauthorized - Not your product", { status: 403 });
+    }
+
+    // 🔒 NEW: Prevent delete during active transaction
+    if (product.isAvailable !== true) {
+      return new Response("Locked by active transaction", { status: 409 });
     }
 
     // ✅ Delete Cloudinary images
@@ -95,6 +126,11 @@ export async function PATCH(req, { params }) {
       return new Response("Unauthorized - Not your product", { status: 403 });
     }
 
+    // 🔒 NEW: Prevent edits during active transaction
+    if (product.isAvailable !== true) {
+      return new Response("Locked by active transaction", { status: 409 });
+    }
+
     // ✅ Only perform Cloudinary deletion if `images` field is present
     if ("images" in body && Array.isArray(body.images)) {
       const removed = (product.images || []).filter(
@@ -113,7 +149,22 @@ export async function PATCH(req, { params }) {
       }
     }
 
-    Object.assign(product, body);
+    // ✅ NEW: Whitelist fields to prevent mass-assignment
+    const allowed = [
+      "title",
+      "description",
+      "price",
+      "category",
+      "condition",
+      "location",
+      "images",
+      "defaultImage",
+      "isHidden",
+    ];
+    for (const k of allowed) {
+      if (k in body) product[k] = body[k];
+    }
+
     await product.save();
 
     return new Response(JSON.stringify(product), { status: 200 });

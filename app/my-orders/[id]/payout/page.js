@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 import Link from "next/link";
 import NavBar from "@/components/NavBar";
 import StatusPill from "@/components/StatusPill";
-import { ChevronLeftIcon } from "@heroicons/react/24/solid";
+import BackButton from "@/components/BackButton";
 
 export const dynamic = "force-dynamic";
 
@@ -47,13 +47,7 @@ export default async function SellerPayoutPage({ params }) {
         <main className="max-w-[1200px] mx-auto px-4 py-6">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold text-[#325082]">Payout</h1>
-            <Link
-              href={`/my-orders/${id}`}
-              className="text-[#325082] text-sm hover:underline flex items-center gap-1"
-            >
-              <ChevronLeftIcon className="h-4 w-4" />
-              Back to Order Details
-            </Link>
+            <BackButton />
           </div>
           <div className="rounded-xl bg-white p-6 border">
             Transaction not found.
@@ -74,13 +68,7 @@ export default async function SellerPayoutPage({ params }) {
         <main className="max-w-[1200px] mx-auto px-4">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold text-[#325082]">Payout</h1>
-            <Link
-              href={`/my-orders/${id}`}
-              className="text-[#325082] text-sm hover:underline flex items-center gap-1"
-            >
-              <ChevronLeftIcon className="h-4 w-4" />
-              Back to Order Detail
-            </Link>
+            <BackButton />
           </div>
           <div className="rounded-xl bg-white p-6 border">
             You are not the seller for this transaction.
@@ -120,13 +108,7 @@ export default async function SellerPayoutPage({ params }) {
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-[#325082]">Payout</h1>
-          <Link
-            href={`/my-orders/${id}`}
-            className="text-[#325082] text-sm hover:underline flex items-center gap-1"
-          >
-            <ChevronLeftIcon className="h-4 w-4" />
-            Back to Order Detail
-          </Link>
+          <BackButton />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

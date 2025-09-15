@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import ActionButton from "@/components/ActionButton";
 
 const images = ["/AU_ABAC.jpg", "/AU_ABAC2.jpg", "/AU_ABAC3.jpg"];
 
@@ -37,17 +38,15 @@ export default function HeroCarousel() {
 
       {/* Persistent Overlay Text & Button */}
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white px-4">
-        <h1 className="text-3xl sm:text-5xl font-bold mb-4 drop-shadow-md">
+        <h1 className="text-3xl sm:text-5xl font-bold mb-4 drop-shadow-lg">
           Welcome to TrustLoop
         </h1>
-        <p className="max-w-[800px] text-sm sm:text-lg mb-6 drop-shadow-sm">
+        <p className="max-w-[800px] text-sm sm:text-lg mb-6 drop-shadow-lg">
           Assumption University&apos;s exclusive marketplace. Buy, sell,
           auction, or donate securely among AU students.
         </p>
-        <Link href="/buy-sell">
-          <span className="bg-white text-[#325082] font-semibold rounded-full px-4 py-3 hover:bg-gray-200 transition">
-            Start Exploring
-          </span>
+        <Link href="/buy">
+          <ActionButton text="Start Exploring" variant="glassClick" />
         </Link>
       </div>
 

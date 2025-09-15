@@ -1,55 +1,34 @@
+// sell/[id]/edit/EditProductClient.js
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import NavBar from "@/components/NavBar";
 import ActionButton from "@/components/ActionButton";
 
-export default function EditProductPage() {
+export default function EditProductClient({ initialProduct }) {
   const router = useRouter();
-  const params = useParams();
-  const id = params?.id;
+  const id = initialProduct?._id;
 
   const [form, setForm] = useState({
-    title: "",
-    description: "",
-    price: "",
-    category: "",
-    condition: "",
-    location: "",
+    title: initialProduct?.title || "",
+    description: initialProduct?.description || "",
+    price: initialProduct?.price || "",
+    category: initialProduct?.category || "",
+    condition: initialProduct?.condition || "",
+    location: initialProduct?.location || "",
   });
 
-  const [images, setImages] = useState([]); // {url?, file?}
-  const [defaultIndex, setDefaultIndex] = useState(0);
+  // images: [{ url? , file? }]
+  const [images, setImages] = useState(
+    (initialProduct?.images || []).map((url) => ({ url }))
+  );
+  const def =
+    (initialProduct?.images || []).findIndex(
+      (u) => u === initialProduct?.defaultImage
+    ) ?? -1;
+  const [defaultIndex, setDefaultIndex] = useState(def >= 0 ? def : 0);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!id) return;
-    async function fetchProduct() {
-      const res = await fetch(`/api/products/${id}`);
-      if (res.ok) {
-        const data = await res.json();
-        setForm({
-          title: data.title || "",
-          description: data.description || "",
-          price: data.price || "",
-          category: data.category || "",
-          condition: data.condition || "",
-          location: data.location || "",
-        });
-
-        const loaded = data.images.map((url) => ({ url }));
-        setImages(loaded);
-        const def = loaded.findIndex((img) => img.url === data.defaultImage);
-        setDefaultIndex(def >= 0 ? def : 0);
-      } else {
-        alert("Product not found.");
-        router.push("/buy-sell");
-      }
-    }
-
-    fetchProduct();
-  }, [id, router]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -58,7 +37,7 @@ export default function EditProductPage() {
   };
 
   const handleImageSelect = (e) => {
-    const files = Array.from(e.target.files);
+    const files = Array.from(e.target.files || []);
     if (files.length + images.length > 5) {
       alert("You can only upload up to 5 images.");
       return;
@@ -74,7 +53,6 @@ export default function EditProductPage() {
       alert("Please fill in all required fields.");
       return;
     }
-
     if (images.length === 0) {
       alert("Please select at least one image.");
       return;
@@ -90,12 +68,10 @@ export default function EditProductPage() {
         } else {
           const formData = new FormData();
           formData.append("file", img.file);
-
           const res = await fetch("/api/upload", {
             method: "POST",
             body: formData,
           });
-
           const data = await res.json();
           if (!data.url) throw new Error("Upload failed");
           finalImages.push(data.url);
@@ -111,9 +87,10 @@ export default function EditProductPage() {
       });
 
       if (res.ok) {
-        router.push(`/buy-sell/${id}`);
+        router.push(`/sell/${id}`);
       } else {
-        alert("Error updating product.");
+        const msg = await res.text();
+        alert(msg || "Error updating product.");
       }
     } catch (err) {
       alert("Something went wrong.");
@@ -131,7 +108,7 @@ export default function EditProductPage() {
           <ActionButton
             text="Cancel"
             variant="outlineClick"
-            onClick={() => router.push(`/buy-sell/${id}`)}
+            onClick={() => router.push(`/sell/${id}`)}
             disabled={loading}
           />
           <h2 className="text-2xl font-semibold text-[#325082] text-center">
@@ -193,15 +170,12 @@ export default function EditProductPage() {
 
                     <button
                       onClick={() => {
-                        const newImgs = [...images];
-                        newImgs.splice(index, 1);
-                        setImages(newImgs);
-
-                        if (defaultIndex === index) {
-                          setDefaultIndex(0);
-                        } else if (index < defaultIndex) {
+                        const next = [...images];
+                        next.splice(index, 1);
+                        setImages(next);
+                        if (defaultIndex === index) setDefaultIndex(0);
+                        else if (index < defaultIndex)
                           setDefaultIndex((prev) => prev - 1);
-                        }
                       }}
                       className="absolute top-1 right-1 bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-700 z-10"
                       title="Remove"

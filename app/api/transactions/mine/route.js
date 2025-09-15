@@ -24,31 +24,49 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const role = searchParams.get("role") === "seller" ? "seller" : "buyer";
 
-  // 🔵 NEW: sweep expired unpaid txns for this user
+  // 🔵 NEW: atomic sweep for expired unpaid txns (works even if user left pay page)
   const now = new Date();
-  const expired = await Transaction.find({
-    status: "PENDING_UPLOAD",
-    expiresAt: { $lte: now },
-    $or: [{ buyer: me._id }, { seller: me._id }],
-  }).select("_id product status updatedAt expiresAt timeline"); // ⬅️ include the fields you change
 
-  for (const tx of expired) {
-    tx.status = "CANCELLED_BY_BUYER";
-    tx.cancelReason = "timeout";
-    tx.updatedAt = now;
-    tx.timeline.push({
-      at: now,
-      by: me._id,
-      action: "AUTO_CANCELLED_EXPIRED",
-      meta: { source: "mine_list" },
-    });
-    await tx.save();
-    if (tx.product) {
-      await Product.updateOne(
-        { _id: tx.product },
-        { $set: { isAvailable: true } }
-      );
+  // 1) Flip status + add timeline (atomic, guarded by current status)
+  await Transaction.updateMany(
+    {
+      status: "PENDING_UPLOAD",
+      expiresAt: { $lte: now },
+      $or: [{ buyer: me._id }, { seller: me._id }],
+    },
+    {
+      $set: {
+        status: "CANCELLED_BY_BUYER",
+        cancelReason: "timeout",
+        updatedAt: now,
+      },
+      $push: {
+        timeline: {
+          at: now,
+          by: me._id,
+          action: "AUTO_CANCELLED_EXPIRED",
+          meta: { source: "mine_list" },
+        },
+      },
     }
+  );
+
+  // 2) Free products from those expired transactions (recent flips)
+  const expiredIds = await Transaction.find({
+    status: "CANCELLED_BY_BUYER",
+    cancelReason: "timeout",
+    updatedAt: { $gte: new Date(now.getTime() - 60_000) },
+    $or: [{ buyer: me._id }, { seller: me._id }],
+  })
+    .select("_id product")
+    .lean();
+
+  const productIds = expiredIds.map((x) => x.product).filter(Boolean);
+  if (productIds.length) {
+    await Product.updateMany(
+      { _id: { $in: productIds } },
+      { $set: { isAvailable: true } }
+    );
   }
   // 🔵 END sweep
 

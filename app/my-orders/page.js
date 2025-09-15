@@ -1,13 +1,15 @@
 // app/my-orders/page.js
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import NavBar from "@/components/NavBar";
 import ActionButton from "@/components/ActionButton";
 import StatusPill from "@/components/StatusPill";
 import Stepper from "@/components/Stepper";
+import Timeline from "@/components/Timeline";
+import MyOrdersStatusFilter from "@/components/MyOrdersStatusFilter";
 
 function isPendingUploadActive(txn) {
   if (txn?.status !== "PENDING_UPLOAD") return false;
@@ -64,7 +66,7 @@ function RoleSwitch({ role, setRole }) {
   const isBuyer = role === "buyer";
 
   return (
-    <div className="relative inline-grid grid-cols-2 rounded-full bg-slate-100 p-1 shadow-sm w-[260px]">
+    <div className="relative inline-grid grid-cols-2 rounded-full bg-slate-100 p-1 shadow-sm w-[200px]">
       {/* Sliding highlight */}
       <span
         aria-hidden="true"
@@ -111,6 +113,9 @@ export default function MyOrdersPage() {
   const [errBuyer, setErrBuyer] = useState("");
   const [errSeller, setErrSeller] = useState("");
   const [pendingActionId, setPendingActionId] = useState(null);
+  const searchParams = useSearchParams();
+  const initialStatus = searchParams.get("status") || "ALL";
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
 
   // keep track of scheduled refresh timers so we can clean them up
   const refreshTimersRef = useRef([]);
@@ -183,6 +188,14 @@ export default function MyOrdersPage() {
   }, []);
 
   useEffect(() => {
+    const r = searchParams.get("role");
+    const s = searchParams.get("status");
+    if (r === "buyer" || r === "seller") setRole(r);
+    if (s) setStatusFilter(s);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     let mounted = true;
     (async () => {
       try {
@@ -248,7 +261,13 @@ export default function MyOrdersPage() {
     }
   }
 
-  const list = role === "buyer" ? buyerTxns : sellerTxns;
+  const rawList = role === "buyer" ? buyerTxns : sellerTxns;
+  const list = useMemo(() => {
+    if (!Array.isArray(rawList)) return rawList;
+    if (statusFilter === "ALL") return rawList;
+    return rawList.filter((t) => t.status === statusFilter);
+  }, [rawList, statusFilter]);
+
   const err = role === "buyer" ? errBuyer : errSeller;
 
   return (
@@ -273,11 +292,33 @@ export default function MyOrdersPage() {
         className="max-w-[1200px] mx-auto px-4 mb-6 transition-all duration-[800ms]"
         style={{ animation: "fadeSlide 800ms ease-out" }}
       >
-        <div className="flex items-center justify-between gap-3 mb-6 flex-nowrap">
-          <h1 className="text-2xl font-bold text-[#1f2d4d] sm:leading-none whitespace-nowrap">
-            My Orders
-          </h1>
-          <RoleSwitch role={role} setRole={setRole} />
+        <div className="mb-4">
+          {/* Desktop: title + filter on the left, role switch on the right */}
+          <div className="hidden sm:flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-[#325082]">My Orders</h1>
+              <MyOrdersStatusFilter
+                value={statusFilter}
+                onChange={setStatusFilter}
+              />
+            </div>
+            <RoleSwitch role={role} setRole={setRole} />
+          </div>
+
+          {/* Mobile: title top, filter below, role switch right */}
+          <div className="flex flex-col sm:hidden">
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl font-bold text-[#325082]">My Orders</h1>
+              <RoleSwitch role={role} setRole={setRole} />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-md font-bold text-[#325082]">Filter:</span>
+              <MyOrdersStatusFilter
+                value={statusFilter}
+                onChange={setStatusFilter}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Seller-only progress (UI stepper at step 2) */}
@@ -325,18 +366,18 @@ export default function MyOrdersPage() {
                 >
                   {/* Banner */}
                   <header className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 bg-slate-50">
-                    <div className="text-[14px] text-slate-600">
+                    <div className="text-[15px] font-semibold text-[#325082]">
                       {isSeller ? "Buyer" : "Seller"}:&nbsp;
-                      <span className="font-medium text-[#325082]">
+                      <span>
                         {counterparty?.name || counterparty?.email || "-"}
                       </span>
                     </div>
                     <div className="flex items-center justify-end gap-2">
-                      <span className="text-slate-500">Deliver Method:</span>
+                      <span className="text-[#325082]">Delivery Method:</span>
                       <MethodTag method={method} />
                     </div>
                     <div className="flex items-center justify-end gap-2">
-                      <span className="text-slate-500">Order status:</span>
+                      <span className="text-[#325082]">Order status:</span>
                       <StatusPill status={t.status} />
                     </div>
                   </header>
@@ -355,7 +396,7 @@ export default function MyOrdersPage() {
 
                     <div className="flex-1 min-w-0 flex flex-col items-end text-right justify-between">
                       <div>
-                        <h3 className="text-sm sm:text-base font-semibold text-[#15243f] line-clamp-2">
+                        <h3 className="text-sm sm:text-base font-semibold text-[#325082] line-clamp-2">
                           {t.product?.title || "-"}
                         </h3>
                         <div className="mt-2 text-[13px] text-slate-700 space-y-1">
@@ -369,7 +410,7 @@ export default function MyOrdersPage() {
                           </div>
                           <div>
                             <span className="text-slate-500">Total:</span>{" "}
-                            <span className="font-semibold">
+                            <span className="font-semibold text-[#325082]">
                               ฿{Number(t.total || 0).toLocaleString()}
                             </span>
                           </div>
@@ -405,7 +446,7 @@ export default function MyOrdersPage() {
                   <details className="px-4 pb-1">
                     <summary className="list-none [&::-webkit-details-marker]:hidden">
                       <div className="flex items-center justify-between py-2">
-                        <span className="text-sm text-[#325082] underline underline-offset-2">
+                        <span className="text-sm text-[#325082] hover:text-[#325082] underline cursor-pointer underline-offset-2">
                           View timeline
                         </span>
 
@@ -413,7 +454,7 @@ export default function MyOrdersPage() {
                         <div className="flex items-center gap-2">
                           {/* NEW: Buyer can go back to pay page while still within 5 mins */}
                           {role === "buyer" && isPendingUploadActive(t) && (
-                            <Link href={`buy-sell/pay/${id}`}>
+                            <Link href={`/buy/pay/${id}`}>
                               <ActionButton
                                 text="Pay & Upload"
                                 variant="outlineClick"
@@ -423,7 +464,7 @@ export default function MyOrdersPage() {
 
                           <Link href={`/my-orders/${id}`}>
                             <ActionButton
-                              text="Order Detail"
+                              text="Order Details"
                               variant="primaryClick"
                             />
                           </Link>
@@ -445,37 +486,18 @@ export default function MyOrdersPage() {
                         )}
                     </summary>
 
-                    <div className="border border-slate-200 rounded-md max-h-40 overflow-y-auto p-3">
-                      {Array.isArray(t.timeline) && t.timeline.length > 0 ? (
-                        <ul className="space-y-2">
-                          {[...t.timeline].reverse().map((e, i) => (
-                            <li
-                              key={i}
-                              className="flex items-center justify-between"
-                            >
-                              <div className="text-sm text-slate-800">
-                                {e.action || "-"}
-                              </div>
-                              <time className="text-xs text-slate-500">
-                                {e.at ? new Date(e.at).toLocaleString() : "-"}
-                              </time>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <div className="text-sm text-slate-500">
-                          No events yet.
-                        </div>
-                      )}
-                    </div>
+                    <Timeline
+                      events={t.timeline}
+                      compact
+                      maxHeight="max-h-40"
+                    />
                   </details>
                 </article>
               );
             })}
-
           {list && list.length === 0 && (
             <div
-              className="border bg-white p-10 text-center rounded-none transition-all duration-[800ms]"
+              className="border border-gray-300 shadow-sm bg-white p-10 text-center rounded-[6px] transition-all duration-[800ms]"
               style={{ animation: "fadeSlide 800ms ease-out" }}
             >
               <div className="text-lg font-medium text-[#1f2d4d] mb-1">
@@ -483,15 +505,18 @@ export default function MyOrdersPage() {
               </div>
               <p className="text-sm text-slate-500">
                 {role === "buyer"
-                  ? "You haven’t placed any orders."
-                  : "You don’t have any sales."}
+                  ? "You haven't placed any orders."
+                  : "You don't have any sales transactions."}
               </p>
               <div className="mt-4">
-                <Link
-                  href="/buy-sell"
-                  className="inline-flex items-center px-4 py-2 bg-[#325082] text-white hover:bg-[#2b446e] text-sm rounded-lg transition-colors duration-[800ms]"
-                >
-                  Explore products
+                <Link href={role === "buyer" ? "/buy" : "/sell"}>
+                  <ActionButton
+                    text={
+                      role === "buyer" ? "Browse products" : "Create a listing"
+                    }
+                    variant="primaryHover"
+                    className="inline-flex items-center"
+                  />
                 </Link>
               </div>
             </div>

@@ -1,3 +1,4 @@
+// app/api/transactions/[id]/route.js
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -26,8 +27,11 @@ export async function GET(_req, { params }) {
   if (!me) return new Response("User not found", { status: 404 });
 
   // include product so we can release it on expiry
-  const txn = await Transaction.findById(id)
-    .populate({ path: "product", select: "title images defaultImage price" })
+  let txn = await Transaction.findById(id)
+    .populate({
+      path: "product",
+      select: "title images defaultImage price category condition description",
+    })
     .populate({
       path: "seller",
       // add defaultScanCode (+ bank fields if you need them)
@@ -48,28 +52,56 @@ export async function GET(_req, { params }) {
     me.role === "admin";
   if (!isParty) return new Response("Forbidden", { status: 403 });
 
-  // --- Auto-cancel expired unpaid orders (and release product)
+  // --- Auto-cancel expired unpaid orders (atomic) & release product
   if (
     txn.status === "PENDING_UPLOAD" &&
     txn.expiresAt &&
     txn.expiresAt.getTime() <= Date.now()
   ) {
-    txn.status = "CANCELLED_BY_BUYER";
-    txn.cancelReason = "timeout";
-    txn.updatedAt = new Date();
-    txn.timeline.push({
-      at: new Date(),
-      by: me._id,
-      action: "AUTO_CANCELLED_EXPIRED",
-      meta: { source: "pay_get" },
-    });
-    await txn.save();
+    const now = new Date();
 
-    if (txn.product?._id) {
+    const upd = await Transaction.updateOne(
+      { _id: txn._id, status: "PENDING_UPLOAD" }, // guard against races
+      {
+        $set: {
+          status: "CANCELLED_BY_BUYER",
+          cancelReason: "timeout",
+          updatedAt: now,
+        },
+        $push: {
+          timeline: {
+            at: now,
+            by: me._id,
+            action: "AUTO_CANCELLED_EXPIRED",
+            meta: { source: "pay_get" },
+          },
+        },
+      }
+    );
+
+    if (upd.modifiedCount > 0 && txn.product?._id) {
       await Product.updateOne(
         { _id: txn.product._id },
         { $set: { isAvailable: true } }
       );
+
+      // Re-fetch to return the updated doc
+      txn = await Transaction.findById(id)
+        .populate({
+          path: "product",
+          select:
+            "title images defaultImage price category condition description",
+        })
+        .populate({
+          path: "seller",
+          select:
+            "name email phone defaultScanCode bankAccountName bankAccountNumber",
+        })
+        .populate({
+          path: "buyer",
+          select:
+            "name email phone defaultScanCode bankAccountName bankAccountNumber",
+        });
     }
   }
 
@@ -125,6 +157,41 @@ export async function PATCH(req, { params }) {
 
   const txn = await Transaction.findById(id);
   if (!txn) return new Response("Not found", { status: 404 });
+
+  // ⛔ Expiry guard: flip & exit if already expired
+  if (
+    txn.status === "PENDING_UPLOAD" &&
+    txn.expiresAt &&
+    txn.expiresAt.getTime() <= Date.now()
+  ) {
+    const now = new Date();
+    const upd = await Transaction.updateOne(
+      { _id: txn._id, status: "PENDING_UPLOAD" },
+      {
+        $set: {
+          status: "CANCELLED_BY_BUYER",
+          cancelReason: "timeout",
+          updatedAt: now,
+        },
+        $push: {
+          timeline: {
+            at: now,
+            by: me._id,
+            action: "AUTO_CANCELLED_EXPIRED",
+            meta: { source: "txn_patch" },
+          },
+        },
+      }
+    );
+
+    if (upd.modifiedCount > 0 && txn.product) {
+      await Product.updateOne(
+        { _id: txn.product },
+        { $set: { isAvailable: true } }
+      );
+    }
+    return new Response("Order expired", { status: 410 });
+  }
 
   const body = await req.json().catch(() => ({}));
   const { action } = body || {};

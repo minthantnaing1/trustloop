@@ -43,7 +43,7 @@ export default function HideToggleButton({ productId, initialHidden }) {
         type="button"
         onClick={() => setOpen(true)}
         disabled={busy || isPending}
-        className={`inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full transition-transform duration-500 ease-in-out transform group hover:scale-[1.1]
+        className={`inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 cursor-pointer rounded-full transition-transform duration-700 ease-in-out transform group hover:scale-[1.1]
           ${
             !hidden
               ? "bg-green-100 text-green-700"

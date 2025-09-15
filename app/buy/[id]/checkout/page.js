@@ -1,11 +1,11 @@
-// app/buy-sell/[id]/checkout/page.js
+// app/buy/[id]/checkout/page.js
 import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import Link from "next/link";
 import NavBar from "@/components/NavBar";
 import ConfirmOrderButton from "@/components/ConfirmOrderButton";
 import Stepper from "@/components/Stepper";
-import { ChevronLeftIcon } from "@heroicons/react/24/solid";
+import BackButton from "@/components/BackButton";
 
 export default async function CheckoutPage({ params }) {
   const { id } = await params;
@@ -47,13 +47,7 @@ export default async function CheckoutPage({ params }) {
       <main className="max-w-[1200px] mx-auto mb-[40px] px-4 w-full overflow-x-hidden">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-[#325082]">Checkout</h1>
-          <Link
-            href={`/buy-sell/${product._id}`}
-            className="text-[#325082] text-sm hover:underline flex items-center gap-1"
-          >
-            <ChevronLeftIcon className="h-4 w-4" />
-            Back to Product Detail
-          </Link>
+          <BackButton />
         </div>
 
         {/* Progress Stepper (buyer, step 1) */}
@@ -62,7 +56,7 @@ export default async function CheckoutPage({ params }) {
         </div>
 
         {/* Content */}
-        <div className="bg-white border rounded-2xl shadow-sm p-6">
+        <div className="bg-white border border-gray-300 rounded-[5px] shadow-xl p-6">
           <div className="flex flex-col lg:flex-row gap-6">
             {/* Left: product details */}
             <div className="flex-1">
@@ -74,7 +68,7 @@ export default async function CheckoutPage({ params }) {
                     "/placeholder.png"
                   }
                   alt={product.title}
-                  className="w-[150px] h-[150px] sm:w-[200px] sm:h-[200px] rounded-xl object-cover border"
+                  className="w-[150px] h-[150px] sm:w-[200px] sm:h-[200px] rounded-[5px] object-cover border border-gray-300 shadow-sm"
                 />
                 <div className="flex-1 flex flex-col justify-start">
                   <h2 className="text-lg font-bold text-[#1f2f4c]">
@@ -153,7 +147,7 @@ export default async function CheckoutPage({ params }) {
 
             {/* Right: order summary + method/location */}
             <div className="w-full lg:w-[460px]">
-              <div className="rounded-xl border overflow-hidden">
+              <div className="rounded-[5px] border border-gray-300 shadow-md overflow-hidden">
                 <div className="p-4 bg-gradient-to-br from-[#f3f6fb] to-white">
                   <h3 className="font-semibold text-[#325082]">
                     Order Summary
@@ -162,7 +156,7 @@ export default async function CheckoutPage({ params }) {
 
                 <form id="checkoutForm" className="p-4 space-y-4">
                   {/* Method */}
-                  <fieldset className="border rounded-lg p-3">
+                  <fieldset className="rounded-[5px] border border-gray-300 p-3">
                     <legend className="text-xs font-semibold text-[#325082] px-1">
                       Fulfillment Method
                     </legend>
@@ -203,7 +197,7 @@ export default async function CheckoutPage({ params }) {
                       name="location"
                       defaultValue={userLocation}
                       placeholder='e.g., "AU Dorm 2" or "Bangna Campus"'
-                      className="w-full rounded-lg border border-[#dbe6ff] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#325082]/30"
+                      className="w-full rounded-[5px] border border-[#dbe6ff] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#325082]/30"
                     />
                     <p className="text-xs text-gray-600 ml-3 mt-1">
                       Prefilled from your profile (
@@ -222,7 +216,7 @@ export default async function CheckoutPage({ params }) {
                       <span>Platform Fee</span>
                       <span>{fee.toLocaleString()} ฿</span>
                     </div>
-                    <div className="my-3 border-t" />
+                    <div className="my-3 border-t border-gray-300" />
                     <div className="flex justify-between font-bold text-[#1f2f4c]">
                       <span>Total</span>
                       <span>{total.toLocaleString()} ฿</span>

@@ -93,7 +93,7 @@ export default function PayPanel({ txn }) {
   // submit (upload then PATCH)
   async function handleUpload() {
     if (!file) {
-      setErr("Please choose an image of your receipt.");
+      setErr("Please upload an image of your transaction slip first.");
       return;
     }
     if (timeLeft !== null && timeLeft <= 0) {
@@ -141,7 +141,7 @@ export default function PayPanel({ txn }) {
   }
 
   return (
-    <div className="bg-white border rounded-2xl shadow-sm p-6">
+    <div className="bg-white rounded-[5px] border border-gray-300 shadow-xl p-6">
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Left: QR + timer */}
         <div className="flex-1">
@@ -155,7 +155,7 @@ export default function PayPanel({ txn }) {
           </div>
 
           <div className="mt-3 flex items-center justify-center">
-            <div className="p-1 rounded-xl border">
+            <div className="p-1 rounded-[5px] border border-gray-300 shadow-md">
               <img
                 src="/AbelScan.jpg"
                 alt="PromptPay QR"
@@ -173,7 +173,7 @@ export default function PayPanel({ txn }) {
             below.
           </p>
 
-          <div className="mt-3 bg-yellow-50 border border-yellow-300 text-yellow-800 text-[12px] rounded-md px-3 py-2 text-center">
+          <div className="mt-3 bg-yellow-50 border border-yellow-300 text-yellow-800 text-[12px] rounded-[5px] px-3 py-2 text-center">
             Please upload your payment slip with 5 minutes — if time runs out or
             you leave, the order will be auto-cancelled (you can still return
             via My Orders within that time).
@@ -182,7 +182,7 @@ export default function PayPanel({ txn }) {
 
         {/* Right: order + upload */}
         <div className="w-full lg:w-[450px]">
-          <div className="rounded-xl border overflow-hidden">
+          <div className="rounded-[5px] border border-gray-300 shadow-md overflow-hidden">
             <div className="p-4 bg-gradient-to-br from-[#f3f6fb] to-white">
               <h3 className="font-semibold text-[#325082]">Order</h3>
             </div>
@@ -197,7 +197,7 @@ export default function PayPanel({ txn }) {
                     "/placeholder.png"
                   }
                   alt={txn.product?.title}
-                  className="w-[68px] h-[68px] rounded-lg object-cover border"
+                  className="w-[68px] h-[68px] object-cover rounded-[5px] border border-gray-300 shadow-sm"
                 />
                 <div className="flex-1">
                   <div className="font-medium text-[#1f2f4c]">
@@ -216,7 +216,7 @@ export default function PayPanel({ txn }) {
                 </div>
               </div>
 
-              <div className="my-4 border-t" />
+              <div className="my-4 border-t border-gray-300" />
 
               {/* Upload area */}
               <label className="block text-sm font-medium text-[#1f2f4c] mb-2">
@@ -239,7 +239,7 @@ export default function PayPanel({ txn }) {
                 onDragOver={onDragOver}
                 role="button"
                 tabIndex={0}
-                className="group relative flex flex-col items-center justify-center gap-2 w/full min-h-[140px] border-2 border-dashed rounded-xl px-4 py-5 cursor-pointer
+                className="group relative flex flex-col items-center justify-center gap-2 w-full min-h-[140px] border-2 border-dashed rounded-[5px] px-4 py-5 cursor-pointer
                            border-[#9fb3d6] hover:border-[#325082] bg-[#f7f9fc] hover:bg-[#f3f7ff] transition-colors"
               >
                 {!preview ? (
@@ -286,7 +286,7 @@ export default function PayPanel({ txn }) {
                 text={busy ? "Submitting..." : "Submit Receipt"}
                 variant="submitPrimaryClick"
                 onClick={handleUpload}
-                disabled={busy || timeLeft === null || timeLeft <= 0 || !file}
+                disabled={busy || timeLeft === null || timeLeft <= 0}
                 className="mt-3"
               />
 

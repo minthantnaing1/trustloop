@@ -1,74 +1,247 @@
+"use client";
+
 import Link from "next/link";
 import timeAgo from "@/utils/timeAgo";
+import FavoriteButton from "@/components/FavoriteButton";
 
-export default function ProductCard({ product, isOwner = false }) {
-  const isHidden = Boolean(product.isHidden); // seller-controlled
-  const reserved = !Boolean(product.isAvailable); // transaction-controlled
+export default function ProductCard({
+  product,
+  isOwner = false,
+  variant = "classic", // "classic" | "classicBlur" | "overlay"
+  className = "",
+  showFavToggle = false, // show a heart in the top-right and seed its state
+  initialIsFav, // can be true/false/undefined
+  currentUserEmail,
+}) {
+  const isHidden = Boolean(product.isHidden);
+  const reserved = !Boolean(product.isAvailable);
+  const isMe =
+    !!product.buyerEmail &&
+    !!currentUserEmail &&
+    product.buyerEmail === currentUserEmail;
 
-  return (
-    <Link href={`/buy-sell/${product._id}`} title={product.title}>
-      <div
-        className={`relative flex flex-col justify-between
-        ${
-          isOwner
-            ? "w-[240px] h-[300px] max-md:w-[200px]"
-            : "w-full h-[340px] max-[1025px]:h-[320px] max-[426px]:h-[280px] max-[376px]:h-[260px] max-[321px]:h-[230px]"
-        }
-        ${isHidden ? "bg-gray-200 opacity-60" : "bg-[#e2e2e2]"}
-        rounded-[10px] p-3 transition-all duration-800 ease-in-out cursor-pointer
-        ${
-          isOwner
-            ? "hover:scale-[0.96] active:scale-[0.92] hover:shadow-md shadow-gray-300"
-            : "hover:-translate-y-2 active:scale-[0.95] shadow-md shadow-gray-400 hover:shadow-gray-500"
-        }`}
-      >
-        {/* Image */}
-        <div className="relative h-[70%] bg-[#ccc] rounded-[8px] mb-2 overflow-hidden">
-          {product.defaultImage && (
-            <img
-              src={product.defaultImage}
-              alt={product.title}
-              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${
-                isHidden ? "opacity-50" : ""
-              }`}
-            />
-          )}
+  // Seller should be sent to the Seller tab (not order detail) while the order
+  // is in an early state. After that, go to order detail.
+  const earlyStatuses = new Set([
+    "PENDING_UPLOAD",
+    "AWAITING_ADMIN_REVIEW",
+    "ESCROW_FUNDED",
+  ]);
 
-          {/* Hidden overlay */}
-          {isHidden && (
-            <div className="absolute inset-0 flex items-center justify-center text-center px-2">
-              <span className="text-sm text-white font-semibold bg-black/60 px-3 py-2 rounded">
-                This post is hidden
-                <br />
-                from public
-              </span>
-            </div>
-          )}
+  let orderHref = null;
+  if (reserved && product.buyerOrderId) {
+    if (isOwner) {
+      // Seller: before accepting, redirect to My Orders (Seller tab).
+      if (
+        product.buyerOrderStatus &&
+        earlyStatuses.has(product.buyerOrderStatus)
+      ) {
+        orderHref =
+          product.buyerOrderStatus === "ESCROW_FUNDED"
+            ? "/my-orders?role=seller&status=ESCROW_FUNDED"
+            : "/my-orders?role=seller";
+      } else {
+        // After early states, go to order detail
+        orderHref = `/my-orders/${product.buyerOrderId}`;
+      }
+    } else if (isMe) {
+      // Buyer: always go to order detail for their own reservation
+      orderHref = `/my-orders/${product.buyerOrderId}`;
+    }
+  }
 
-          {/* Reserved badge (only when not hidden) */}
-          {!isHidden && reserved && (
-            <span className="absolute top-2 left-2 text-xs font-semibold bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-              Reserved
-            </span>
-          )}
+  const href =
+    orderHref ?? (isOwner ? `/sell/${product._id}` : `/buy/${product._id}`);
+
+  const img = product.defaultImage || "/placeholder.png";
+
+  // --- Shared subparts -------------------------------------------------------
+
+  const Badges = () => {
+    if (isHidden) {
+      return (
+        <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+          <span className="text-xs md:text-sm text-white font-semibold bg-black/60 px-2 py-1 rounded">
+            Hidden from public
+          </span>
         </div>
+      );
+    }
 
-        {/* Info */}
-        <div className="h-[30%] flex flex-col justify-center text-[14px] gap-y-1 text-black leading-tight">
-          <h4 className="font-semibold truncate max-sm:text-[11px]">
-            {product.title}
-          </h4>
-          <p className="text-[12px] text-[#555] truncate max-sm:text-[10px]">
-            {product.category}
+    if (!reserved) return null;
+
+    // Seller view: show buyer name (card routes appropriately via `href`)
+    if (isOwner && product.buyerName) {
+      return (
+        <span className="absolute top-2 left-2 text-[11px] md:text-xs font-semibold bg-amber-400 text-amber-900 px-2 py-0.5 rounded-[2px]">
+          Reserved by {product.buyerName}
+        </span>
+      );
+    }
+
+    // Buyer or anyone else
+    const iAmBuyer =
+      product.buyerEmail &&
+      currentUserEmail &&
+      product.buyerEmail === currentUserEmail;
+
+    return (
+      <span className="absolute top-2 left-2 max-w-[94.5%] whitespace-normal break-words text-[11px] md:text-xs font-semibold bg-amber-400 text-amber-900 px-3 py-0.5 rounded-[2px]">
+        {iAmBuyer
+          ? "Reserved by Me"
+          : "This item is currently reserved or unavailable."}
+      </span>
+    );
+  };
+
+  const InfoContent = () => (
+    <>
+      <h4 className="font-semibold truncate text-[14px] md:text-[15px] text-[#325082]">
+        {product.title}
+      </h4>
+
+      <div className="mt-1 flex items-center justify-between gap-2">
+        <p className="text-[12px] md:text-[13px] text-gray-700 truncate">
+          {product.category}
+        </p>
+        {product.price != null && (
+          <p className="text-[14px] md:text-[15px] font-semibold text-[#325082] shrink-0">
+            {Number(product.price).toLocaleString()} ฿
           </p>
-          {product.price && (
-            <p className="text-[14px] text-[#222] font-semibold max-sm:text-[11px]">
-              {Number(product.price).toLocaleString()} ฿
-            </p>
-          )}
-          <p className="text-[13px] text-gray-600 max-sm:text-[9px]">
-            Posted: {timeAgo(product.createdAt)}
-          </p>
+        )}
+      </div>
+
+      <p className="text-[11px] md:text-[12px] text-gray-600">
+        {product.createdAt ? timeAgo(product.createdAt) : ""}
+      </p>
+    </>
+  );
+
+  const TopImage = ({ className = "" }) => (
+    <div className={`relative ${className}`}>
+      <img
+        src={img}
+        alt={product.title}
+        className={`w-full h-full object-cover transition-opacity duration-200 ${
+          isHidden ? "opacity-50" : "opacity-100"
+        }`}
+      />
+      <Badges />
+    </div>
+  );
+
+  // 💙 tiny favorite toggle overlay (let the button handle positioning)
+  const FavOverlay = () =>
+    !showFavToggle ? null : (
+      <FavoriteButton
+        productId={product._id?.toString()}
+        initialIsFav={initialIsFav}
+        variant="icon"
+        stopNavigation
+      />
+    );
+
+  // --- Variants --------------------------------------------------------------
+
+  if (variant === "overlay") {
+    return (
+      <Link href={href} title={product.title} className={className}>
+        <div
+          className={`relative w-full h-[280px] max-[1025px]:h-[260px] max-[426px]:h-[230px] max-[376px]:h-[210px]
+          overflow-hidden cursor-pointer bg-white border border-gray-300 rounded-[3px] hover:ring-[#cfd8ff]
+          shadow-md hover:scale-[1.02] hover:shadow-lg transition-all duration-500 easse-in-out`}
+        >
+          <FavOverlay />
+
+          {/* Image fills card, shows FULL image; edges filled with blurred cover */}
+          <div className="absolute inset-0">
+            <div
+              className="absolute inset-0 bg-center bg-cover scale-110 blur-sm"
+              style={{ backgroundImage: `url(${img})` }}
+            />
+            <div
+              className="absolute inset-0 bg-center bg-no-repeat"
+              style={{
+                backgroundImage: `url(${img})`,
+                backgroundSize: "contain",
+              }}
+            />
+            <Badges />
+          </div>
+
+          {/* Info bar (blurred image + white scrim) */}
+          <div className="absolute inset-x-0 bottom-0 overflow-hidden">
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundImage: `url(${img})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                filter: "blur(4px)",
+                transform: "scale(1.15)",
+              }}
+            />
+            <div className="absolute inset-0 bg-white/70" />
+            <div className="relative px-3 py-2">
+              <InfoContent />
+            </div>
+          </div>
+        </div>
+      </Link>
+    );
+  }
+
+  if (variant === "classicBlur") {
+    return (
+      <Link href={href} title={product.title} className={className}>
+        <div
+          className={`relative flex flex-col w-full 
+          h-[300px] max-[1025px]:h-[270px] max-[426px]:h-[240px] max-[376px]:h-[220px] 
+          bg-white border border-gray-300 rounded-[3px] cursor-pointer overflow-hidden
+          shadow-md hover:shadow-lg transition-all duration-500 ease-in-out
+          ${isOwner ? "hover:scale-[0.98]" : "hover:-translate-y-1"}`}
+        >
+          <FavOverlay />
+
+          <TopImage className="h-[70%] bg-gray-100" />
+
+          <div className="relative h-[30%] overflow-hidden border-t border-gray-200">
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundImage: `url(${img})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                filter: "blur(10px)",
+                transform: "scale(1.15)",
+              }}
+            />
+            <div className="absolute inset-0 bg-white/70" />
+            <div className="relative h-full px-3 py-2 flex flex-col justify-center">
+              <InfoContent />
+            </div>
+          </div>
+        </div>
+      </Link>
+    );
+  }
+
+  // classic
+  return (
+    <Link href={href} title={product.title} className={className}>
+      <div
+        className={`relative flex flex-col w-full 
+        h-[300px] max-[1025px]:h-[270px] max-[426px]:h-[240px] max-[376px]:h-[220px] 
+        bg-white border border-gray-300 rounded-[3px] cursor-pointer overflow-hidden
+        shadow-md hover:shadow-lg transition-all duration-500 ease-in-out
+        ${isOwner ? "hover:scale-[0.98]" : "hover:-translate-y-1"}`}
+      >
+        <FavOverlay />
+
+        <TopImage className="h-[70%] bg-gray-100" />
+
+        <div className="h-[30%] px-3 py-2 flex flex-col justify-center border-t border-gray-200 bg-white">
+          <InfoContent />
         </div>
       </div>
     </Link>

@@ -1,3 +1,4 @@
+// app/profile/page.js
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
 import Link from "next/link";
@@ -6,12 +7,13 @@ import Image from "next/image";
 import NavBar from "@/components/NavBar";
 import ActionButton from "@/components/ActionButton";
 import MyProductCard from "@/components/MyProductCard";
+import SlipLink from "@/components/SlipLink";
 
 import User from "@/models/User";
 import Product from "@/models/Product";
 import Transaction from "@/models/Transaction";
 
-// keep only the fields MyProductCard needs, and make them serializable
+// Keep only fields MyProductCard needs, and make them serializable
 function toPlainProduct(p) {
   if (!p) return null;
   return {
@@ -20,6 +22,8 @@ function toPlainProduct(p) {
     price: typeof p.price === "number" ? p.price : Number(p.price || 0),
     defaultImage: p.defaultImage || null,
     images: Array.isArray(p.images) ? p.images : [],
+    category: p.category ?? "", // <- for subtitle in card
+    createdAt: p.createdAt || null, // optional (card can show timeAgo if needed)
   };
 }
 
@@ -30,27 +34,34 @@ export default async function ProfilePage() {
   const user = await User.findOne({ email: session.user.email }).lean();
 
   const [sellingProducts, boughtTxns, soldTxns] = await Promise.all([
+    // Active listings you are currently selling
     Product.find({ owner: user._id, isAvailable: true })
       .sort({ createdAt: -1 })
       .limit(8)
+      .select("title price images defaultImage category createdAt") // +category
       .lean(),
 
-    Transaction.find({ buyer: user._id, status: "PAID_OUT" })
+    // Purchases you've completed
+    Transaction.find({
+      buyer: user._id,
+      status: { $in: ["BUYER_CONFIRMED", "PAID_OUT"] },
+    })
       .sort({ createdAt: -1 })
       .limit(8)
       .populate({
         path: "product",
-        select: "title price images defaultImage",
+        select: "title price images defaultImage category createdAt",
         lean: true,
       })
       .lean(),
 
+    // Sales you've completed
     Transaction.find({ seller: user._id, status: "PAID_OUT" })
       .sort({ createdAt: -1 })
       .limit(8)
       .populate({
         path: "product",
-        select: "title price images defaultImage",
+        select: "title price images defaultImage category createdAt", // +category
         lean: true,
       })
       .lean(),
@@ -68,8 +79,9 @@ export default async function ProfilePage() {
     <>
       <NavBar />
       <main className="max-w-[1200px] mx-auto mb-5 px-5">
-        {/* Edit Button - Top Right */}
-        <div className="flex justify-end mb-4">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold text-[#325082]">My Profile</h1>
           <Link href="/profile/edit">
             <ActionButton text="Edit Profile" variant="primaryClick" />
           </Link>
@@ -135,29 +147,25 @@ export default async function ProfilePage() {
 
         {/* Contact & Payment */}
         <section className="mt-6 mb-8">
-          <div className="bg-white rounded-[12px] p-6 shadow-sm">
+          <div className="bg-white rounded-[6px] p-6 shadow-sm">
             <div className="flex flex-col md:flex-row gap-8 items-start">
-              {/* Left: Scan / QR (refined card) */}
+              {/* Left: Scan / QR */}
               <div className="md:w-1/3 w-full">
-                <div className="rounded-2xl border border-[#e7ecf8] bg-white shadow-sm overflow-hidden">
-                  {/* Card header */}
+                <div className="rounded-[3px] border border-[#e7ecf8] bg-white shadow-sm overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-2 border-b border-[#f0f4ff]">
                     <h3 className="text-sm font-semibold text-[#1f2f4c]">
                       Default Scan Code
                     </h3>
                     {user.defaultScanCode && (
-                      <a
-                        href={user.defaultScanCode}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-[#325082] underline"
+                      <SlipLink
+                        url={user.defaultScanCode}
+                        title="Default Scan Code"
                       >
                         Open full size
-                      </a>
+                      </SlipLink>
                     )}
                   </div>
 
-                  {/* Image area */}
                   <div className="relative w-full bg-[#f6f9ff] border-t border-[#e7ecf8]">
                     {user.defaultScanCode ? (
                       <>
@@ -168,7 +176,7 @@ export default async function ProfilePage() {
                             className="max-h-full max-w-full object-contain transition-transform duration-300 hover:scale-[1.02]"
                           />
                         </div>
-                        <p className="text-xs text-gray-500 text-center px-3 pb-2">
+                        <p className="text-xs text-gray-500 text-center px-3 pb-1.5">
                           This QR will be used for payouts and transfers as
                           default.
                         </p>
@@ -190,15 +198,13 @@ export default async function ProfilePage() {
                 </div>
               </div>
 
-              {/* Right: Info rows (full width on mobile) */}
+              {/* Right: Info Rows */}
               <div className="md:flex-1 w-full">
                 <h3 className="text-sm font-semibold text-[#1f2f4c] mb-4">
                   Contact & Payment
                 </h3>
 
-                {/* Equal-height rows, label/value columns */}
-                <div className="w-full rounded-lg border border-[#eef2fb] overflow-hidden bg-[#fbfdff]">
-                  {/* Phone */}
+                <div className="w-full rounded-[3px] border border-[#eef2fb] overflow-hidden bg-[#fbfdff]">
                   <div className="grid grid-cols-[140px_minmax(0,1fr)] sm:grid-cols-[180px_minmax(0,1fr)] items-center h-12 px-3 sm:px-4 border-b border-[#e7ecf8]">
                     <span className="text-sm text-gray-500">Phone -</span>
                     <span className="text-sm font-medium text-gray-900 text-right truncate">
@@ -212,7 +218,6 @@ export default async function ProfilePage() {
                     </span>
                   </div>
 
-                  {/* Default Location */}
                   <div className="grid grid-cols-[140px_minmax(0,1fr)] sm:grid-cols-[180px_minmax(0,1fr)] items-center h-12 px-3 sm:px-4 border-b border-[#e7ecf8]">
                     <span className="text-sm text-gray-500">
                       Default Location -
@@ -222,7 +227,6 @@ export default async function ProfilePage() {
                     </span>
                   </div>
 
-                  {/* Bank Account Name */}
                   <div className="grid grid-cols-[140px_minmax(0,1fr)] sm:grid-cols-[180px_minmax(0,1fr)] items-center h-12 px-3 sm:px-4 border-b border-[#e7ecf8]">
                     <span className="text-sm text-gray-500">
                       Bank Account Name -
@@ -232,7 +236,6 @@ export default async function ProfilePage() {
                     </span>
                   </div>
 
-                  {/* Bank Account Number */}
                   <div className="grid grid-cols-[140px_minmax(0,1fr)] sm:grid-cols-[180px_minmax(0,1fr)] items-center h-12 px-3 sm:px-4">
                     <span className="text-sm text-gray-500">
                       Bank Account Number -
@@ -247,75 +250,104 @@ export default async function ProfilePage() {
           </div>
         </section>
 
-        {/* Your Bought Items */}
-        <section className="mb-8 bg-[#f9fafb] rounded-[12px] p-4">
+        {/* Bought Items */}
+        <section className="mb-8">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-[16px] font-semibold">Your Bought Items</h2>
-            <Link href="/buy-sell" className="text-[#325082] underline text-sm">
-              See more
+            {/* Previously /buy-sell —> route to orders */}
+            <Link
+              href="/my-orders?role=buyer&status=BUYER_CONFIRMED"
+              className="text-[#325082] underline text-sm"
+            >
+              See all
             </Link>
           </div>
 
-          {/* Horizontal scroll row */}
-          <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory -mx-2 px-2 no-scrollbar">
-            {boughtProducts.length ? (
-              boughtProducts
-                .slice(0, 8)
-                .map((p) => <MyProductCard key={p._id} product={p} />)
-            ) : (
-              <p className="text-sm text-gray-500 italic">
-                No completed purchases yet.
-              </p>
-            )}
-          </div>
+          {boughtProducts.length ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {boughtProducts.slice(0, 8).map((p, i) => (
+                <MyProductCard
+                  key={p._id || i}
+                  product={p}
+                  // grid-friendly: make the card fill its cell width
+                  className="!w-full"
+                  // classicBlur looks nice for “history” sections
+                  variant="classicBlur"
+                  isOwner={false}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 italic">
+              No completed purchases yet.
+            </p>
+          )}
         </section>
 
         {/* Currently Selling */}
-        <section className="mb-8 bg-[#f9fafb] rounded-[12px] p-4">
+        <section className="mb-8">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-[16px] font-semibold">
-              Items You are Currently Selling
+              Items You Are Currently Selling
             </h2>
-            <Link href="/buy-sell" className="text-[#325082] underline text-sm">
-              See more
+            {/* Manage listings page */}
+            <Link href="/sell" className="text-[#325082] underline text-sm">
+              Manage Listings
             </Link>
           </div>
 
-          {/* Horizontal scroll row */}
-          <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory -mx-2 px-2 no-scrollbar">
-            {sellingPlain.length ? (
-              sellingPlain
-                .slice(0, 8)
-                .map((p) => <MyProductCard key={p._id} product={p} />)
-            ) : (
-              <p className="text-sm text-gray-500 italic">
-                No active listings.
-              </p>
-            )}
-          </div>
+          {sellingPlain.length ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {sellingPlain.slice(0, 8).map((p, i) => (
+                <MyProductCard
+                  key={p._id || i}
+                  product={p}
+                  className="!w-full"
+                  variant="classic"
+                  isOwner
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-sm text-gray-500">
+              No active listings.&nbsp;
+              <Link href="/sell/new" className="underline text-[#325082]">
+                Post a product
+              </Link>
+            </div>
+          )}
         </section>
 
-        {/* Your Sold Items */}
-        <section className="mb-12 bg-[#f9fafb] rounded-[12px] p-4">
+        {/* Sold Items */}
+        <section className="mb-12">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-[16px] font-semibold">Your Sold Items</h2>
-            <Link href="/buy-sell" className="text-[#325082] underline text-sm">
-              See more
+            {/* Previously /buy-sell —> orders */}
+            <Link
+              href="/my-orders?role=seller&status=PAID_OUT"
+              className="text-[#325082] underline text-sm"
+            >
+              See all
             </Link>
           </div>
 
-          {/* Horizontal scroll row */}
-          <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory -mx-2 px-2 no-scrollbar">
-            {soldProducts.length ? (
-              soldProducts
-                .slice(0, 8)
-                .map((p) => <MyProductCard key={p._id} product={p} />)
-            ) : (
-              <p className="text-sm text-gray-500 italic">
-                No completed sales yet.
-              </p>
-            )}
-          </div>
+          {soldProducts.length ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {soldProducts.slice(0, 8).map((p, i) => (
+                <MyProductCard
+                  key={p._id || i}
+                  product={p}
+                  className="!w-full"
+                  variant="classicBlur"
+                  isOwner={false}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 italic">
+              No completed sales yet.
+            </p>
+          )}
         </section>
       </main>
     </>

@@ -2,6 +2,8 @@
 import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import ActionButton from "@/components/ActionButton";
+import { HeartIcon as HeartOutline } from "@heroicons/react/24/outline";
+import { HeartIcon as HeartSolid } from "@heroicons/react/24/solid";
 
 const LS_KEY = (id) => `fav:${id}`;
 
@@ -9,13 +11,15 @@ export default function FavoriteButton({
   productId,
   initialIsFav = false,
   className = "",
+  variant = "button", // "button" | "icon"
+  stopNavigation = false, // prevents card link navigation when clicking the icon
 }) {
-  // 👇 Start with server-rendered value (safe for hydration)
+  // Start with server-rendered value (safe for hydration)
   const [isFav, setIsFav] = useState(initialIsFav);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
-  // 👇 After mount, sync with localStorage (no hydration mismatch)
+  // After mount, sync with localStorage (no hydration mismatch)
   useEffect(() => {
     try {
       const raw = localStorage.getItem(LS_KEY(productId));
@@ -24,7 +28,12 @@ export default function FavoriteButton({
     } catch {}
   }, [productId]);
 
-  const toggle = () => {
+  const toggle = (e) => {
+    if (stopNavigation && e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
     startTransition(async () => {
       const next = !isFav;
       setIsFav(next);
@@ -56,6 +65,32 @@ export default function FavoriteButton({
       );
     });
   };
+
+  // Compact icon variant (for product cards)
+  if (variant === "icon") {
+    return (
+      <button
+        type="button"
+        aria-label={isFav ? "Remove from favorites" : "Add to favorites"}
+        disabled={pending}
+        onClick={toggle}
+        className={`absolute top-1.5 right-1.5 z-10 ${className}`}
+      >
+        <span
+          className="relative inline-flex h-9 w-9 items-center justify-center
+                   rounded-full ring-1 ring-white/50 shadow-lg
+                   bg-white/25 hover:bg-white/50
+                   backdrop-blur-2xs transition"
+        >
+          {isFav ? (
+            <HeartSolid className="w-5 h-5 text-red-600" />
+          ) : (
+            <HeartOutline className="w-5 h-5 text-red-600" />
+          )}
+        </span>
+      </button>
+    );
+  }
 
   return (
     <ActionButton

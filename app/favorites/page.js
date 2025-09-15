@@ -3,9 +3,12 @@ import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 import Product from "@/models/Product";
-import Link from "next/link";
+import Transaction from "@/models/Transaction";
 import NavBar from "@/components/NavBar";
-import { ChevronLeftIcon } from "@heroicons/react/24/solid";
+import BackButton from "@/components/BackButton";
+import ActionButton from "@/components/ActionButton";
+import Link from "next/link";
+import FavoritesClient from "./FavoritesClient";
 
 export const dynamic = "force-dynamic";
 
@@ -16,10 +19,8 @@ export default async function FavoritesPage() {
     return (
       <>
         <NavBar />
-        <main className="max-w-[1200px] mx-auto px-4 py-6">
-          <h1 className="text-2xl font-bold text-[#1f2d4d] mb-2">
-            Your Favorites
-          </h1>
+        <main className="max-w-[1200px] mx-auto px-4">
+          <h1 className="text-2xl font-bold text-[#325082]">My Favorites</h1>
           <p className="text-slate-600">
             Please sign in to see the items you liked.
           </p>
@@ -33,14 +34,13 @@ export default async function FavoritesPage() {
     .populate({ path: "favorites", model: Product })
     .lean();
 
-  const items = (me?.favorites || []).map((p) => ({
+  let items = (me?.favorites || []).map((p) => ({
     _id: String(p._id),
     title: p.title || p.name || "Untitled",
     price: Number(p.price || 0),
     location: p.location || "",
     category: p.category || "",
     condition: p.condition || "",
-    ownerName: p.owner?.name || p.owner?.email || "",
     defaultImage:
       p.defaultImage ||
       p.images?.[0]?.url ||
@@ -48,33 +48,50 @@ export default async function FavoritesPage() {
       p.image ||
       "/placeholder.png",
     isAvailable: p.isAvailable !== false,
+    isHidden: Boolean(p.isHidden),
+    createdAt: p.createdAt || null,
   }));
+
+  // attach buyer info for reserved products so badges can say "Reserved by you"
+  const favIds = (me?.favorites || []).map((p) => p._id);
+  if (favIds.length) {
+    const txns = await Transaction.find({ product: { $in: favIds } })
+      .populate({ path: "buyer", select: "name email" })
+      .lean();
+
+    const byProduct = {};
+    for (const t of txns) {
+      byProduct[String(t.product)] = {
+        buyerName: t?.buyer?.name || t?.buyer?.email || "",
+        buyerEmail: t?.buyer?.email || "",
+        buyerOrderId: String(t._id),
+      };
+    }
+
+    items = items.map((it) => {
+      const info = byProduct[it._id];
+      return info ? { ...it, ...info } : it;
+    });
+  }
 
   return (
     <>
       <NavBar />
       <main className="max-w-[1200px] mx-auto px-4 mb-4">
         <div className="flex items-center justify-between mb-5">
-          <h1 className="text-2xl font-bold text-[#1f2d4d]">
-            Your Favorites{" "}
+          <h1 className="text-2xl font-bold text-[#325082]">
+            My Favorites{" "}
             {items.length > 0 && (
               <span className="text-lg font-normal text-slate-500">
                 ({items.length} item{items.length > 1 ? "s" : ""})
               </span>
             )}
           </h1>
-
-          <Link
-            href="/buy-sell"
-            className="text-[#325082] text-sm hover:underline flex items-center gap-1"
-          >
-            <ChevronLeftIcon className="h-4 w-4" />
-            Back to Buy & Sell
-          </Link>
+          <BackButton />
         </div>
 
         {items.length === 0 ? (
-          <div className="border rounded-2xl bg-white p-10 text-center">
+          <div className="border border-gray-300 rounded-[6px] shadow-sm bg-white p-10 text-center">
             <div className="text-lg font-medium text-[#1f2d4d] mb-1">
               No favorites yet
             </div>
@@ -82,85 +99,20 @@ export default async function FavoritesPage() {
               Tap “ ♡ ” Button on any product to save it here.
             </p>
             <div className="mt-4">
-              <Link
-                href="/buy-sell"
-                className="inline-flex items-center px-4 py-2 bg-[#325082] text-white hover:bg-[#2b446e] text-sm rounded-lg"
-              >
-                Explore products
+              <Link href="/buy">
+                <ActionButton
+                  text="Explore Products"
+                  variant="primaryClick"
+                  className="inline-flex items-center w-[125px]"
+                />
               </Link>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {items.map((p) => (
-              <Link
-                key={p._id}
-                href={`/buy-sell/${p._id}`}
-                className="group block bg-white ring-1 ring-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md hover:ring-[#cfd8ff] transition"
-              >
-                {/* Image */}
-                <div className="relative h-44 sm:h-48 bg-slate-100">
-                  <img
-                    src={p.defaultImage}
-                    alt={p.title}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                </div>
-
-                {/* Info */}
-                <div className="p-4">
-                  <h3 className="text-[15px] font-semibold text-[#15243f] line-clamp-2">
-                    {p.title}
-                  </h3>
-
-                  <div className="mt-2 flex items-center justify-between">
-                    <div className="text-[#1f3b66]">
-                      <span className="text-sm text-slate-500">Price</span>{" "}
-                      <span className="font-bold">
-                        ฿{p.price.toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Category & Condition shown here (no badges on image) */}
-                  <div className="mt-2 text-xs text-slate-600 flex justify-between">
-                    {p.category && (
-                      <span className="inline-block">
-                        <span className="text-slate-500">Category:</span>{" "}
-                        <span className="font-medium text-slate-700">
-                          {p.category}
-                        </span>
-                      </span>
-                    )}
-                    {p.condition && (
-                      <span className="inline-block">
-                        <span className="text-slate-500">Condition:</span>{" "}
-                        <span className="font-medium text-slate-700">
-                          {p.condition}
-                        </span>
-                      </span>
-                    )}
-                  </div>
-
-                  {p.ownerName && (
-                    <div className="mt-1 text-xs text-slate-500">
-                      Seller:{" "}
-                      <span className="font-medium text-slate-700">
-                        {p.ownerName}
-                      </span>
-                    </div>
-                  )}
-
-                  {!p.isAvailable && (
-                    <div className="mt-3 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1">
-                      This item is currently reserved or unavailable.
-                    </div>
-                  )}
-                </div>
-              </Link>
-            ))}
-          </div>
+          <FavoritesClient
+            items={items}
+            currentUserEmail={session?.user?.email || ""}
+          />
         )}
       </main>
     </>

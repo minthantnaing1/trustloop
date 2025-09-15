@@ -1,13 +1,14 @@
-// app/buy/ProductsClient.js
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import NavBar from "@/components/NavBar";
 import FilterDropdown from "@/components/FilterDropdown";
 import ProductCard from "@/components/ProductCard";
 import { AdjustmentsHorizontalIcon } from "@heroicons/react/24/outline";
+import ActionButton from "@/components/ActionButton";
 
-const BS_CACHE_KEY = "buy:list:v1";
+const SELL_CACHE_KEY = "sell:list:mine:v1";
 
 export default function ProductsClient({ initial }) {
   const [products, setProducts] = useState(initial?.products || []);
@@ -50,7 +51,7 @@ export default function ProductsClient({ initial }) {
 
     try {
       sessionStorage.setItem(
-        BS_CACHE_KEY,
+        SELL_CACHE_KEY,
         JSON.stringify({
           products: data.products,
           userEmail: data.userEmail,
@@ -63,7 +64,7 @@ export default function ProductsClient({ initial }) {
   useEffect(() => {
     let seeded = false;
     try {
-      const raw = sessionStorage.getItem(BS_CACHE_KEY);
+      const raw = sessionStorage.getItem(SELL_CACHE_KEY);
       if (raw) {
         const cached = JSON.parse(raw);
         if (Array.isArray(cached.products)) {
@@ -87,6 +88,7 @@ export default function ProductsClient({ initial }) {
   }, [filters]);
 
   const handleApplyFilters = () => setShowFilter(false);
+
   const handleClearFilters = () => {
     setFilters({
       category: "",
@@ -98,21 +100,19 @@ export default function ProductsClient({ initial }) {
     setShowFilter(false);
   };
 
-  const otherProducts = products.filter(
-    (p) => p.owner?.email !== userEmail && p.isAvailable
-  );
+  const ownProducts = products.filter((p) => p.owner?.email === userEmail);
 
   return (
     <>
       <NavBar />
 
       <div className="max-w-[1200px] mx-auto px-4 mb-6 w-full">
-        {/* Strict 25% / 50% / 25% layout to keep search perfectly centered */}
-        <div className="grid grid-cols-1 sm:grid-cols-[25%_50%_25%] items-center gap-4 mb-4 w-full -mt-4.5 sm:mt-0">
-          {/* Left (25%): Section title */}
+        {/* Header as strict 25% / 50% / 25% grid to keep search perfectly centered */}
+        <div className="grid grid-cols-1 sm:grid-cols-[25%_50%_25%] items-center gap-4 mb-2 w-full -mt-4.5 sm:mt-0">
+          {/* Left (25%): Title (or any left text) */}
           <div className="sm:justify-self-start">
             <h2 className="text-lg font-semibold text-black hidden sm:block">
-              Products
+              Your Listings
             </h2>
           </div>
 
@@ -121,7 +121,7 @@ export default function ProductsClient({ initial }) {
             <div className="flex items-center w-full border border-gray-300 shadow-md rounded-[6px] px-[3.5px]">
               <input
                 className="min-w-0 flex-1 px-2 py-[10px] text-sm outline-none"
-                placeholder="Search for anything..."
+                placeholder="Search your listings..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -134,17 +134,17 @@ export default function ProductsClient({ initial }) {
               </button>
               <button
                 onClick={() => fetchProducts()}
-                className="shrink-0 bg-[#325082] text-white px-4 py-[7px] rounded-[3px] hover:opacity-90 text-sm"
+                className="shrink-0 bg-[#325082] text-white px-4 py-[7px] rounded-[3px] hover:opacity-95 text-sm"
               >
                 Search
               </button>
             </div>
           </div>
 
-          {/* Right (25%): Blank spacer for symmetry */}
+          {/* Right (25%): Blank spacer to lock symmetry */}
           <div className="hidden sm:block" />
 
-          {/* Filter Dropdown */}
+          {/* Filter Dropdown (positioned relative to header controls) */}
           <FilterDropdown
             show={showFilter}
             filters={filters}
@@ -154,21 +154,39 @@ export default function ProductsClient({ initial }) {
           />
         </div>
 
-        {/* Grid */}
+        {/* Section header with left text and right button (previous design) */}
         <section>
-          <h3 className="text-lg font-semibold mb-3">Items you can buy</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold">Items you&apos;re selling</h3>
+            <Link href="/sell/post">
+              <ActionButton text="+ Sell Your Items" variant="primaryClick" />
+            </Link>
+          </div>
+
           {loading ? (
-            <p className="text-center text-gray-400">Loading products...</p>
-          ) : otherProducts.length === 0 ? (
-            <p className="text-center text-gray-500">No products found.</p>
+            <p className="text-center text-gray-400">
+              Loading your products...
+            </p>
+          ) : ownProducts.length === 0 ? (
+            <div className="text-center text-gray-500">
+              <p>You are not selling any items right now.</p>
+              <div className="mt-4">
+                <Link href="/sell/post">
+                  <ActionButton
+                    text="+ Create your first listing"
+                    variant="primaryClick"
+                  />
+                </Link>
+              </div>
+            </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 w-full max-[426px]:gap-[10px]">
-              {otherProducts.map((product) => (
+              {ownProducts.map((product) => (
                 <ProductCard
                   key={product._id}
                   product={product}
                   variant="classicBlur"
-                  isOwner={false}
+                  isOwner
                   currentUserEmail={userEmail}
                 />
               ))}

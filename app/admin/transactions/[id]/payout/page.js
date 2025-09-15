@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import AdminPayoutPanel from "@/components/admin/AdminPayoutPanel";
 import Link from "next/link";
-import { ChevronLeftIcon } from "@heroicons/react/24/solid";
+import BackButton from "@/components/BackButton";
 
 export const dynamic = "force-dynamic";
 
@@ -29,13 +29,7 @@ export default async function AdminPayoutPage({ params }) {
       <main className="max-w-[1200px] mx-auto px-4">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-[#325082]">Payout</h1>
-          <Link
-            href="/admin/transactions"
-            className="text-[#325082] text-sm hover:underline flex items-center gap-1"
-          >
-            <ChevronLeftIcon className="h-4 w-4" />
-            Back to Transactions
-          </Link>
+          <BackButton />
         </div>
         <div className="rounded-xl bg-white p-6 border">
           Transaction not found.
@@ -50,13 +44,7 @@ export default async function AdminPayoutPage({ params }) {
     <main className="max-w-[1200px] mx-auto px-4">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold text-[#325082]">Payout</h1>
-        <Link
-          href="/admin/transactions"
-          className="text-[#325082] text-sm hover:underline flex items-center gap-1"
-        >
-          <ChevronLeftIcon className="h-4 w-4" />
-          Back to Transactions
-        </Link>
+        <BackButton />
       </div>
       <AdminPayoutPanel txn={txn} />
     </main>

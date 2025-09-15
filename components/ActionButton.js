@@ -8,21 +8,21 @@ export default function ActionButton({
   disabled = false,
 }) {
   const baseStyle =
-    "flex items-center justify-center gap-2 rounded-[8px] shadow-md active:scale-[0.95] transition duration-500 ";
+    "flex items-center justify-center gap-2 rounded-[4px] shadow-md cursor-pointer active:scale-[0.95] transition duration-500 ";
 
   const variants = {
     primaryHover:
-      "h-[42px] w-[115px] border-transparent text-white text-sm bg-[#325082] hover:bg-white hover:border-[#325082] hover:text-[#325082] hover:scale-[1.06] border-[2px]",
+      "h-[42px] w-[110px] border-transparent text-white text-sm bg-[#325082] hover:bg-white hover:border-[#325082] hover:text-[#325082] hover:scale-[1.06] border-[2px]",
     outlineHover:
-      "h-[42px] w-[115px] border-[#325082] text-[#325082] text-sm bg-white hover:bg-[#325082] hover:border-transparent hover:text-white hover:scale-[1.06] border-[2px]",
+      "h-[42px] w-[110px] border-[#325082] text-[#325082] text-sm bg-white hover:bg-[#325082] hover:border-transparent hover:text-white hover:scale-[1.06] border-[2px]",
     dangerOutlineHover:
-      "h-[42px] w-[115px] border-red-600 text-red-600 text-sm bg-white hover:bg-red-600 hover:border-transparent hover:text-white hover:scale-[1.06] border-[2px]",
+      "h-[42px] w-[110px] border-red-600 text-red-600 text-sm bg-transparent hover:bg-red-600 hover:border-transparent hover:text-white hover:scale-[1.06] border-[2px]",
     dangerPrimaryClick:
-      "h-[42px] w-[115px] border-transparent text-white bg-red-600 text-sm hover:scale-[1.06] border-[2px]",
+      "h-[42px] w-[110px] border-red-600 text-transparent bg-red-600 text-sm hover:scale-[1.06] border-[2px]",
     primaryClick:
-      "h-[42px] w-[115px] border-transparent text-white bg-[#325082] text-sm hover:scale-[1.06] border-[2px]",
+      "h-[42px] w-[110px] border-transparent text-white bg-[#325082] text-sm hover:scale-[1.06] border-[2px]",
     outlineClick:
-      "h-[42px] w-[115px] border-[#325082] text-[#325082] bg-white text-sm hover:scale-[1.06] border-[2px]",
+      "h-[42px] w-[110px] border-[#325082] text-[#325082] bg-white text-sm hover:scale-[1.06] border-[2px]",
 
     cartPrimaryClick:
       "border-transparent text-white bg-[#325082] py-2.5 rounded-md hover:scale-[1.02] border-[2px]",
@@ -43,6 +43,9 @@ export default function ActionButton({
       "w-full h-[46px] border-transparent text-white bg-[#325082] hover:scale-[1.02] border-[2px]",
     cancelOrderOutlineClick:
       "w-full h-[46px] border-[#325082] text-[#325082] bg-white hover:scale-[1.02] border-[2px]",
+
+    glassClick:
+      "backdrop-blur-xs bg-white/20 text-white font-semibold rounded-full px-3 py-2 text-sm sm:px-5 sm:py-3 sm:text-base shadow-lg hover:bg-white/30 transition",
   };
 
   return (

@@ -7,7 +7,7 @@ const protectedRoutes = [
   /^\/profile(\/.*)?$/,
   /^\/my-orders(\/.*)?$/,
   /^\/sell$/,
-  /^\/buy-sell(\/.*)?$/, // Protect all buy-sell subroutes
+  /^\/buy(\/.*)?$/, // Protect all buy-sell subroutes
   /^\/favorites$/,
 ];
 

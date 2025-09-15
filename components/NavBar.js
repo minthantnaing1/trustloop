@@ -5,20 +5,19 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useState, useEffect, useMemo } from "react";
-
 import ConfirmModal from "@/components/ConfirmModal";
-
+import ActionButton from "@/components/ActionButton";
 import {
-  Bars3Icon,
-  ShoppingCartIcon,
   HeartIcon,
   UserIcon,
+  Bars4Icon,
+  BellIcon, // outline bell (default)
 } from "@heroicons/react/24/outline";
-
 import {
-  ShoppingCartIcon as CartSolid,
   HeartIcon as HeartSolid,
   UserIcon as UserIconSolid,
+  XMarkIcon,
+  BellIcon as BellSolid, // solid bell (hover)
 } from "@heroicons/react/24/solid";
 
 // ------- Favorites count cache helpers (avoid first-paint delay)
@@ -40,7 +39,7 @@ function writeFavCount(n) {
 
 function NavBar() {
   const [hover, setHover] = useState({
-    cart: false,
+    notif: false,
     heart: false,
     profile: false,
   });
@@ -149,17 +148,19 @@ function NavBar() {
   const navLinks = useMemo(
     () => [
       { label: "HOME", href: "/home" },
-      { label: "BUY & SELL", href: "/buy-sell" },
-      { label: "AUCTION", href: "/auction" },
+      { label: "BUY", href: "/buy" },
+      { label: "SELL", href: "/sell" },
       { label: "GIVEAWAY", href: "/giveaway" },
+      { label: "MY ORDERS", href: "/my-orders" },
     ],
     []
   );
 
   const isActiveLink = (href) =>
     pathname === href ||
-    (href === "/buy-sell" && pathname.startsWith("/buy-sell/")) ||
-    (href === "/buy-sell" && pathname === "/sell");
+    (href === "/buy" && pathname.startsWith("/buy/")) ||
+    (href === "/sell" && pathname.startsWith("/sell/")) ||
+    (href === "/my-orders" && pathname.startsWith("/my-orders/"));
 
   const blurDataURL =
     "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNmMmYyZjQiIC8+PC9zdmc+";
@@ -167,7 +168,6 @@ function NavBar() {
   return (
     <>
       <header className="fixed top-0 left-0 w-full h-[68px] bg-gradient-to-r from-[#2b446a] to-[#325082] shadow-md shadow-gray-900/30 flex justify-between items-center px-4 md:px-8 z-[10000]">
-        {/* Left - Logo */}
         <div className="flex items-center">
           <Image
             src="/TrustLoopLogoW.png"
@@ -179,17 +179,17 @@ function NavBar() {
         </div>
 
         {/* Middle - Welcome & Nav Links (Desktop Only) */}
-        <div className="hidden md:flex flex-col items-center gap-y-[0.5px] mb-[0.5px] ml-[70px]">
+        <div className="hidden md:flex flex-col items-center gap-y-[3px] ml-[80px]">
           <p className="text-white font-semibold text-[16px] tracking-wide">
             Welcome to TrustLoop
           </p>
 
-          <ul className="flex gap-[65px]">
+          <ul className="flex gap-[60px]">
             {navLinks.map((item) => (
               <li key={item.href}>
                 <Link href={item.href}>
                   <span
-                    className={`inline-block text-white text-[14px] font-medium px-2 py-1 border-b-2 transition-all duration-500 active:scale-[0.95] ${
+                    className={`inline-block text-white text-[14px] font-medium px-2 py-1 border-b-2 transition-all duration-500 ease-in-out active:scale-[0.95] ${
                       isActiveLink(item.href)
                         ? "border-white"
                         : "border-transparent hover:border-white"
@@ -204,17 +204,17 @@ function NavBar() {
         </div>
 
         {/* Right - Action Icons */}
-        <div className="flex items-center gap-6 text-white">
-          {/* Cart */}
+        <div className="flex items-center gap-6.5 text-white">
+          {/* Notifications */}
           <div
-            onMouseEnter={() => setHover((h) => ({ ...h, cart: true }))}
-            onMouseLeave={() => setHover((h) => ({ ...h, cart: false }))}
-            className="cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
+            onMouseEnter={() => setHover((h) => ({ ...h, notif: true }))}
+            onMouseLeave={() => setHover((h) => ({ ...h, notif: false }))}
+            className="cursor-pointer transition-transform duration-500 ease-in-out hover:scale-110 active:scale-[0.9]"
           >
-            {hover.cart ? (
-              <CartSolid className="w-6 h-6" />
+            {hover.notif ? (
+              <BellSolid className="w-6.5 h-6.5" />
             ) : (
-              <ShoppingCartIcon className="w-6 h-6" />
+              <BellIcon className="w-6.5 h-6.5" />
             )}
           </div>
 
@@ -227,7 +227,7 @@ function NavBar() {
             <div
               onMouseEnter={() => setHover({ ...hover, heart: true })}
               onMouseLeave={() => setHover({ ...hover, heart: false })}
-              className="relative cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
+              className="relative cursor-pointer mr-1 transition-transform duration-500 ease-in-out hover:scale-110 active:scale-[0.9]"
             >
               {hover.heart ? (
                 <HeartSolid className="w-6 h-6" />
@@ -237,7 +237,7 @@ function NavBar() {
 
               {mounted && favCount > 0 && (
                 <span
-                  className="absolute -top-[6px] -right-[10px] min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-white text-[12px] leading-[18px] text-center font-semibold pointer-events-none"
+                  className="absolute -top-[6px] -right-[9px] min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-white text-[12.5px] leading-[18px] text-center font-semibold pointer-events-none"
                   aria-label={`${favCount} favorites`}
                 >
                   {favCount}
@@ -250,10 +250,10 @@ function NavBar() {
           <div
             onMouseEnter={() => setHover((h) => ({ ...h, profile: true }))}
             onMouseLeave={() => setHover((h) => ({ ...h, profile: false }))}
-            className="cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
+            className="cursor-pointer transition-transform duration-500 ease-in-out hover:scale-[1.05] active:scale-[0.9]"
           >
             <Link href="/profile" className="block">
-              <div className={`relative w-8 h-8`}>
+              <div className={`relative w-9 h-9`}>
                 {avatarUrl ? (
                   <Image
                     src={avatarUrl}
@@ -264,7 +264,7 @@ function NavBar() {
                     placeholder="blur"
                     blurDataURL={blurDataURL}
                     className={`rounded-full ring-2 ring-white/70 shadow-sm object-cover ${
-                      hover.profile ? "scale-[1.03]" : ""
+                      hover.profile ? "scale-[1.02]" : ""
                     }`}
                     onError={() => {
                       // Fallback to placeholder if remote image fails
@@ -273,7 +273,7 @@ function NavBar() {
                   />
                 ) : (
                   // Circular placeholder (always a circle)
-                  <div className="w-8 h-8 rounded-full ring-2 ring-white/70 shadow-sm bg-white/20 flex items-center justify-center">
+                  <div className="w-9 h-9 rounded-full ring-2 ring-white/70 shadow-sm bg-white/20 flex items-center justify-center">
                     {hover.profile ? (
                       <UserIconSolid className="w-5 h-5 text-white" />
                     ) : (
@@ -288,15 +288,15 @@ function NavBar() {
           {/* Menu Icon */}
           <div
             onClick={() => setShowMenu((s) => !s)}
-            className="cursor-pointer transition-transform hover:scale-110 active:scale-[0.9]"
+            className="cursor-pointer transition-transform duration-500 ease-in-out hover:scale-110 active:scale-[0.9]"
           >
-            <Bars3Icon className="w-6 h-6" />
+            <Bars4Icon className="w-6 h-6" />
           </div>
         </div>
       </header>
 
       {/* Spacer to push content down */}
-      <div className="h-[88px]" />
+      <div className="h-[82px]" />
 
       {/* Overlay */}
       {showMenu && (
@@ -317,9 +317,9 @@ function NavBar() {
             <h2 className="text-2xl font-bold">Menu</h2>
             <button
               onClick={() => setShowMenu(false)}
-              className="text-white text-2xl leading-none hover:text-gray-400"
+              className="text-red-600 hover:text-red-700 w-6 h-6"
             >
-              ×
+              <XMarkIcon className="w-6 h-6" />
             </button>
           </div>
 
@@ -337,9 +337,11 @@ function NavBar() {
             <div className="mb-4 hover:underline cursor-pointer">Profile</div>
           </Link>
 
-          {/* My Orders (Always Show) */}
-          <Link href="/my-orders" onClick={() => setShowMenu(false)}>
-            <div className="mb-4 hover:underline cursor-pointer">My Orders</div>
+          {/* My Favorites (Always Show) */}
+          <Link href="/favorites" onClick={() => setShowMenu(false)}>
+            <div className="mb-4 hover:underline cursor-pointer">
+              My Favorites
+            </div>
           </Link>
 
           {/* Nav Links (Mobile Only) */}
@@ -350,7 +352,13 @@ function NavBar() {
                 href={item.href}
                 onClick={() => setShowMenu(false)}
               >
-                <div className="mb-4 hover:underline cursor-pointer">
+                <div
+                  className={`mb-4 cursor-pointer ${
+                    isActiveLink(item.href)
+                      ? "underline font-semibold text-blue-400"
+                      : "hover:underline"
+                  }`}
+                >
                   {item.label}
                 </div>
               </Link>
@@ -358,12 +366,12 @@ function NavBar() {
           </div>
 
           {/* Logout Button */}
-          <button
+          <ActionButton
+            text="Logout"
+            variant="dangerOutlineHover"
             onClick={() => setShowLogoutConfirm(true)}
-            className="mt-4 w-full bg-white text-[#1e293b] font-semibold py-2 rounded hover:bg-gray-200"
-          >
-            Logout
-          </button>
+            className="mt-4 w-full"
+          />
         </div>
       </div>
 
