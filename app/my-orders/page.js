@@ -1,7 +1,7 @@
 // app/my-orders/page.js
 "use client";
 
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import NavBar from "@/components/NavBar";
@@ -105,7 +105,8 @@ function RoleSwitch({ role, setRole }) {
   );
 }
 
-export default function MyOrdersPage() {
+/* ------------------ INNER CLIENT (uses useSearchParams) ------------------ */
+function MyOrdersClient() {
   const router = useRouter();
   const [role, setRole] = useState("buyer");
   const [buyerTxns, setBuyerTxns] = useState(null);
@@ -285,8 +286,6 @@ export default function MyOrdersPage() {
           }
         }
       `}</style>
-
-      <NavBar />
 
       <main
         className="max-w-[1200px] mx-auto px-4 mb-6 transition-all duration-[800ms]"
@@ -523,6 +522,18 @@ export default function MyOrdersPage() {
           )}
         </section>
       </main>
+    </>
+  );
+}
+
+/* ------------------ OUTER WRAPPER WITH SUSPENSE ------------------ */
+export default function MyOrdersPage() {
+  return (
+    <>
+      <NavBar />
+      <Suspense fallback={<div className="p-4 text-slate-500">Loading…</div>}>
+        <MyOrdersClient />
+      </Suspense>
     </>
   );
 }

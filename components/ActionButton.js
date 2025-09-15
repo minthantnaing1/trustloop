@@ -18,7 +18,7 @@ export default function ActionButton({
     dangerOutlineHover:
       "h-[42px] w-[110px] border-red-600 text-red-600 text-sm bg-transparent hover:bg-red-600 hover:border-transparent hover:text-white hover:scale-[1.06] border-[2px]",
     dangerPrimaryClick:
-      "h-[42px] w-[110px] border-red-600 text-transparent bg-red-600 text-sm hover:scale-[1.06] border-[2px]",
+      "h-[42px] w-[110px] border-red-600 text-white bg-red-600 text-sm hover:scale-[1.06] border-[2px]",
     primaryClick:
       "h-[42px] w-[110px] border-transparent text-white bg-[#325082] text-sm hover:scale-[1.06] border-[2px]",
     outlineClick:
