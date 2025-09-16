@@ -188,12 +188,13 @@ export default function AdminPayoutPanel({ txn }) {
             </div>
             <div className="text-sm text-gray-600">{seller?.email}</div>
             {seller?.phone && (
-              <div className="text-sm text-gray-700 inline-flex items-center gap-1">
+              <a
+                href={`tel:${seller.phone}`}
+                className="flex items-center gap-1 text-sm text-[#325082] hover:underline"
+              >
                 <PhoneIcon className="w-4 h-4" />
-                <a href={`tel:${seller.phone}`} className="underline">
-                  {seller.phone}
-                </a>
-              </div>
+                {seller.phone}
+              </a>
             )}
           </Card>
 

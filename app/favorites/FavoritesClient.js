@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useTransition } from "react";
+import { useEffect, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import ProductCard from "@/components/ProductCard";
 
@@ -8,11 +8,21 @@ export default function FavoritesClient({ items, currentUserEmail = "" }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
+  // Track which product IDs are currently rendered
+  const idsRef = useRef(new Set(items.map((p) => String(p._id))));
+  useEffect(() => {
+    idsRef.current = new Set(items.map((p) => String(p._id)));
+  }, [items]);
+
   useEffect(() => {
     const onFavChanged = (e) => {
-      const { isFav } = e?.detail || {};
-      // Only refresh when a favorite was ADDED (coming from elsewhere)
-      if (isFav === true) {
+      const { isFav, productId } = e?.detail || {};
+      // Only refresh if an item was added that we DON'T already have on this page
+      if (
+        isFav === true &&
+        productId &&
+        !idsRef.current.has(String(productId))
+      ) {
         startTransition(() => router.refresh());
       }
     };

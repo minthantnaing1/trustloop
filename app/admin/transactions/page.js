@@ -185,7 +185,7 @@ export default function AdminTransactionsPage() {
                           {t.buyer.phone && (
                             <a
                               href={`tel:${t.buyer.phone}`}
-                              className="flex items-center gap-1 text-sm text-[#325082] hover:underline mt-0.5"
+                              className="flex items-center gap-1 text-sm text-[#325082] hover:underline"
                             >
                               <PhoneIcon className="w-3 h-3" />
                               {t.buyer.phone}

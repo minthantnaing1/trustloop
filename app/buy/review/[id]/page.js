@@ -1,0 +1,122 @@
+import { cookies } from "next/headers";
+import { auth } from "@/auth";
+import NavBar from "@/components/NavBar";
+import ReviewForm from "@/components/ReviewForm";
+import Stepper from "@/components/Stepper";
+import BackButton from "@/components/BackButton";
+import DownloadReceiptButton from "@/components/DownloadReceiptButton";
+import { PhoneIcon } from "@heroicons/react/24/outline";
+
+export default async function ReviewPage({ params }) {
+  const { id } = await params; // transactionId
+  const cookieStore = await cookies();
+  const session = await auth();
+
+  const [txnRes, revRes] = await Promise.all([
+    fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/transactions/${id}`, {
+      headers: { Cookie: cookieStore.toString() },
+      cache: "no-store",
+    }),
+    fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/transactions/${id}/review`, {
+      headers: { Cookie: cookieStore.toString() },
+      cache: "no-store",
+    }),
+  ]);
+
+  if (!txnRes.ok) return <div>Transaction not found.</div>;
+  const txn = await txnRes.json();
+  const initialReview = revRes.ok ? await revRes.json() : null;
+
+  return (
+    <>
+      <NavBar />
+      <main className="max-w-[1200px] mx-auto px-3 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold text-[#325082]">Order Completed</h1>
+          <BackButton />
+        </div>
+
+        {/* Progress Stepper (buyer, step 4) */}
+        <div className="mb-5">
+          <Stepper current={4} variant="buyer" className="px-1" />
+        </div>
+
+        <div className="bg-white border border-gray-200 shadow-md rounded-[5px] p-6 mb-8">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-[#325082]">
+              Order Summary
+            </h2>
+            <DownloadReceiptButton transactionId={id} />
+          </div>
+
+          {/* Three bordered cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+            {/* Left: Product Image */}
+            <div className="rounded-[5px] border border-gray-200 bg-[#f9fbff] p-4 flex items-center justify-center">
+              <img
+                src={
+                  txn.product?.defaultImage ||
+                  txn.product?.images?.[0] ||
+                  "/placeholder.png"
+                }
+                alt={txn.product?.title}
+                className="w-[150px] h-[150px] object-cover rounded-[3px] border border-gray-300"
+              />
+            </div>
+
+            {/* Middle: Product Info */}
+            <div className="rounded-[5px] border border-gray-200 bg-[#f9fbff] p-4">
+              <p className="font-semibold text-[#325082] text-lg">
+                {txn.product?.title}
+              </p>
+              <div className="mt-1 space-y-1">
+                <p className="text-sm text-gray-700">
+                  <span className="font-medium text-[#325082]">Category:</span>{" "}
+                  {txn.product?.category || "-"}
+                </p>
+                <p className="text-sm text-gray-700">
+                  <span className="font-medium text-[#325082]">Condition:</span>{" "}
+                  {txn.product?.condition || "-"}
+                </p>
+                <p className="text-sm text-gray-700">
+                  <span className="font-medium text-[#325082]">
+                    Description:
+                  </span>{" "}
+                  {txn.product?.description || "-"}
+                </p>
+              </div>
+              <p className="text-lg font-bold text-[#325082] mt-3">
+                ฿{Number(txn.total).toLocaleString()}
+              </p>
+            </div>
+
+            {/* Right: Seller Info */}
+            <div className="rounded-[5px] border border-gray-200 bg-[#f9fbff] p-4">
+              <p className="font-semibold text-[#325082] text-lg">Seller:</p>
+              <div className="mt-1 space-y-1">
+                <p className="text-sm text-[#305082]">
+                  {txn.seller?.name || txn.seller?.email || "-"}
+                </p>
+                <p className="text-sm text-[#1f2f4c]">
+                  {txn.seller?.email || "-"}
+                </p>
+                {txn.seller?.phone && (
+                  <a
+                    href={`tel:${txn.seller.phone}`}
+                    className="flex items-center gap-1 text-sm text-[#325082] hover:underline"
+                  >
+                    <PhoneIcon className="w-4 h-4" />
+                    {txn.seller.phone}
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Review form (seed with server-fetched review so it shows instantly) */}
+        <ReviewForm transactionId={id} initialReview={initialReview} />
+      </main>
+    </>
+  );
+}

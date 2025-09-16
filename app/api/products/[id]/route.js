@@ -50,7 +50,28 @@ export async function GET(_req, { params }) {
       }
     }
 
-    return new Response(JSON.stringify(product), { status: 200 });
+    const viewerEmail = session?.user?.email || null;
+    let isFav = false;
+
+    if (viewerEmail) {
+      const viewer = await User.findOne({ email: viewerEmail }).select(
+        "favorites"
+      );
+      if (viewer && Array.isArray(viewer.favorites)) {
+        isFav = viewer.favorites.some(
+          (pid) => String(pid) === String(product._id)
+        );
+      }
+    }
+
+    // ✅ Change your return to include isFav
+    return new Response(
+      JSON.stringify({
+        ...(product.toObject ? product.toObject() : product),
+        isFav,
+      }),
+      { status: 200 }
+    );
   } catch (err) {
     console.error("❌ Product GET error:", err);
     return new Response("Server Error", { status: 500 });

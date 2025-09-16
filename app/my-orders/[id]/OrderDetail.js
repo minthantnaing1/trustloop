@@ -177,6 +177,11 @@ export default function OrderDetail({ id }) {
       ) {
         router.push(`/my-orders/${id}/payout`);
       }
+
+      // if buyer just confirmed receipt, go to review
+      if (isBuyer && payload?.action === "buyer_confirm") {
+        router.push(`/buy/review/${id}`);
+      }
     } catch (e) {
       alert(e.message || "Failed");
     } finally {
@@ -303,12 +308,13 @@ export default function OrderDetail({ id }) {
               </div>
               <div className="text-sm text-gray-600">{otherParty?.email}</div>
               {otherPhone && (
-                <div className="text-sm text-gray-700 inline-flex items-center gap-1">
+                <a
+                  href={`tel:${otherPhone}`}
+                  className="flex items-center gap-1 text-sm text-[#325082] hover:underline"
+                >
                   <PhoneIcon className="w-4 h-4" />
-                  <a href={`tel:${otherPhone}`} className="underline">
-                    {otherPhone}
-                  </a>
-                </div>
+                  {otherPhone}
+                </a>
               )}
             </div>
           </div>
@@ -372,6 +378,17 @@ export default function OrderDetail({ id }) {
             >
               {isSeller ? "My Product Details" : "Product Details"}
             </Link>
+
+            {isBuyer &&
+              (txn.status === "BUYER_CONFIRMED" ||
+                txn.status === "PAID_OUT") && (
+                <Link href={`/buy/review/${id}`}>
+                  <ActionButton
+                    text="View Order Summary"
+                    variant="primaryClick"
+                  />
+                </Link>
+              )}
 
             {isSeller &&
               (txn.status === "SELLER_DELIVERED" ||

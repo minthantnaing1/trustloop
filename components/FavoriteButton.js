@@ -19,14 +19,14 @@ export default function FavoriteButton({
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
-  // After mount, sync with localStorage (no hydration mismatch)
+  // ✅ After mount, trust server-provided value (initialIsFav)
+  // and sync it into localStorage so all pages stay consistent
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(LS_KEY(productId));
-      if (raw === "1") setIsFav(true);
-      else if (raw === "0") setIsFav(false);
+      setIsFav(initialIsFav);
+      localStorage.setItem(LS_KEY(productId), initialIsFav ? "1" : "0");
     } catch {}
-  }, [productId]);
+  }, [productId, initialIsFav]);
 
   const toggle = (e) => {
     if (stopNavigation && e) {

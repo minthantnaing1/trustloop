@@ -86,7 +86,7 @@ export default function ProductDetails({
                   <div className="flex-1">
                     <FavoriteButton
                       productId={product._id?.toString()}
-                      initialIsFav={initialIsFav}
+                      initialIsFav={Boolean(product.isFav)}
                       className="w-full h-full"
                     />
                   </div>

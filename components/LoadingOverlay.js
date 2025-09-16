@@ -69,6 +69,13 @@ export default function LoadingOverlay() {
       const a = findAnchor(e.target);
       if (!a || !a.href) return;
 
+      // ignore download links, blob URLs, new-tab links
+      const href = a.getAttribute("href") || "";
+      const isBlob = href.startsWith("blob:");
+      const isDownload = a.hasAttribute("download");
+      const isBlank = a.getAttribute("target") === "_blank";
+      if (isBlob || isDownload || isBlank) return;
+
       // Allow anchors to opt-out too
       if (
         a.dataset &&

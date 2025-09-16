@@ -136,8 +136,7 @@ export default async function SellerPayoutPage({ params }) {
                     </div>
                     <div className="truncate">{buyer?.email}</div>
                     <div className="mt-2">
-                      <b>Seller (you):</b>{" "}
-                      {seller?.name || seller?.email || "-"}
+                      <b>Seller (Me):</b> {seller?.name || seller?.email || "-"}
                     </div>
                     <div className="truncate">{seller?.email}</div>
                   </div>

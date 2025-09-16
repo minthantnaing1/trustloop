@@ -120,7 +120,7 @@ export default async function ProfilePage() {
             </div>
             <div className="flex-1 min-w-[140px] bg-white p-4 rounded-[10px] text-center">
               <p>Rating</p>
-              <div className="text-[#ffcc00] text-[18px]">
+              <div className="text-[#ffcc00] text-[21px]">
                 {"★".repeat(Math.round(user.rating || 0)) +
                   "☆".repeat(5 - Math.round(user.rating || 0))}
               </div>
