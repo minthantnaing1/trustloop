@@ -22,9 +22,9 @@ export default async function PayPage({ params }) {
   );
 
   if (!res.ok) return <div>Transaction not found.</div>;
-  const txn = await res.json();
+  let txn = await res.json();
 
-  // after: const txn = await res.json();
+  // after fetching: const txn = await res.json();
 
   if (!txn.expiresAt && txn.status === "PENDING_UPLOAD") {
     const armRes = await fetch(
@@ -42,8 +42,18 @@ export default async function PayPage({ params }) {
 
     if (armRes.ok) {
       const { expiresAt } = await armRes.json();
-      txn.expiresAt = expiresAt; // pass to PayPanel below
+      txn.expiresAt = expiresAt;
     }
+
+    // ✅ force a re-fetch of txn so PayPanel sees DB value
+    const res2 = await fetch(
+      `${process.env.NEXT_PUBLIC_BASE_URL}/api/transactions/${id}`,
+      {
+        headers: { Cookie: cookieStore.toString() },
+        cache: "no-store",
+      }
+    );
+    txn = await res2.json();
   }
 
   const productId = txn?.product?._id ?? txn?.product ?? null;

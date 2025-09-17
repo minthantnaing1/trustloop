@@ -1,4 +1,3 @@
-// components/LoadingOverlay.js
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -50,10 +49,8 @@ export default function LoadingOverlay() {
     }
 
     function onClickCapture(e) {
-      // If something already handled this click, ignore
       if (e.defaultPrevented) return;
 
-      // If any element in the path marks "skip overlay", ignore
       const path = typeof e.composedPath === "function" ? e.composedPath() : [];
       if (
         path &&
@@ -69,14 +66,12 @@ export default function LoadingOverlay() {
       const a = findAnchor(e.target);
       if (!a || !a.href) return;
 
-      // ignore download links, blob URLs, new-tab links
       const href = a.getAttribute("href") || "";
       const isBlob = href.startsWith("blob:");
       const isDownload = a.hasAttribute("download");
       const isBlank = a.getAttribute("target") === "_blank";
       if (isBlob || isDownload || isBlank) return;
 
-      // Allow anchors to opt-out too
       if (
         a.dataset &&
         (a.dataset.suppressOverlay === "true" ||
@@ -85,16 +80,15 @@ export default function LoadingOverlay() {
         return;
       }
 
-      if (!isSameOrigin(a.href)) return; // external
+      if (!isSameOrigin(a.href)) return;
       const dest = new URL(a.href, window.location.href);
       const nextPath = dest.pathname + dest.search + dest.hash;
       const currPath =
         window.location.pathname +
         window.location.search +
         window.location.hash;
-      if (nextPath === currPath) return; // same page
+      if (nextPath === currPath) return;
 
-      // Start "pending navigation" — arm delayed show
       pendingRef.current = true;
 
       if (showTimerRef.current) clearTimeout(showTimerRef.current);
@@ -108,9 +102,8 @@ export default function LoadingOverlay() {
       document.removeEventListener("click", onClickCapture, { capture: true });
   }, []);
 
-  // When pathname changes, navigation completed => hide overlay (if it ever showed)
+  // When pathname changes, navigation completed => hide overlay
   useEffect(() => {
-    // stop pending
     pendingRef.current = false;
 
     if (showTimerRef.current) {
@@ -118,16 +111,29 @@ export default function LoadingOverlay() {
       showTimerRef.current = null;
     }
 
-    // fade out if currently visible
-    if (visible) {
-      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-      setVisible(false); // triggers CSS fade/scale
-      // Nothing else needed; pointer-events toggle with visible state
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    setVisible(false);
+
+    // Always release scroll lock
+    document.body.style.overflow = "";
+
+    // Safety: clear again after transition
+    hideTimerRef.current = setTimeout(() => {
+      document.body.style.overflow = "";
+    }, 600);
   }, [pathname]);
 
-  // Render overlay; pointer events are blocked only when visible
+  // Extra safety: release scroll when tab regains focus
+  useEffect(() => {
+    function onVis() {
+      if (document.visibilityState === "visible" && !visible) {
+        document.body.style.overflow = "";
+      }
+    }
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [visible]);
+
   return (
     <div
       className={`fixed inset-0 z-[50000] flex items-center justify-center
@@ -140,10 +146,8 @@ export default function LoadingOverlay() {
       aria-hidden={!visible}
       role="status"
     >
-      {/* Scrim with a light blur (reduced compared to earlier) */}
       <div className="absolute inset-0 bg-black/25 backdrop-blur-[1.5px]" />
 
-      {/* Spinner + text */}
       <div
         className={`relative flex flex-col items-center gap-3
                     transition-transform duration-[${TRANSITION_MS}ms]
