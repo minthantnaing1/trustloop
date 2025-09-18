@@ -56,7 +56,7 @@ export default function ConfirmOrderButton({ productId, formId }) {
       }
 
       const data = await res.json();
-      router.push(`/buy/pay/${data.transactionId}`);
+      router.replace(`/buy/pay/${data.transactionId}`); // ← replace, not push
     } catch (e) {
       setErr(e.message || "Something went wrong");
       setLoading(false);

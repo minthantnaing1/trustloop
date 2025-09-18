@@ -6,8 +6,9 @@ import { fmtBKK } from "@/utils/timeAgo";
 /** Central labels for timeline actions (keep in sync with API pushes) */
 export const TIMELINE_LABELS = {
   ORDER_CREATED: "Order created",
+  PAYMENT_WINDOW_STARTED: "Payment window started",
   BUYER_UPLOADED_RECEIPT: "Buyer uploaded payment slip",
-  ADMIN_VERIFIED_PAYMENT: "Admin verified payment",
+  ADMIN_VERIFIED_PAYMENT: "Admin verified payment slip",
   SELLER_ACCEPTED: "Seller accepted the order",
   SELLER_SET_DELIVERY: "Seller set delivery details",
   DELIVERY_STARTED: "Delivery started",

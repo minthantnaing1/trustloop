@@ -7,6 +7,7 @@ import { signOut } from "next-auth/react";
 import { useState, useEffect, useMemo } from "react";
 import ConfirmModal from "@/components/ConfirmModal";
 import ActionButton from "@/components/ActionButton";
+import NotificationPanel from "@/components/NotificationPanel";
 import {
   HeartIcon,
   UserIcon,
@@ -37,6 +38,23 @@ function writeFavCount(n) {
   } catch {}
 }
 
+// ------- Notifications count cache (same pattern as favorites)
+const GLOBAL_NOTIF_COUNT_KEY = "notif_count";
+function readNotifCount() {
+  if (typeof window === "undefined") return 0;
+  try {
+    const n = parseInt(localStorage.getItem(GLOBAL_NOTIF_COUNT_KEY) || "0", 10);
+    return Number.isNaN(n) ? 0 : Math.max(0, n);
+  } catch {
+    return 0;
+  }
+}
+function writeNotifCount(n) {
+  try {
+    localStorage.setItem(GLOBAL_NOTIF_COUNT_KEY, String(Math.max(0, n)));
+  } catch {}
+}
+
 function NavBar() {
   const [hover, setHover] = useState({
     notif: false,
@@ -55,6 +73,9 @@ function NavBar() {
   // favorites count for heart badge (init from localStorage so it shows instantly)
   const [favCount, setFavCount] = useState(0);
   const [mounted, setMounted] = useState(false);
+  const [notifCount, setNotifCount] = useState(0);
+  const [showNotifPanel, setShowNotifPanel] = useState(false);
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -145,6 +166,54 @@ function NavBar() {
     };
   }, [mounted]);
 
+  useEffect(() => {
+    if (!mounted) return;
+
+    // 1) instant paint from cache
+    setNotifCount(readNotifCount());
+
+    // 2) authoritative fetch (unread only)
+    fetch("/api/notifications?unread=1")
+      .then((r) => (r.ok ? r.json() : []))
+
+      .then((data) => {
+        const n =
+          (Array.isArray(data) ? data.length : 0) ||
+          (Array.isArray(data?.items) ? data.items.length : 0) ||
+          Number(data?.unreadCount || 0);
+        setNotifCount(n);
+        writeNotifCount(n);
+      })
+
+      .catch(() => {});
+
+    // 3) listen for optimistic updates from elsewhere in the app
+    const onNotifChanged = (e) => {
+      const delta = Number(e?.detail?.delta || 0);
+      if (!Number.isNaN(delta)) {
+        setNotifCount((c) => {
+          const next = Math.max(0, c + delta);
+          writeNotifCount(next);
+          return next;
+        });
+      }
+    };
+
+    const onStorage = (e) => {
+      if (e.key === GLOBAL_NOTIF_COUNT_KEY) {
+        const n = parseInt(e.newValue || "0", 10);
+        if (!Number.isNaN(n)) setNotifCount(Math.max(0, n));
+      }
+    };
+
+    window.addEventListener("notifications:updated", onNotifChanged);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("notifications:updated", onNotifChanged);
+      window.removeEventListener("storage", onStorage);
+    };
+  }, [mounted]);
+
   const navLinks = useMemo(
     () => [
       { label: "HOME", href: "/home" },
@@ -206,17 +275,29 @@ function NavBar() {
         {/* Right - Action Icons */}
         <div className="flex items-center gap-6.5 text-white">
           {/* Notifications */}
-          <div
+          <button
+            type="button"
             onMouseEnter={() => setHover((h) => ({ ...h, notif: true }))}
             onMouseLeave={() => setHover((h) => ({ ...h, notif: false }))}
-            className="cursor-pointer transition-transform duration-500 ease-in-out hover:scale-110 active:scale-[0.9]"
+            onClick={() => setShowNotifPanel(true)}
+            className="relative cursor-pointer transition-transform duration-500 ease-in-out hover:scale-110 active:scale-[0.9]"
+            aria-label="Notifications"
           >
             {hover.notif ? (
               <BellSolid className="w-6.5 h-6.5" />
             ) : (
               <BellIcon className="w-6.5 h-6.5" />
             )}
-          </div>
+
+            {mounted && notifCount > 0 && (
+              <span
+                className="absolute -top-[6px] -right-[8px] min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-white text-[12.5px] leading-[18px] text-center font-semibold pointer-events-none"
+                aria-label={`${notifCount} unread notifications`}
+              >
+                {notifCount}
+              </span>
+            )}
+          </button>
 
           {/* Heart with counter */}
           <Link
@@ -293,6 +374,20 @@ function NavBar() {
             <Bars4Icon className="w-6 h-6" />
           </div>
         </div>
+        {/* Notification slide-over */}
+        <NotificationPanel
+          open={showNotifPanel}
+          onClose={() => setShowNotifPanel(false)}
+          onUnreadChange={(delta) => {
+            if (typeof delta === "number") {
+              setNotifCount((c) => {
+                const next = Math.max(0, c + delta);
+                writeNotifCount(next);
+                return next;
+              });
+            }
+          }}
+        />
       </header>
 
       {/* Spacer to push content down */}

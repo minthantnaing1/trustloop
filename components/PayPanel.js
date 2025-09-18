@@ -8,6 +8,14 @@ import ActionButton from "@/components/ActionButton";
 export default function PayPanel({ txn }) {
   const router = useRouter();
 
+  useEffect(() => {
+    const notPayable =
+      txn?.status !== "PENDING_UPLOAD" ||
+      !!txn?.buyerReceiptUrl ||
+      txn?.cancelReason;
+    if (notPayable) router.replace("/my-orders");
+  }, [txn, router]);
+
   // ---- state ----
   const [timeLeft, setTimeLeft] = useState(null);
   const [file, setFile] = useState(null);

@@ -10,10 +10,6 @@ export default function EditProductClient({ initialProduct }) {
   const router = useRouter();
   const id = initialProduct?._id;
 
-  useEffect(() => {
-    if (id) router.prefetch(`/sell/${id}`);
-  }, [router, id]);
-
   const [form, setForm] = useState({
     title: initialProduct?.title || "",
     description: initialProduct?.description || "",
@@ -91,6 +87,7 @@ export default function EditProductClient({ initialProduct }) {
 
       if (res.ok) {
         router.replace(`/sell/${id}`);
+        router.refresh();
         return; // keep loading=true until route changes
       }
 

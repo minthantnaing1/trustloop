@@ -9,6 +9,7 @@ import User from "@/models/User";
 import Product from "@/models/Product";
 import Transaction from "@/models/Transaction";
 import mongoose from "mongoose";
+import { notifyTxnEvent } from "@/lib/notify";
 
 // GET /api/transactions/:id
 export async function GET(_req, { params }) {
@@ -102,6 +103,13 @@ export async function GET(_req, { params }) {
           select:
             "name email phone defaultScanCode bankAccountName bankAccountNumber",
         });
+
+      // AFTER re-fetching txn (right before leaving that block)
+      await notifyTxnEvent({
+        txn,
+        actorId: me._id,
+        type: "AUTO_CANCELLED_EXPIRED",
+      });
     }
   }
 
@@ -121,6 +129,12 @@ export async function GET(_req, { params }) {
       meta: { source: "get_auto_confirm" },
     });
     await txn.save();
+    // RIGHT AFTER await txn.save();
+    await notifyTxnEvent({
+      txn,
+      actorId: me._id,
+      type: "AUTO_CONFIRMED_AFTER_3_DAYS",
+    });
   }
 
   // normalize phone into one field
@@ -209,6 +223,12 @@ export async function PATCH(req, { params }) {
         meta: { minutes: 5 },
       });
       await txn.save();
+      // RIGHT AFTER await txn.save();
+      await notifyTxnEvent({
+        txn,
+        actorId: me._id,
+        type: "PAYMENT_WINDOW_STARTED",
+      });
     }
     return new Response(JSON.stringify({ expiresAt: txn.expiresAt }), {
       status: 200,
@@ -244,6 +264,12 @@ export async function PATCH(req, { params }) {
     });
 
     await txn.save();
+    await notifyTxnEvent({
+      txn,
+      actorId: me._id,
+      type: "BUYER_UPLOADED_RECEIPT",
+    });
+
     return Response.json({ success: true, status: txn.status });
   }
 
@@ -291,6 +317,14 @@ export async function PATCH(req, { params }) {
     }
 
     await txn.save();
+    await notifyTxnEvent({
+      txn,
+      actorId: me._id,
+      type:
+        txn.status === "CANCELLED_BY_BUYER"
+          ? "CANCELLED_BY_BUYER"
+          : "REJECTED_BY_ADMIN",
+    });
 
     if (txn.product) {
       await Product.updateOne(
@@ -314,6 +348,11 @@ export async function PATCH(req, { params }) {
     txn.status = "SELLER_ACCEPTED";
     txn.timeline.push({ by: me._id, action: "SELLER_ACCEPTED" });
     await txn.save();
+    await notifyTxnEvent({
+      txn,
+      actorId: me._id,
+      type: "SELLER_ACCEPTED",
+    });
 
     return Response.json({ success: true, status: txn.status });
   }
@@ -351,6 +390,11 @@ export async function PATCH(req, { params }) {
     });
 
     await txn.save();
+    await notifyTxnEvent({
+      txn,
+      actorId: me._id,
+      type: "CANCELLED_BY_SELLER",
+    });
 
     if (txn.product) {
       await Product.updateOne(
@@ -415,6 +459,12 @@ export async function PATCH(req, { params }) {
       meta: { scheduledAt: sched, carrier, tracking },
     });
     await txn.save();
+    await notifyTxnEvent({
+      txn,
+      actorId: me._id,
+      type: "SELLER_SET_DELIVERY",
+    });
+
     return Response.json({
       success: true,
       status: txn.status,
@@ -440,6 +490,12 @@ export async function PATCH(req, { params }) {
     txn.status = "DELIVERY_IN_PROGRESS";
     txn.timeline.push({ by: me._id, action: "DELIVERY_STARTED" });
     await txn.save();
+    await notifyTxnEvent({
+      txn,
+      actorId: me._id,
+      type: "DELIVERY_STARTED",
+    });
+
     return Response.json({ success: true, status: txn.status });
   }
 
@@ -503,6 +559,12 @@ export async function PATCH(req, { params }) {
       meta: { meetupLocation, meetupProposedAt: proposed },
     });
     await txn.save();
+    await notifyTxnEvent({
+      txn,
+      actorId: me._id,
+      type: "MEETUP_PROPOSED",
+    });
+
     return Response.json({ success: true, fulfillment: txn.fulfillment });
   }
 
@@ -534,6 +596,12 @@ export async function PATCH(req, { params }) {
 
     txn.timeline.push({ by: me._id, action: "MEETUP_ACCEPTED" });
     await txn.save();
+    await notifyTxnEvent({
+      txn,
+      actorId: me._id,
+      type: "MEETUP_ACCEPTED",
+    });
+
     return Response.json({
       success: true,
       status: txn.status,
@@ -579,6 +647,12 @@ export async function PATCH(req, { params }) {
       meta: { autoConfirmAt: txn.autoConfirmAt },
     });
     await txn.save();
+    await notifyTxnEvent({
+      txn,
+      actorId: me._id,
+      type: "SELLER_DELIVERED",
+    });
+
     return Response.json({ success: true, status: txn.status });
   }
 
@@ -603,6 +677,12 @@ export async function PATCH(req, { params }) {
       meta: { autoConfirmAt: txn.autoConfirmAt },
     });
     await txn.save();
+    await notifyTxnEvent({
+      txn,
+      actorId: me._id,
+      type: "MEETUP_COMPLETED",
+    });
+
     return Response.json({ success: true, status: txn.status });
   }
 
@@ -631,6 +711,12 @@ export async function PATCH(req, { params }) {
     );
 
     await txn.save();
+    await notifyTxnEvent({
+      txn,
+      actorId: me._id,
+      type: "BUYER_CONFIRMED",
+    });
+
     return Response.json({ success: true, status: txn.status });
   }
 }

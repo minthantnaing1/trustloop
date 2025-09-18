@@ -5,27 +5,33 @@ import NavBar from "@/components/NavBar";
 import Link from "next/link";
 import PayPanel from "@/components/PayPanel";
 import Stepper from "@/components/Stepper";
-import { ChevronLeftIcon } from "@heroicons/react/24/solid";
+import { redirect } from "next/navigation"; // ← add this
 
 export default async function PayPage({ params }) {
-  const { id } = await params; // transactionId
+  const { id } = await params;
   const cookieStore = await cookies();
   const session = await auth();
 
-  // Fetch the transaction with product populated
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_BASE_URL}/api/transactions/${id}`,
-    {
-      headers: { Cookie: cookieStore.toString() },
-      cache: "no-store",
-    }
+    { headers: { Cookie: cookieStore.toString() }, cache: "no-store" }
   );
+  if (!res.ok) return redirect("/my-orders");
 
-  if (!res.ok) return <div>Transaction not found.</div>;
   let txn = await res.json();
 
-  // after fetching: const txn = await res.json();
+  // If the order is NOT in PENDING_UPLOAD, never show the pay panel
+  const notPayable =
+    txn.status !== "PENDING_UPLOAD" ||
+    !!txn.buyerReceiptUrl || // already uploaded
+    txn.cancelReason || // cancelled for any reason
+    false;
 
+  if (notPayable) {
+    return redirect("/my-orders");
+  }
+
+  // Arm the timer once (same as before)…
   if (!txn.expiresAt && txn.status === "PENDING_UPLOAD") {
     const armRes = await fetch(
       `${process.env.NEXT_PUBLIC_BASE_URL}/api/transactions/${id}`,
@@ -39,38 +45,28 @@ export default async function PayPage({ params }) {
         cache: "no-store",
       }
     );
-
-    if (armRes.ok) {
-      const { expiresAt } = await armRes.json();
-      txn.expiresAt = expiresAt;
-    }
-
-    // ✅ force a re-fetch of txn so PayPanel sees DB value
+    // Re-fetch authoritative txn so we respect any auto-cancel in GET handler
     const res2 = await fetch(
       `${process.env.NEXT_PUBLIC_BASE_URL}/api/transactions/${id}`,
-      {
-        headers: { Cookie: cookieStore.toString() },
-        cache: "no-store",
-      }
+      { headers: { Cookie: cookieStore.toString() }, cache: "no-store" }
     );
     txn = await res2.json();
-  }
 
-  const productId = txn?.product?._id ?? txn?.product ?? null;
+    // After re-fetch, if state changed, bounce out
+    const stillPayable =
+      txn.status === "PENDING_UPLOAD" &&
+      !txn.buyerReceiptUrl &&
+      !txn.cancelReason;
+    if (!stillPayable) return redirect("/my-orders");
+  }
 
   return (
     <>
       <NavBar />
       <main className="max-w-[1200px] mx-auto mb-[40px] px-3 w-full overflow-x-hidden">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold text-[#325082]">Checkout</h1>
-        </div>
-
-        {/* Progress Stepper (buyer, step 2) */}
         <div className="mb-5">
           <Stepper current={2} variant="buyer" className="px-1" />
         </div>
-
         <PayPanel txn={txn} sessionEmail={session?.user?.email} />
       </main>
     </>

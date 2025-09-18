@@ -6,6 +6,7 @@ import NavBar from "@/components/NavBar";
 import ConfirmOrderButton from "@/components/ConfirmOrderButton";
 import Stepper from "@/components/Stepper";
 import BackButton from "@/components/BackButton";
+import { redirect } from "next/navigation"; // ⬅️ add this
 
 export default async function CheckoutPage({ params }) {
   const { id } = await params;
@@ -19,6 +20,12 @@ export default async function CheckoutPage({ params }) {
   );
   if (!prodRes.ok) return <div>Product not found.</div>;
   const product = await prodRes.json();
+
+  // 🚫 Gate: if product is not available, do not allow checkout
+  // (available again only if cancelled/rejected/expired)
+  if (product.isAvailable === false) {
+    return redirect(`/buy/${id}`);
+  }
 
   // Fetch me (to prefill location from User.location)
   let userLocation = "";

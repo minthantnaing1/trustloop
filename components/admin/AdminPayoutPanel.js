@@ -73,6 +73,7 @@ export default function AdminPayoutPanel({ txn }) {
       setAdminReceiptUrl(upData.url);
       setStatus("PAID_OUT");
       clearFile(); // optional: clear preview
+      router.refresh();
       setBusy(false);
     } catch (e) {
       setErr(e.message || "Failed to mark paid");

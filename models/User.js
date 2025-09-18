@@ -38,6 +38,10 @@ const UserSchema = new mongoose.Schema({
     { type: mongoose.Schema.Types.ObjectId, ref: "Product", default: [] },
   ],
 
+  // Notification
+  unreadNotifications: { type: Number, default: 0 },
+  lastNotificationsSeenAt: { type: Date },
+
   // Timestamps
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },

@@ -9,6 +9,7 @@ import Product from "@/models/Product";
 import Transaction from "@/models/Transaction";
 import cloudinary from "@/lib/cloudinary";
 import mongoose from "mongoose";
+import { notifyTxnEvent } from "@/lib/notify";
 
 function extractPublicId(url = "") {
   try {
@@ -80,6 +81,11 @@ export async function PATCH(req, { params }) {
       });
       txn.updatedAt = new Date();
       await txn.save();
+      await notifyTxnEvent({
+        txn,
+        actorId: me._id,
+        type: "ADMIN_VERIFIED_PAYMENT",
+      });
 
       // lock product after funding
       if (txn.product?._id) {
@@ -103,6 +109,11 @@ export async function PATCH(req, { params }) {
       });
       txn.updatedAt = new Date();
       await txn.save();
+      await notifyTxnEvent({
+        txn,
+        actorId: me._id,
+        type: "REJECTED_BY_ADMIN",
+      });
 
       // Re-open the product for sale
       if (txn.product?._id) {
@@ -148,6 +159,11 @@ export async function PATCH(req, { params }) {
 
       txn.updatedAt = new Date();
       await txn.save();
+      await notifyTxnEvent({
+        txn,
+        actorId: me._id,
+        type: "ADMIN_PAID_OUT",
+      });
 
       return Response.json({ ok: true, status: txn.status });
     }

@@ -215,7 +215,7 @@ export default function ProductCard({
                 backgroundImage: `url(${img})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
-                filter: "blur(10px)",
+                filter: "blur(7px)",
                 transform: "scale(1.15)",
               }}
             />
@@ -236,7 +236,7 @@ export default function ProductCard({
         className={`relative flex flex-col w-full 
         h-[300px] max-[1025px]:h-[270px] max-[426px]:h-[255px] max-[376px]:h-[250px] 
         bg-white border border-gray-300 rounded-[2.5px] cursor-pointer overflow-hidden
-        shadow-md hover:shadow-lg transition-all duration-500 ease-in-out
+        shadow-lg hover:shadow-lg transition-all duration-500 ease-in-out
         ${isOwner ? "hover:scale-[0.98]" : "hover:-translate-y-1"}`}
       >
         <FavOverlay />

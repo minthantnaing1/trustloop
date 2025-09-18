@@ -384,7 +384,7 @@ export default function OrderDetail({ id }) {
                 txn.status === "PAID_OUT") && (
                 <Link href={`/buy/review/${id}`}>
                   <ActionButton
-                    text="View Order Summary"
+                    text="Complete Order & Review"
                     variant="primaryClick"
                   />
                 </Link>

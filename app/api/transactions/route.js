@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 import Product from "@/models/Product";
 import Transaction from "@/models/Transaction";
+import { notifyTxnEvent } from "@/lib/notify";
 
 export async function POST(req) {
   const session = await auth();
@@ -108,6 +109,12 @@ export async function POST(req) {
           meta: { method, address, meetupLocation, price, fee, total },
         },
       ],
+    });
+
+    await notifyTxnEvent({
+      txn,
+      actorId: buyerUser._id,
+      type: "ORDER_CREATED",
     });
 
     return Response.json({ transactionId: txn._id, reused: false });
