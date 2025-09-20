@@ -65,6 +65,7 @@ export default async function FavoritesPage() {
         buyerName: t?.buyer?.name || t?.buyer?.email || "",
         buyerEmail: t?.buyer?.email || "",
         buyerOrderId: String(t._id),
+        buyerOrderStatus: t?.status || "", // 👈 add this line
       };
     }
 

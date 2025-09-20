@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import ConfirmModal from "@/components/ConfirmModal";
 import ActionButton from "@/components/ActionButton";
 import NotificationPanel from "@/components/NotificationPanel";
@@ -75,6 +75,30 @@ function NavBar() {
   const [mounted, setMounted] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
+
+  const ACTIVE_POLL_MS = 5000; // when tab is visible
+  const IDLE_POLL_MS = 15000; // when tab hidden (or 10000 for 10s)
+  const pollTimerRef = useRef(null);
+
+  const fetchUnread = useCallback(async () => {
+    try {
+      const r = await fetch("/api/notifications?unread=1", {
+        cache: "no-store",
+      });
+      const data = r.ok ? await r.json() : [];
+      const n =
+        Number(data?.unreadCount || 0) ||
+        (Array.isArray(data) ? data.length : 0) ||
+        (Array.isArray(data?.items) ? data.items.length : 0);
+
+      setNotifCount((prev) => {
+        if (prev !== n) writeNotifCount(n);
+        return n;
+      });
+    } catch {
+      // ignore
+    }
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -173,7 +197,7 @@ function NavBar() {
     setNotifCount(readNotifCount());
 
     // 2) authoritative fetch (unread only)
-    fetch("/api/notifications?unread=1")
+    fetch("/api/notifications?unread=1", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : []))
 
       .then((data) => {
@@ -214,12 +238,66 @@ function NavBar() {
     };
   }, [mounted]);
 
+  useEffect(() => {
+    function shouldPoll() {
+      return document.visibilityState === "visible" && !showNotifPanel;
+    }
+
+    function start() {
+      if (pollTimerRef.current) return;
+
+      // pick interval based on visibility
+      const interval =
+        document.visibilityState === "visible" ? ACTIVE_POLL_MS : IDLE_POLL_MS;
+
+      // immediate fetch so UI updates right away
+      fetchUnread();
+      pollTimerRef.current = setInterval(fetchUnread, interval);
+    }
+
+    function stop() {
+      if (pollTimerRef.current) {
+        clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+    }
+
+    const onVis = () => {
+      stop();
+      if (shouldPoll()) start();
+    };
+
+    const onFocus = () => {
+      if (shouldPoll()) {
+        // on focus, force-refresh immediately
+        fetchUnread();
+        start();
+      }
+    };
+
+    const onBlur = stop;
+
+    // init
+    if (shouldPoll()) start();
+
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("blur", onBlur);
+
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, [showNotifPanel, fetchUnread]);
+
   const navLinks = useMemo(
     () => [
       { label: "HOME", href: "/home" },
       { label: "BUY", href: "/buy" },
       { label: "SELL", href: "/sell" },
-      { label: "GIVEAWAY", href: "/giveaway" },
+      { label: "DONATION", href: "/donation" },
       { label: "MY ORDERS", href: "/my-orders" },
     ],
     []
@@ -427,18 +505,6 @@ function NavBar() {
             </Link>
           )}
 
-          {/* Profile (Always Show) */}
-          <Link href="/profile" onClick={() => setShowMenu(false)}>
-            <div className="mb-4 hover:underline cursor-pointer">Profile</div>
-          </Link>
-
-          {/* My Favorites (Always Show) */}
-          <Link href="/favorites" onClick={() => setShowMenu(false)}>
-            <div className="mb-4 hover:underline cursor-pointer">
-              My Favorites
-            </div>
-          </Link>
-
           {/* Nav Links (Mobile Only) */}
           <div className="md:hidden">
             {navLinks.map((item) => (
@@ -459,6 +525,25 @@ function NavBar() {
               </Link>
             ))}
           </div>
+
+          {/* Profile (Always Show) */}
+          <Link href="/profile" onClick={() => setShowMenu(false)}>
+            <div className="mb-4 hover:underline cursor-pointer">Profile</div>
+          </Link>
+
+          {/* My Favorites (Always Show) */}
+          <Link href="/favorites" onClick={() => setShowMenu(false)}>
+            <div className="mb-4 hover:underline cursor-pointer">
+              My Favorites
+            </div>
+          </Link>
+
+          {/* All Notifications (Always Show) */}
+          <Link href="/notifications" onClick={() => setShowMenu(false)}>
+            <div className="mb-4 hover:underline cursor-pointer">
+              All Notifications
+            </div>
+          </Link>
 
           {/* Logout Button */}
           <ActionButton

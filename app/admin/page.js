@@ -114,6 +114,7 @@ export default async function AdminPage() {
                 <th className="p-2 border-b font-medium">Price</th>
                 <th className="p-2 border-b font-medium">Category</th>
                 <th className="p-2 border-b font-medium">Owner</th>
+                <th className="p-2 border-b font-medium">Type</th>
                 <th className="p-2 border-b font-medium">Availability</th>
                 <th className="p-2 border-b font-medium">Visibility</th>
               </tr>
@@ -128,6 +129,7 @@ export default async function AdminPage() {
                   <td className="p-2">
                     {p.owner?.name || p.owner?.email || "Unknown"}
                   </td>
+                  <td className="p-2">{p.type}</td>
                   <td className="p-2">
                     {p.isAvailable ? (
                       <span className="text-green-600 font-semibold">

@@ -639,7 +639,8 @@ export async function PATCH(req, { params }) {
     }
 
     txn.status = "SELLER_DELIVERED";
-    txn.autoConfirmAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // +3 days
+    //txn.autoConfirmAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // +3 days
+    txn.autoConfirmAt = new Date(Date.now() + 30 * 1000); // +30 seconds
     txn.timeline.push({
       at: new Date(),
       by: me._id,
@@ -669,7 +670,8 @@ export async function PATCH(req, { params }) {
     }
 
     txn.status = "MEETUP_COMPLETED";
-    txn.autoConfirmAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // +3 days
+    //txn.autoConfirmAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // +3 days
+    txn.autoConfirmAt = new Date(Date.now() + 30 * 1000); // +30 seconds
     txn.timeline.push({
       at: new Date(),
       by: me._id,

@@ -106,7 +106,7 @@ export default function ProductsClient({ initial }) {
     <>
       <NavBar />
 
-      <div className="max-w-[1200px] mx-auto px-3 mb-6 w-full">
+      <div className="max-w-[1200px] mx-auto px-2 sm:px-3 mb-6 w-full">
         {/* Header as strict 25% / 50% / 25% grid to keep search perfectly centered */}
         <div className="grid grid-cols-1 sm:grid-cols-[25%_50%_25%] items-center gap-4 mb-2 w-full -mt-4.5 sm:mt-0">
           {/* Left (25%): Title (or any left text) */}

@@ -4,11 +4,13 @@ import { NextResponse } from "next/server";
 const protectedRoutes = [
   /^\/admin(\/.*)?$/, // Protect /admin and its subroutes
   /^\/home$/,
-  /^\/profile(\/.*)?$/,
+  /^\/buy(\/.*)?$/, // Protect all buy subroutes
+  /^\/sell(\/.*)?$/, // Protect all sell subroutes
+  /^\/donation(\/.*)?$/,
   /^\/my-orders(\/.*)?$/,
-  /^\/sell$/,
-  /^\/buy(\/.*)?$/, // Protect all buy-sell subroutes
+  /^\/profile(\/.*)?$/,
   /^\/favorites$/,
+  /^\/notifications$/,
 ];
 
 const authPageRoutes = ["/"];

@@ -6,6 +6,7 @@ import NavBar from "@/components/NavBar";
 import StatusPill from "@/components/StatusPill";
 import BackButton from "@/components/BackButton";
 import SlipLink from "@/components/SlipLink";
+import Stepper from "@/components/Stepper";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,12 @@ export default async function SellerPayoutPage({ params }) {
             <h1 className="text-2xl font-bold text-[#325082]">Payout</h1>
             <BackButton />
           </div>
+
+          {/* Progress Stepper (buyer, step 4) */}
+          <div className="mb-5">
+            <Stepper current={4} variant="seller" className="px-1" />
+          </div>
+
           <div className="rounded-[5px] bg-white p-6 border">
             Transaction not found.
           </div>
@@ -71,6 +78,12 @@ export default async function SellerPayoutPage({ params }) {
             <h1 className="text-2xl font-bold text-[#325082]">Payout</h1>
             <BackButton />
           </div>
+
+          {/* Progress Stepper (buyer, step 4) */}
+          <div className="mb-5">
+            <Stepper current={4} variant="seller" className="px-1" />
+          </div>
+
           <div className="rounded-[5px] bg-white p-6 border">
             You are not the seller for this transaction.
           </div>
@@ -112,6 +125,11 @@ export default async function SellerPayoutPage({ params }) {
           <BackButton />
         </div>
 
+        {/* Progress Stepper (buyer, step 4) */}
+        <div className="mb-5">
+          <Stepper current={4} variant="seller" className="px-1" />
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* LEFT: Receipt */}
           <div className="lg:col-span-2 space-y-6">
@@ -135,19 +153,30 @@ export default async function SellerPayoutPage({ params }) {
                       <b>Buyer:</b> {buyer?.name || buyer?.email || "-"}
                     </div>
                     <div className="truncate">{buyer?.email}</div>
-                    <div className="mt-2">
+                    <div className="mt-4">
                       <b>Seller (Me):</b> {seller?.name || seller?.email || "-"}
                     </div>
                     <div className="truncate">{seller?.email}</div>
                   </div>
                 </div>
                 <div className={subCard}>
-                  <div className="text-sm text-gray-500">Product</div>
+                  <div className="text-sm text-gray-500">Product:</div>
                   <div className="font-semibold text-[#1f2f4c]">
                     {product?.title || "-"}
                   </div>
                   <div className="text-sm text-gray-600 mt-1">
                     Total: {fmtTHB(total)}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-gray-600 mt-1">
+                      Category: {product?.category || "-"}
+                    </div>
+                    <div className="text-sm text-gray-600 mt-1">
+                      Condition: {product?.condition || "-"}
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-600 mt-1">
+                    Description: {product?.description || "-"}
                   </div>
                 </div>
               </div>

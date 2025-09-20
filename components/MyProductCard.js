@@ -12,14 +12,35 @@ export default function MyProductCard({
   const img =
     product?.defaultImage || product?.images?.[0] || "/placeholder.png";
 
-  // 👇 route: if owner -> /sell/[id], else -> /buy/[id]
-  const href = isOwner ? `/sell/${product?._id}` : `/buy/${product?._id}`;
+  // Route rules:
+  let href;
+  if (isOwner) {
+    href = `/sell/${product?._id}`;
+  } else {
+    const orderId = product?.orderId || product?.buyerOrderId;
+    const status = product?.orderStatus;
+    const role = product?.viewerRole; // "buyer" | "seller"
+
+    if (
+      orderId &&
+      role === "buyer" &&
+      (status === "BUYER_CONFIRMED" || status === "PAID_OUT")
+    ) {
+      href = `/buy/review/${orderId}`;
+    } else if (orderId && role === "seller" && status === "PAID_OUT") {
+      href = `/my-orders/${orderId}/payout`;
+    } else if (orderId) {
+      href = `/my-orders/${orderId}`;
+    } else {
+      href = `/buy/${product?._id}`;
+    }
+  }
 
   // --- shared bits -----------------------------------------------------------
 
   const InfoContent = () => (
     <>
-      <h4 className="font-semibold truncate text-[14px] text-[#325082] max-sm:text-[12px]">
+      <h4 className="font-semibold truncate text-[14px] max-sm:text-[12px]">
         {product?.title ?? "-"}
       </h4>
 
@@ -28,7 +49,7 @@ export default function MyProductCard({
           {product?.category ?? ""}
         </p>
         {product?.price != null && (
-          <p className="text-[14px] font-semibold text-[#325082] shrink-0 max-sm:text-[12px]">
+          <p className="text-[14px] font-semibold shrink-0 max-sm:text-[12px]">
             {Number(product.price).toLocaleString()} ฿
           </p>
         )}

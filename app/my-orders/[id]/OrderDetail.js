@@ -1,7 +1,7 @@
 // app/my-orders/[id]/OrderDetail.js
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import StatusPill from "@/components/StatusPill";
@@ -79,6 +79,21 @@ export default function OrderDetail({ id }) {
   const [busy, setBusy] = useState(false);
   const [remainMs, setRemainMs] = useState(null);
   const router = useRouter();
+
+  // refresh once when the timer hits zero (server GET will flip to BUYER_CONFIRMED)
+  const didRefreshRef = useRef(false);
+  useEffect(() => {
+    if (remainMs === 0 && !didRefreshRef.current) {
+      didRefreshRef.current = true;
+      // small delay lets server-side auto-confirm persist
+      setTimeout(() => {
+        load().finally(() => {
+          // allow future refreshes if state changes again
+          didRefreshRef.current = false;
+        });
+      }, 800);
+    }
+  }, [remainMs]);
 
   // delivery inputs
   const [scheduledAt, setScheduledAt] = useState("");
@@ -166,22 +181,27 @@ export default function OrderDetail({ id }) {
       });
       if (!res.ok) throw new Error(await res.text());
 
-      // refresh local state
-      await load();
-
-      // if seller just marked delivered/meetup completed, go to payout
+      // Seller → Payout (deliver/meetup completed): navigate immediately with overlay
       if (
         isSeller &&
         (payload?.action === "seller_mark_delivered" ||
           payload?.action === "mark_meetup_completed")
       ) {
+        window.dispatchEvent(new CustomEvent("overlay:show"));
+        // no need to await load() here; new page will fetch
         router.push(`/my-orders/${id}/payout`);
+        return;
       }
 
-      // if buyer just confirmed receipt, go to review
+      // Buyer → Review (confirmed): navigate immediately with overlay
       if (isBuyer && payload?.action === "buyer_confirm") {
+        window.dispatchEvent(new CustomEvent("overlay:show"));
         router.push(`/buy/review/${id}`);
+        return;
       }
+
+      // Other mutations: just refresh current page state
+      await load();
     } catch (e) {
       alert(e.message || "Failed");
     } finally {
@@ -384,7 +404,7 @@ export default function OrderDetail({ id }) {
                 txn.status === "PAID_OUT") && (
                 <Link href={`/buy/review/${id}`}>
                   <ActionButton
-                    text="Complete Order & Review"
+                    text="Order Summary & Review"
                     variant="primaryClick"
                   />
                 </Link>
@@ -396,7 +416,7 @@ export default function OrderDetail({ id }) {
                 txn.status === "BUYER_CONFIRMED" ||
                 txn.status === "PAID_OUT") && (
                 <Link href={`/my-orders/${id}/payout`}>
-                  <ActionButton text="Payout" variant="primaryClick" />
+                  <ActionButton text="View Payout" variant="primaryClick" />
                 </Link>
               )}
           </div>

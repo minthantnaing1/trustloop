@@ -41,12 +41,12 @@ export async function GET(_req, { params }) {
 
     // A4 page
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595, 495]);
+    const page = pdfDoc.addPage([595, 480]);
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    const margin = 48;
-    let y = 465;
+    const margin = 45;
+    let y = 450;
 
     // Header bar
     page.drawRectangle({

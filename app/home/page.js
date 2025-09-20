@@ -93,8 +93,7 @@ export default async function HomePage() {
             {[
               { label: "Buy", href: "/buy" },
               { label: "Sell", href: "/sell" },
-              { label: "Auction", href: "/auction" },
-              { label: "Giveaway", href: "/giveaway" },
+              { label: "Donation", href: "/donation" },
             ].map((item) => (
               <Link key={item.href} href={item.href} className="min-w-[140px]">
                 <ActionButton

@@ -67,13 +67,33 @@ export default async function ProfilePage() {
       .lean(),
   ]);
 
+  const sellingPlain = sellingProducts.map(toPlainProduct).filter(Boolean);
   const boughtProducts = boughtTxns
-    .map((t) => toPlainProduct(t.product))
+    .map((t) => {
+      const p = toPlainProduct(t.product);
+      return p
+        ? {
+            ...p,
+            orderId: t._id.toString(),
+            orderStatus: t.status,
+            viewerRole: "buyer",
+          }
+        : null;
+    })
     .filter(Boolean);
   const soldProducts = soldTxns
-    .map((t) => toPlainProduct(t.product))
+    .map((t) => {
+      const p = toPlainProduct(t.product);
+      return p
+        ? {
+            ...p,
+            orderId: t._id.toString(),
+            orderStatus: t.status,
+            viewerRole: "seller",
+          }
+        : null;
+    })
     .filter(Boolean);
-  const sellingPlain = sellingProducts.map(toPlainProduct).filter(Boolean);
 
   return (
     <>

@@ -25,6 +25,18 @@ export default function LoadingOverlay() {
     }
   }, [visible]);
 
+  // Allow programmatic show/hide (for router.push redirects etc.)
+  useEffect(() => {
+    const show = () => setVisible(true);
+    const hide = () => setVisible(false);
+    window.addEventListener("overlay:show", show);
+    window.addEventListener("overlay:hide", hide);
+    return () => {
+      window.removeEventListener("overlay:show", show);
+      window.removeEventListener("overlay:hide", hide);
+    };
+  }, []);
+
   // Capture internal link clicks to know "navigation intent" start
   useEffect(() => {
     function findAnchor(el) {

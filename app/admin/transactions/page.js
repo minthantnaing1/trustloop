@@ -138,7 +138,7 @@ export default function AdminTransactionsPage() {
                   <th className="p-2 border-b font-medium">Updated</th>
                   <th className="p-2 border-b font-medium">Buyer Slip</th>
                   <th className="p-2 border-b font-medium">Delivery Method</th>
-                  <th className="p-2 border-b font-medium">Status</th>
+                  <th className="p-2 border-b font-medium">Order Status</th>
                   <th className="p-2 border-b font-medium">Actions</th>
                 </tr>
               </thead>
@@ -182,15 +182,22 @@ export default function AdminTransactionsPage() {
                           <div className="text-sm text-gray-600">
                             {t.buyer.email}
                           </div>
-                          {t.buyer.phone && (
-                            <a
-                              href={`tel:${t.buyer.phone}`}
-                              className="flex items-center gap-1 text-sm text-[#325082] hover:underline"
-                            >
-                              <PhoneIcon className="w-3 h-3" />
-                              {t.buyer.phone}
-                            </a>
-                          )}
+                          {t.buyer.phone &&
+                            (deleteMode ? (
+                              // Disabled in delete mode (no href, no click)
+                              <span className="flex items-center gap-1 text-sm text-[#325082]/40 mt-0.5">
+                                <PhoneIcon className="w-3 h-3" />
+                                {t.buyer.phone}
+                              </span>
+                            ) : (
+                              <a
+                                href={`tel:${t.buyer.phone}`}
+                                className="flex items-center gap-1 text-sm text-[#325082] hover:underline mt-0.5"
+                              >
+                                <PhoneIcon className="w-3 h-3" />
+                                {t.buyer.phone}
+                              </a>
+                            ))}
                         </div>
                       </td>
                       {/* Seller */}
@@ -200,15 +207,22 @@ export default function AdminTransactionsPage() {
                           <div className="text-sm text-gray-600">
                             {t.seller.email}
                           </div>
-                          {t.seller.phone && (
-                            <a
-                              href={`tel:${t.seller.phone}`}
-                              className="flex items-center gap-1 text-sm text-[#325082] hover:underline mt-0.5"
-                            >
-                              <PhoneIcon className="w-3 h-3" />
-                              {t.seller.phone}
-                            </a>
-                          )}
+                          {t.seller.phone &&
+                            (deleteMode ? (
+                              // Disabled in delete mode (no href, no click)
+                              <span className="flex items-center gap-1 text-sm text-[#325082]/40 mt-0.5">
+                                <PhoneIcon className="w-3 h-3" />
+                                {t.seller.phone}
+                              </span>
+                            ) : (
+                              <a
+                                href={`tel:${t.seller.phone}`}
+                                className="flex items-center gap-1 text-sm text-[#325082] hover:underline mt-0.5"
+                              >
+                                <PhoneIcon className="w-3 h-3" />
+                                {t.seller.phone}
+                              </a>
+                            ))}
                         </div>
                       </td>
                       <td className="p-2">

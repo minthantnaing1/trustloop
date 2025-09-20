@@ -2,6 +2,8 @@ import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
 import Notification from "@/models/Notification";
 import User from "@/models/User";
+import Product from "@/models/Product";
+import Transaction from "@/models/Product";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -23,11 +25,11 @@ export async function GET(req) {
   const unreadOnly = searchParams.get("unread") === "1";
 
   const q = { recipient: me._id };
-  if (cursor) q.createdAt = { $lt: new Date(cursor) };
+  if (cursor) q.updatedAt = { $lt: new Date(cursor) };
   if (unreadOnly) q.isRead = false;
 
   const items = await Notification.find(q)
-    .sort({ createdAt: -1 })
+    .sort({ updatedAt: -1 })
     .limit(limit + 1)
     .populate("actor", "name email image")
     .populate("product", "_id title")
@@ -44,9 +46,28 @@ export async function GET(req) {
   const hasMore = items.length > limit;
   const data = hasMore ? items.slice(0, limit) : items;
 
+  // 1) Authoritative count directly from notifications
+  const unreadCount = await Notification.countDocuments({
+    recipient: me._id,
+    isRead: false,
+  });
+
+  // 2) Optional: reconcile the cached field on User (keeps everything consistent)
+  const meDoc = await User.findById(me._id)
+    .select("unreadNotifications")
+    .lean();
+  const cached = Number(meDoc?.unreadNotifications || 0);
+  if (cached !== unreadCount) {
+    await User.updateOne(
+      { _id: me._id },
+      { $set: { unreadNotifications: unreadCount } }
+    );
+  }
+
   return Response.json({
     items: data,
-    nextCursor: hasMore ? data[data.length - 1].createdAt : null,
+    nextCursor: hasMore ? data[data.length - 1].updatedAt : null,
+    unreadCount, // ← badge should use this
   });
 }
 
@@ -64,7 +85,8 @@ export async function PATCH(req) {
 
   await Notification.updateMany(
     { recipient: me._id, isRead: false },
-    { $set: { isRead: true, readAt: new Date() } }
+    { $set: { isRead: true, readAt: new Date() } },
+    { timestamps: false } // ← keep updatedAt unchanged
   );
 
   await User.updateOne({ _id: me._id }, { $set: { unreadNotifications: 0 } });

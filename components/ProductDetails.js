@@ -94,11 +94,11 @@ export default function ProductDetails({
               )}
             </div>
 
-            {!product.isAvailable && (
+            {/* {!product.isAvailable && (
               <p className="text-sm text-gray-600 mt-1">
-                This item is currently in an active transaction.
+                This item is currently in an active transaction or sold out.
               </p>
-            )}
+            )} */}
 
             <div className="bg-[#e2e2e2] p-3 rounded-md">
               Description: {product.description || "-"}
