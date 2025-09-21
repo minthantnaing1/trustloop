@@ -133,7 +133,7 @@ export default function ProductCard({
 
   const InfoContent = () => (
     <>
-      <h4 className="font-semibold truncate text-[14px] md:text-[15px]">
+      <h4 className="font-semibold truncate text-[13px] text-[#153969] md:text-[15px]">
         {product.title}
       </h4>
 
@@ -142,7 +142,7 @@ export default function ProductCard({
           {product.category}
         </p>
         {product.price != null && (
-          <p className="text-[14px] md:text-[15px] font-semibold shrink-0">
+          <p className="text-[13px] md:text-[15px] text-[#153969] font-semibold shrink-0">
             {Number(product.price).toLocaleString()} ฿
           </p>
         )}

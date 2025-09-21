@@ -42,8 +42,8 @@ export default function HeroCarousel() {
           Welcome to TrustLoop
         </h1>
         <p className="max-w-[800px] text-sm sm:text-lg mb-6 drop-shadow-lg">
-          Assumption University&apos;s exclusive marketplace. Buy, sell,
-          auction, or donate securely among AU students.
+          Assumption University&apos;s exclusive second-hand market platform.
+          <br /> Buy, sell, and donate securely among AU students.
         </p>
         <Link href="/buy">
           <ActionButton text="Start Exploring" variant="glassClick" />

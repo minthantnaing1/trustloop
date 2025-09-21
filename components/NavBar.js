@@ -314,7 +314,7 @@ function NavBar() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 w-full h-[68px] bg-gradient-to-r from-[#2b446a] to-[#325082] shadow-md shadow-gray-900/30 flex justify-between items-center px-4 md:px-8 z-[10000]">
+      <header className="fixed top-0 left-0 w-full h-[68px] bg-gradient-to-r from-[#153969] to-[#325082] shadow-md shadow-gray-900/30 flex justify-between items-center px-4 md:px-8 z-[10000]">
         <div className="flex items-center">
           <Image
             src="/TrustLoopLogoW.png"

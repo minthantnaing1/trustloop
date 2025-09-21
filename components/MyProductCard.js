@@ -40,16 +40,16 @@ export default function MyProductCard({
 
   const InfoContent = () => (
     <>
-      <h4 className="font-semibold truncate text-[14px] max-sm:text-[12px]">
+      <h4 className="font-semibold truncate text-[13px] text-[#153969] max-sm:text-[12px]">
         {product?.title ?? "-"}
       </h4>
 
       <div className="mt-1 flex items-center justify-between gap-2">
-        <p className="text-[12px] text-gray-700 truncate max-sm:text-[11px]">
+        <p className="text-[14px] text-gray-700 truncate max-sm:text-[11px]">
           {product?.category ?? ""}
         </p>
         {product?.price != null && (
-          <p className="text-[14px] font-semibold shrink-0 max-sm:text-[12px]">
+          <p className="text-[13px] text-[#153969] font-semibold shrink-0 max-sm:text-[12px]">
             {Number(product.price).toLocaleString()} ฿
           </p>
         )}
