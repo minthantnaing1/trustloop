@@ -6,11 +6,23 @@ import { useRouter } from "next/navigation";
 import ActionButton from "@/components/ActionButton";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea"; // if missing, swap to <textarea>
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Upload, Heart, Users, Gift } from "lucide-react";
 
@@ -124,7 +136,9 @@ export default function DonatePage() {
             </Link>
             <div className="flex items-center gap-2">
               <Gift className="h-6 w-6 text-blue-600" />
-              <h1 className="text-xl font-bold text-slate-900">Donate an Item</h1>
+              <h1 className="text-xl font-bold text-slate-900">
+                Donate an Item
+              </h1>
             </div>
           </div>
         </div>
@@ -137,9 +151,12 @@ export default function DonatePage() {
             <Heart className="h-8 w-8 text-red-500" />
             <Users className="h-8 w-8 text-blue-600" />
           </div>
-          <h2 className="text-3xl font-bold text-slate-900 mb-2">Share with Your Community</h2>
+          <h2 className="text-3xl font-bold text-slate-900 mb-2">
+            Share with Your Community
+          </h2>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            Help fellow students by donating items you no longer need. Every donation makes a difference!
+            Help fellow students by donating items you no longer need. Every
+            donation makes a difference!
           </p>
         </div>
 
@@ -152,12 +169,6 @@ export default function DonatePage() {
             disabled={loading}
           />
           <div className="text-[#325082] font-semibold" />
-          <ActionButton
-            text={loading ? "Processing..." : "Confirm To Donate"}
-            variant="primaryClick"
-            onClick={handleSubmit}
-            disabled={loading}
-          />
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
@@ -165,7 +176,9 @@ export default function DonatePage() {
           <div className="lg:col-span-2">
             <Card className="shadow-lg border-0 bg-white/70 backdrop-blur-sm">
               <CardHeader className="pb-6">
-                <CardTitle className="text-2xl text-slate-900">Item Details</CardTitle>
+                <CardTitle className="text-2xl text-slate-900">
+                  Item Details
+                </CardTitle>
                 <CardDescription className="text-slate-600">
                   Provide information about the item you'd like to donate
                 </CardDescription>
@@ -174,7 +187,9 @@ export default function DonatePage() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Photos (functional uploader + preview grid) */}
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-slate-700">Photos (max 5) *</Label>
+                    <Label className="text-sm font-medium text-slate-700">
+                      Photos (max 5) *
+                    </Label>
 
                     <div className="relative">
                       <input
@@ -186,9 +201,17 @@ export default function DonatePage() {
                       />
                       <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
                         <Upload className="h-8 w-8 text-slate-400 mx-auto mb-2" />
-                        <p className="text-sm text-slate-600 mb-2">Click to upload or drag files here</p>
-                        <p className="text-xs text-slate-500">Add up to 5 photos</p>
-                        <Button type="button" variant="outline" className="mt-3 bg-transparent pointer-events-none">
+                        <p className="text-sm text-slate-600 mb-2">
+                          Click to upload or drag files here
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          Add up to 5 photos
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="mt-3 bg-transparent pointer-events-none"
+                        >
                           Choose Files
                         </Button>
                       </div>
@@ -202,7 +225,9 @@ export default function DonatePage() {
                             <div
                               key={index}
                               className={`relative border-2 rounded-md overflow-hidden ${
-                                defaultIndex === index ? "border-blue-600" : "border-slate-200"
+                                defaultIndex === index
+                                  ? "border-blue-600"
+                                  : "border-slate-200"
                               }`}
                             >
                               <img
@@ -222,8 +247,10 @@ export default function DonatePage() {
                                   const next = [...images];
                                   next.splice(index, 1);
                                   setImages(next);
-                                  if (defaultIndex === index) setDefaultIndex(0);
-                                  else if (index < defaultIndex) setDefaultIndex((p) => Math.max(0, p - 1));
+                                  if (defaultIndex === index)
+                                    setDefaultIndex(0);
+                                  else if (index < defaultIndex)
+                                    setDefaultIndex((p) => Math.max(0, p - 1));
                                 }}
                                 className="absolute top-1 right-1 bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-700"
                                 title="Remove"
@@ -239,7 +266,10 @@ export default function DonatePage() {
 
                   {/* Title */}
                   <div className="space-y-2">
-                    <Label htmlFor="title" className="text-sm font-medium text-slate-700">
+                    <Label
+                      htmlFor="title"
+                      className="text-sm font-medium text-slate-700"
+                    >
                       Item Title *
                     </Label>
                     <Input
@@ -255,7 +285,10 @@ export default function DonatePage() {
 
                   {/* Description */}
                   <div className="space-y-2">
-                    <Label htmlFor="description" className="text-sm font-medium text-slate-700">
+                    <Label
+                      htmlFor="description"
+                      className="text-sm font-medium text-slate-700"
+                    >
                       Description *
                     </Label>
                     <Textarea
@@ -272,18 +305,26 @@ export default function DonatePage() {
                   {/* Category / Condition */}
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-slate-700">Category *</Label>
+                      <Label className="text-sm font-medium text-slate-700">
+                        Category *
+                      </Label>
                       <Select
                         value={form.category || undefined}
-                        onValueChange={(v) => setForm((p) => ({ ...p, category: v }))}
+                        onValueChange={(v) =>
+                          setForm((p) => ({ ...p, category: v }))
+                        }
                       >
                         <SelectTrigger className="border-slate-300 focus:border-blue-500 focus:ring-blue-500">
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="electronics">Electronics</SelectItem>
+                          <SelectItem value="electronics">
+                            Electronics
+                          </SelectItem>
                           <SelectItem value="furniture">Furniture</SelectItem>
-                          <SelectItem value="books">Books & Textbooks</SelectItem>
+                          <SelectItem value="books">
+                            Books & Textbooks
+                          </SelectItem>
                           <SelectItem value="clothing">Clothing</SelectItem>
                           <SelectItem value="other">Other</SelectItem>
                         </SelectContent>
@@ -291,10 +332,14 @@ export default function DonatePage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-slate-700">Condition *</Label>
+                      <Label className="text-sm font-medium text-slate-700">
+                        Condition *
+                      </Label>
                       <Select
                         value={form.condition || undefined}
-                        onValueChange={(v) => setForm((p) => ({ ...p, condition: v }))}
+                        onValueChange={(v) =>
+                          setForm((p) => ({ ...p, condition: v }))
+                        }
                       >
                         <SelectTrigger className="border-slate-300 focus:border-blue-500 focus:ring-blue-500">
                           <SelectValue placeholder="Select condition" />
@@ -311,7 +356,10 @@ export default function DonatePage() {
 
                   {/* Location */}
                   <div className="space-y-2">
-                    <Label htmlFor="location" className="text-sm font-medium text-slate-700">
+                    <Label
+                      htmlFor="location"
+                      className="text-sm font-medium text-slate-700"
+                    >
                       Pickup Location *
                     </Label>
                     <Input
@@ -328,10 +376,14 @@ export default function DonatePage() {
                   {/* Contact */}
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-slate-700">Preferred Contact Method *</Label>
+                      <Label className="text-sm font-medium text-slate-700">
+                        Preferred Contact Method *
+                      </Label>
                       <Select
                         value={form.contactMethod || undefined}
-                        onValueChange={(v) => setForm((p) => ({ ...p, contactMethod: v }))}
+                        onValueChange={(v) =>
+                          setForm((p) => ({ ...p, contactMethod: v }))
+                        }
                       >
                         <SelectTrigger className="border-slate-300 focus:border-blue-500 focus:ring-blue-500">
                           <SelectValue placeholder="How should people contact you?" />
@@ -339,13 +391,18 @@ export default function DonatePage() {
                         <SelectContent>
                           <SelectItem value="email">Email</SelectItem>
                           <SelectItem value="phone">Phone/Text</SelectItem>
-                          <SelectItem value="both">Both Email & Phone</SelectItem>
+                          <SelectItem value="both">
+                            Both Email & Phone
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="contactInfo" className="text-sm font-medium text-slate-700">
+                      <Label
+                        htmlFor="contactInfo"
+                        className="text-sm font-medium text-slate-700"
+                      >
                         Contact Information *
                       </Label>
                       <Input
@@ -380,7 +437,9 @@ export default function DonatePage() {
           <div className="space-y-6">
             <Card className="shadow-lg border-0 bg-white/70 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle className="text-lg text-slate-900">Donation Tips</CardTitle>
+                <CardTitle className="text-lg text-slate-900">
+                  Donation Tips
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3 text-sm text-slate-600">
@@ -402,15 +461,20 @@ export default function DonatePage() {
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-600">Items donated this month</span>
+                    <span className="text-sm text-slate-600">
+                      Items donated this month
+                    </span>
                     <Badge className="bg-green-100 text-green-800">247</Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-slate-600">Students helped</span>
+                    <span className="text-sm text-slate-600">
+                      Students helped
+                    </span>
                     <Badge className="bg-blue-100 text-blue-800">156</Badge>
                   </div>
                   <p className="text-xs text-slate-500 pt-2">
-                    Join our community of generous students making campus life better for everyone!
+                    Join our community of generous students making campus life
+                    better for everyone!
                   </p>
                 </div>
               </CardContent>
