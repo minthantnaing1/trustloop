@@ -18,6 +18,7 @@ const ProductSchema = new mongoose.Schema(
       type: String,
       enum: ["new", "like new", "used", "poor"],
       required: true,
+    
     },
 
     // Type of listing

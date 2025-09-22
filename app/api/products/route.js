@@ -4,7 +4,7 @@ import Product from "@/models/Product";
 import Transaction from "@/models/Transaction";
 import { auth } from "@/auth";
 
-// ✅ CREATE PRODUCT
+// ✅ CREATE PRODUCT or DONATION
 export async function POST(req) {
   try {
     const session = await auth();
@@ -14,6 +14,11 @@ export async function POST(req) {
 
     const body = await req.json();
     await connectDB();
+
+    // Normalize donation payload
+    if (body.type === "donation") {
+      body.price = 0; // donations always free
+    }
 
     const user = await User.findOne({ email: session.user.email });
     if (!user) {
@@ -32,7 +37,7 @@ export async function POST(req) {
   }
 }
 
-// ✅ GET PRODUCTS (With filters + return userEmail)
+// ✅ GET PRODUCTS (filters + donations support)
 export async function GET(req) {
   try {
     const session = await auth();
@@ -46,6 +51,7 @@ export async function GET(req) {
     const condition = searchParams.get("condition");
     const location = searchParams.get("location");
     const type = searchParams.get("type"); // ← add this for type
+    const notType = searchParams.get("notType");
 
     const user = session?.user?.email
       ? await User.findOne({ email: session.user.email })
@@ -64,7 +70,8 @@ export async function GET(req) {
     if (category) filters.category = category;
     if (condition) filters.condition = condition;
     if (location) filters.location = { $regex: location, $options: "i" };
-    if (type) filters.type = type; // ← add this (e.g., "sell")
+    if (type) filters.type = type; // 👈 filter donations vs products
+    if (notType) filters.type = { $ne: notType };
 
     const products = await Product.find(filters)
       .populate("owner")
