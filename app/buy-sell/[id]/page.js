@@ -102,10 +102,15 @@ export default async function ProductDetailPage({ params }) {
               {product.title}
             </h2>
             <p className="text-m text-gray-700">Category: {product.category}</p>
+          
+          {/* 👇 Price or Free */}
+          {Number(product.price) === 0 ? (
+            <p className="text-lg font-bold text-green-600">Free</p>
+          ) : product?.price != null ? (
             <p className="text-lg font-semibold">
               {Number(product.price).toLocaleString()} ฿
             </p>
-
+          ) : null}
             <div className="flex flex-wrap justify-center gap-2 w-full">
               {!isOwner && (
                 <>

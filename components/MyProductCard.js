@@ -43,7 +43,14 @@ export default function MyProductCard({ product, className = "" }) {
             </p>
           ) : null}
 
-          {product?.price != null ? (
+          {product?.price === 0 ? (
+            <p className="text-[14px] text-green-600 font-bold max-sm:text-[11px]">
+              Free
+            </p>
+            
+          ) : 
+
+          product?.price != null ? (
             <p className="text-[14px] text-[#222] font-semibold max-sm:text-[11px]">
               {Number(product.price).toLocaleString()} ฿
             </p>

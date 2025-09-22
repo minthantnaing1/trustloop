@@ -76,9 +76,7 @@ function NavBar() {
             {navLinks.map((item) => {
               const isActive =
                 pathname === item.href ||
-                (item.href === "/buy-sell" &&
-                  pathname.startsWith("/buy-sell/")) ||
-                (item.href === "/buy-sell" && pathname === "/sell");
+                pathname.startsWith(item.href + "/");
 
               return (
                 <li key={item.href}>
@@ -97,6 +95,8 @@ function NavBar() {
               );
             })}
           </ul>
+
+
         </div>
 
         {/* Right - Action Icons */}

@@ -8,6 +8,15 @@ export default function ProductCard({
   showHideMode = false,
   onToggleHide,
 }) {
+  
+  
+  // 👇 Decide the base path for product detail
+  const detailBase =
+    product?.type === "donation" || Number(product?.price) === 0
+      ? "/donation"
+      : "/buy-sell";
+
+
   // Correct flags
   const isHidden = Boolean(product.isHidden); // seller-controlled
   const reserved = !Boolean(product.isAvailable); // transaction-controlled
@@ -30,7 +39,7 @@ export default function ProductCard({
 
   return (
     <Link
-      href={showHideMode && isOwner ? "#" : `/buy-sell/${product._id}`}
+      href={showHideMode && isOwner ? "#" : `${detailBase}/${product._id}`}
       title={showHideMode && isOwner ? title : product.title}
     >
       <div

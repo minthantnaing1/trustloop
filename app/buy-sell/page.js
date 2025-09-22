@@ -42,6 +42,7 @@ export default function BuySellPage() {
       maxPrice: filters.maxPrice,
       condition: filters.condition,
       location: filters.location,
+      notType: "donation",
     });
 
     const res = await fetch(`/api/products?${query.toString()}`);

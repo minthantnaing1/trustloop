@@ -3,7 +3,7 @@ import Product from "@/models/Product";
 import User from "@/models/User";
 import { auth } from "@/auth";
 
-// ✅ CREATE PRODUCT
+// ✅ CREATE PRODUCT or DONATION
 export async function POST(req) {
   try {
     const session = await auth();
@@ -14,10 +14,11 @@ export async function POST(req) {
     const body = await req.json();
     await connectDB();
 
-    ////Normalize donation payload: ensure type & price are consistent
-    if (body.type === 'donation_now') {
-      body.price = 0;
+    // Normalize donation payload
+    if (body.type === "donation") {
+      body.price = 0; // donations always free
     }
+
     const user = await User.findOne({ email: session.user.email });
     if (!user) {
       return new Response("User not found", { status: 404 });
@@ -35,7 +36,7 @@ export async function POST(req) {
   }
 }
 
-// ✅ GET PRODUCTS (With filters + return userEmail)
+// ✅ GET PRODUCTS (filters + donations support)
 export async function GET(req) {
   try {
     const session = await auth();
@@ -48,6 +49,8 @@ export async function GET(req) {
     const maxPrice = parseFloat(searchParams.get("maxPrice")) || 999999999;
     const condition = searchParams.get("condition");
     const location = searchParams.get("location");
+    const type = searchParams.get("type"); // 👈 NEW
+    const notType = searchParams.get("notType");
 
     const user = session?.user?.email
       ? await User.findOne({ email: session.user.email })
@@ -66,7 +69,9 @@ export async function GET(req) {
     if (category) filters.category = category;
     if (condition) filters.condition = condition;
     if (location) filters.location = { $regex: location, $options: "i" };
-
+    if (type) filters.type = type; // 👈 filter donations vs products
+    if (notType) filters.type = { $ne: notType };
+    
     const products = await Product.find(filters)
       .populate("owner")
       .sort({ createdAt: -1 });

@@ -1,35 +1,45 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import NavBar from "@/components/NavBar";
 import ActionButton from "@/components/ActionButton";
 
-export default function SellPage() {
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea"; // if missing, swap to <textarea>
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Upload, Heart, Users, Gift } from "lucide-react";
+
+export default function DonatePage() {
   const router = useRouter();
 
+  // ===== form + image state =====
   const [form, setForm] = useState({
     title: "",
-    description: "", 
-    //price: "",
+    description: "",
     category: "",
     condition: "",
     location: "",
-    recipientNote: "",
+    contactMethod: "",
+    contactInfo: "",
   });
 
-  const [images, setImages] = useState([]); // array of File
+  const [images, setImages] = useState([]); // array<File>
   const [defaultIndex, setDefaultIndex] = useState(0);
   const [loading, setLoading] = useState(false);
 
+  // ===== handlers brought from your first code =====
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name === "price" && Number(value) < 0) return;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleImageSelect = (e) => {
-    const files = Array.from(e.target.files);
+    const files = Array.from(e.target.files || []);
     if (files.length + images.length > 5) {
       alert("You can only upload up to 5 images.");
       return;
@@ -38,10 +48,12 @@ export default function SellPage() {
     if (images.length === 0) setDefaultIndex(0);
   };
 
-  const handleSubmit = async () => {
-    const { title, price, category, condition } = form;
+  const handleSubmit = async (e) => {
+    e?.preventDefault?.();
 
-    if (!title  || !category || !condition) { //|| !price
+    const { title, category, condition } = form;
+
+    if (!title || !category || !condition) {
       alert("Please fill in all required fields.");
       return;
     }
@@ -54,7 +66,7 @@ export default function SellPage() {
     try {
       setLoading(true);
 
-      // Upload images to Cloudinary
+      // Upload images to your /api/upload (as in your first code)
       const uploadedUrls = [];
       for (const file of images) {
         const formData = new FormData();
@@ -66,13 +78,13 @@ export default function SellPage() {
         });
 
         const data = await res.json();
-        if (!data.url) throw new Error("Upload failed");
+        if (!data?.url) throw new Error("Upload failed");
         uploadedUrls.push(data.url);
       }
 
       const defaultImage = uploadedUrls[defaultIndex];
 
-      // Post product
+      // Create donation product
       const res = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -86,7 +98,7 @@ export default function SellPage() {
       });
 
       if (res.ok) {
-        router.push("/buy-sell");
+        router.push("/donation");
       } else {
         alert("Error submitting product.");
       }
@@ -98,25 +110,48 @@ export default function SellPage() {
   };
 
   return (
-    <>
-      <NavBar />
-      <main className="max-w-[1200px] mx-auto mt-[110px] mb-5 px-5">
-        {/* Top Bar with Cancel, Title, and Confirm */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      {/* Header from layout */}
+      <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <Link
+              href="/donation"
+              className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5" />
+              <span className="font-medium">Back to Marketplace</span>
+            </Link>
+            <div className="flex items-center gap-2">
+              <Gift className="h-6 w-6 text-blue-600" />
+              <h1 className="text-xl font-bold text-slate-900">Donate an Item</h1>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Hero */}
+        <div className="text-center mb-6">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Heart className="h-8 w-8 text-red-500" />
+            <Users className="h-8 w-8 text-blue-600" />
+          </div>
+          <h2 className="text-3xl font-bold text-slate-900 mb-2">Share with Your Community</h2>
+          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+            Help fellow students by donating items you no longer need. Every donation makes a difference!
+          </p>
+        </div>
+
+        {/* Top action bar (ActionButton from your first code) */}
         <div className="flex justify-between items-center mb-6">
-          {/* Cancel Button - Left */}
           <ActionButton
             text="Cancel"
             variant="outlineClick"
-            onClick={() => router.push("/buy-sell")}
+            onClick={() => router.push("/donation")}
             disabled={loading}
           />
-
-          {/* Center Title */}
-          <h2 className="text-2xl font-semibold text-[#325082] text-center">
-            Donate Product 
-          </h2>
-
-          {/* Confirm Button - Right */}
+          <div className="text-[#325082] font-semibold" />
           <ActionButton
             text={loading ? "Processing..." : "Confirm To Donate"}
             variant="primaryClick"
@@ -125,180 +160,264 @@ export default function SellPage() {
           />
         </div>
 
-        <div className="flex flex-col lg:flex-row flex-wrap gap-[30px] items-start">
-          {/* Upload Section */}
-          <div className="flex-1 w-full sm:h-[364px] min-w-[250px] bg-[#f1f1f1] rounded-[12px] p-4 flex flex-col justify-start">
-            <label className="block text-[#325082] font-semibold mb-3">
-              Upload Product Images (max 5)
-            </label>
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Main Form */}
+          <div className="lg:col-span-2">
+            <Card className="shadow-lg border-0 bg-white/70 backdrop-blur-sm">
+              <CardHeader className="pb-6">
+                <CardTitle className="text-2xl text-slate-900">Item Details</CardTitle>
+                <CardDescription className="text-slate-600">
+                  Provide information about the item you'd like to donate
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {/* Photos (functional uploader + preview grid) */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-slate-700">Photos (max 5) *</Label>
 
-            {/* Compact Upload Box */}
-            <div className="relative w-full mb-4">
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleImageSelect}
-                className="absolute inset-0 opacity-0 cursor-pointer z-10"
-              />
-              <div className="border border-dashed border-[#325082] rounded-md h-[80px] flex items-center justify-center text-[#325082] hover:bg-[#e6ecf5] transition duration-200 text-sm">
-                <svg
-                  className="w-5 h-5 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 16V8m0 0L8 12m4-4l4 4M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1"
-                  />
-                </svg>
-                <span>Click to upload or drag files</span>
-              </div>
-            </div>
+                    <div className="relative">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImageSelect}
+                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                      />
+                      <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                        <Upload className="h-8 w-8 text-slate-400 mx-auto mb-2" />
+                        <p className="text-sm text-slate-600 mb-2">Click to upload or drag files here</p>
+                        <p className="text-xs text-slate-500">Add up to 5 photos</p>
+                        <Button type="button" variant="outline" className="mt-3 bg-transparent pointer-events-none">
+                          Choose Files
+                        </Button>
+                      </div>
+                    </div>
 
-            {/* Image Grid */}
-            <div className="grid grid-cols-3 gap-2 overflow-y-auto">
-              {images.map((file, index) => {
-                const preview = URL.createObjectURL(file);
-                return (
-                  <div
-                    key={index}
-                    className={`relative border-2 rounded-md overflow-hidden group ${
-                      defaultIndex === index
-                        ? "border-[#325082]"
-                        : "border-gray-300"
-                    }`}
-                  >
-                    <img
-                      src={preview}
-                      alt={`Preview ${index}`}
-                      className="w-full h-[80px] object-cover cursor-pointer"
-                      onClick={() => setDefaultIndex(index)}
-                    />
-
-                    {/* Default Badge (left) */}
-                    {defaultIndex === index && (
-                      <span className="absolute top-1 left-1 bg-[#325082] text-white text-xs px-2 py-0.5 rounded z-10">
-                        Default
-                      </span>
+                    {images.length > 0 && (
+                      <div className="grid grid-cols-3 gap-2 mt-3">
+                        {images.map((file, index) => {
+                          const preview = URL.createObjectURL(file);
+                          return (
+                            <div
+                              key={index}
+                              className={`relative border-2 rounded-md overflow-hidden ${
+                                defaultIndex === index ? "border-blue-600" : "border-slate-200"
+                              }`}
+                            >
+                              <img
+                                src={preview}
+                                alt={`Preview ${index}`}
+                                className="w-full h-[90px] object-cover cursor-pointer"
+                                onClick={() => setDefaultIndex(index)}
+                              />
+                              {defaultIndex === index && (
+                                <span className="absolute top-1 left-1 bg-blue-600 text-white text-xs px-2 py-0.5 rounded">
+                                  Default
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const next = [...images];
+                                  next.splice(index, 1);
+                                  setImages(next);
+                                  if (defaultIndex === index) setDefaultIndex(0);
+                                  else if (index < defaultIndex) setDefaultIndex((p) => Math.max(0, p - 1));
+                                }}
+                                className="absolute top-1 right-1 bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-700"
+                                title="Remove"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
-
-                    {/* Remove X (right) */}
-                    <button
-                      onClick={() => {
-                        const newImages = [...images];
-                        newImages.splice(index, 1);
-                        setImages(newImages);
-
-                        if (defaultIndex === index) {
-                          setDefaultIndex(0);
-                        } else if (index < defaultIndex) {
-                          setDefaultIndex((prev) => prev - 1);
-                        }
-                      }}
-                      className="absolute top-1 right-1 bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-700 z-10"
-                      title="Remove"
-                      type="button"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="w-3.5 h-3.5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={3}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
                   </div>
-                );
-              })}
-            </div> 
+
+                  {/* Title */}
+                  <div className="space-y-2">
+                    <Label htmlFor="title" className="text-sm font-medium text-slate-700">
+                      Item Title *
+                    </Label>
+                    <Input
+                      id="title"
+                      name="title"
+                      placeholder="e.g., Mini Fridge, Desk Lamp, Textbooks"
+                      value={form.title}
+                      onChange={handleChange}
+                      className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+
+                  {/* Description */}
+                  <div className="space-y-2">
+                    <Label htmlFor="description" className="text-sm font-medium text-slate-700">
+                      Description *
+                    </Label>
+                    <Textarea
+                      id="description"
+                      name="description"
+                      placeholder="Describe the item, its condition, and why you're donating it..."
+                      value={form.description}
+                      onChange={handleChange}
+                      className="border-slate-300 focus:border-blue-500 focus:ring-blue-500 min-h-[120px]"
+                      required
+                    />
+                  </div>
+
+                  {/* Category / Condition */}
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-slate-700">Category *</Label>
+                      <Select
+                        value={form.category || undefined}
+                        onValueChange={(v) => setForm((p) => ({ ...p, category: v }))}
+                      >
+                        <SelectTrigger className="border-slate-300 focus:border-blue-500 focus:ring-blue-500">
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="electronics">Electronics</SelectItem>
+                          <SelectItem value="furniture">Furniture</SelectItem>
+                          <SelectItem value="books">Books & Textbooks</SelectItem>
+                          <SelectItem value="clothing">Clothing</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-slate-700">Condition *</Label>
+                      <Select
+                        value={form.condition || undefined}
+                        onValueChange={(v) => setForm((p) => ({ ...p, condition: v }))}
+                      >
+                        <SelectTrigger className="border-slate-300 focus:border-blue-500 focus:ring-blue-500">
+                          <SelectValue placeholder="Select condition" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="new">new</SelectItem>
+                          <SelectItem value="like new">like new</SelectItem>
+                          <SelectItem value="used">used</SelectItem>
+                          <SelectItem value="poor">poor</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Location */}
+                  <div className="space-y-2">
+                    <Label htmlFor="location" className="text-sm font-medium text-slate-700">
+                      Pickup Location *
+                    </Label>
+                    <Input
+                      id="location"
+                      name="location"
+                      placeholder="e.g., North Campus, Smith Hall, Off-campus apartment"
+                      value={form.location}
+                      onChange={handleChange}
+                      className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+
+                  {/* Contact */}
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-slate-700">Preferred Contact Method *</Label>
+                      <Select
+                        value={form.contactMethod || undefined}
+                        onValueChange={(v) => setForm((p) => ({ ...p, contactMethod: v }))}
+                      >
+                        <SelectTrigger className="border-slate-300 focus:border-blue-500 focus:ring-blue-500">
+                          <SelectValue placeholder="How should people contact you?" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="email">Email</SelectItem>
+                          <SelectItem value="phone">Phone/Text</SelectItem>
+                          <SelectItem value="both">Both Email & Phone</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="contactInfo" className="text-sm font-medium text-slate-700">
+                        Contact Information *
+                      </Label>
+                      <Input
+                        id="contactInfo"
+                        name="contactInfo"
+                        placeholder="Your email or phone number"
+                        value={form.contactInfo}
+                        onChange={handleChange}
+                        className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Submit as fallback (same as the Confirm button) */}
+                  <div className="pt-2">
+                    <Button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-medium py-3"
+                    >
+                      <Gift className="h-5 w-5 mr-2" />
+                      {loading ? "Processing..." : "Post Donation"}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Form Section */}
-          <div className="flex-1 w-full lg:min-w-[600px] flex flex-col gap-[15px]">
-            <input
-              name="title"
-              placeholder="Product Name *"
-              value={form.title}
-              onChange={handleChange}
-              className="bg-[#f1f1f1] p-3 rounded-[8px] outline-none"
-            />
-            <textarea
-              name="description"
-              value={form.description}
-              onChange={handleChange}
-              placeholder="Product Description"
-              className="bg-[#f1f1f1] p-3 rounded-[8px] min-h-[80px] outline-none"
-            />
-            <textarea
-              name="recipientNote"
-              value={form.recipientNote}
-              onChange={handleChange}
-              placeholder="Who do you want this donation to go to? (Optional)"
-              className="bg-[#f1f1f1] p-3 rounded-[8px] min-h-[80px] outline-none"
-            />
-            {/* 
-             <input
-              name="price"
-              type="number"
-              min="1"
-              placeholder="Price (in ฿) *"
-              value={form.price}
-              onChange={handleChange}
-              className="bg-[#f1f1f1] p-3 rounded-[8px] outline-none"
-            />
-            */} 
-            <div className="flex gap-3">
-              <select
-                name="category"
-                value={form.category}
-                onChange={handleChange}
-                className="bg-[#f1f1f1] p-3 max-sm:px-1 rounded-[8px] outline-none w-1/2"
-              >
-                <option value="" disabled>
-                  Select Category *
-                </option>
-                <option value="electronics">Electronics</option>
-                <option value="books">Books</option>
-                <option value="furniture">Furniture</option>
-                <option value="clothing">Clothing</option>
-                <option value="others">Others</option>
-              </select>
-              <select
-                name="condition"
-                value={form.condition}
-                onChange={handleChange}
-                className="bg-[#f1f1f1] p-3 max-sm:px-1 rounded-[8px] outline-none w-1/2"
-              >
-                <option value="" disabled>
-                  Select Condition *
-                </option>
-                <option value="new">New</option>
-                <option value="like new">Like New</option>
-                <option value="used">Used</option>
-                <option value="poor">Poor</option>
-              </select>
-            </div>
-            <textarea
-              name="location"
-              value={form.location}
-              onChange={handleChange}
-              placeholder="Meetup Location"
-              className="bg-[#f1f1f1] p-3 rounded-[8px] min-h-[80px] outline-none"
-            />
+          {/* Sidebar (unchanged) */}
+          <div className="space-y-6">
+            <Card className="shadow-lg border-0 bg-white/70 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-lg text-slate-900">Donation Tips</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-3 text-sm text-slate-600">
+                  <p>📸 Take clear, well-lit photos from multiple angles</p>
+                  <p>✅ Be honest about condition and flaws</p>
+                  <p>📍 Choose a safe, public pickup location</p>
+                  <p>⏱️ Respond promptly to interested students</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-lg border-0 bg-gradient-to-br from-green-50 to-emerald-50">
+              <CardHeader>
+                <CardTitle className="text-lg text-slate-900 flex items-center gap-2">
+                  <Heart className="h-5 w-5 text-red-500" />
+                  Your Impact
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600">Items donated this month</span>
+                    <Badge className="bg-green-100 text-green-800">247</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-slate-600">Students helped</span>
+                    <Badge className="bg-blue-100 text-blue-800">156</Badge>
+                  </div>
+                  <p className="text-xs text-slate-500 pt-2">
+                    Join our community of generous students making campus life better for everyone!
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
-      </main>
-    </>
+      </div>
+    </div>
   );
 }
