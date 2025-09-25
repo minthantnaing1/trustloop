@@ -303,12 +303,11 @@ function NavBar() {
     []
   );
 
-  const isActiveLink = (href) =>
-    pathname === href ||
-    (href === "/buy" && pathname.startsWith("/buy/")) ||
-    (href === "/sell" && pathname.startsWith("/sell/")) ||
-    (href === "/my-orders" && pathname.startsWith("/my-orders/"));
-
+  const isActiveLink = (href) => {
+     if (!pathname) return false;
+  // active on exact match OR any child path
+  return pathname === href || pathname.startsWith(href + "/");
+  }
   const blurDataURL =
     "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNmMmYyZjQiIC8+PC9zdmc+";
 

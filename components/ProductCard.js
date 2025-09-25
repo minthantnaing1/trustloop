@@ -13,6 +13,7 @@ export default function ProductCard({
   initialIsFav, // can be true/false/undefined
   currentUserEmail,
 }) {
+  const isDonation = product?.type === "donation" || Number(product?.price) === 0;
   const isHidden = Boolean(product.isHidden);
   const reserved = !Boolean(product.isAvailable);
   const isMe =
@@ -58,8 +59,9 @@ export default function ProductCard({
     }
   }
 
-  const href =
-    orderHref ?? (isOwner ? `/sell/${product._id}` : `/buy/${product._id}`);
+  const href = isDonation
+  ? `/donation/${product._id}`
+  : orderHref ?? (isOwner ? `/sell/${product._id}` : `/buy/${product._id}`);
 
   const img = product.defaultImage || "/placeholder.png";
 
@@ -136,7 +138,11 @@ export default function ProductCard({
       <h4 className="font-semibold truncate text-[13px] text-[#153969] md:text-[15px]">
         {product.title}
       </h4>
-
+        {isDonation
+    ? "Free"
+    : product.price != null
+    ? `${Number(product.price).toLocaleString()} ฿`
+    : ""}
       <div className="mt-1 flex items-center justify-between gap-2">
         <p className="text-[12px] md:text-[13px] text-gray-700 truncate">
           {product.category}
