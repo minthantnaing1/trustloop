@@ -172,14 +172,6 @@ export default function ProductsClient({ initial }) {
           ) : ownProducts.length === 0 ? (
             <div className="text-center text-gray-500">
               <p>You are not selling any items right now.</p>
-              <div className="mt-4">
-                <Link href="/sell/post">
-                  <ActionButton
-                    text="+ Create your first listing"
-                    variant="primaryClick"
-                  />
-                </Link>
-              </div>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 w-full max-[426px]:gap-[8px]">

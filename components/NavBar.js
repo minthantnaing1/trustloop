@@ -297,7 +297,7 @@ function NavBar() {
       { label: "HOME", href: "/home" },
       { label: "BUY", href: "/buy" },
       { label: "SELL", href: "/sell" },
-      { label: "DONATION", href: "/donation" },
+      // { label: "DONATION", href: "/donation" },
       { label: "MY ORDERS", href: "/my-orders" },
     ],
     []
@@ -314,29 +314,25 @@ function NavBar() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 w-full h-[68px] bg-gradient-to-r from-[#153969] to-[#325082] shadow-md shadow-gray-900/30 flex justify-between items-center px-4 md:px-8 z-[10000]">
+      <header className="fixed top-0 left-0 w-full h-[60px] bg-gradient-to-r from-[#153969] to-[#325082] shadow-md shadow-gray-900/30 flex justify-between items-center px-4 md:px-8 z-[10000]">
         <div className="flex items-center">
           <Image
             src="/TrustLoopLogoW.png"
             alt="Logo"
-            width={65}
+            width={64}
             height={55}
             priority
           />
         </div>
 
         {/* Middle - Welcome & Nav Links (Desktop Only) */}
-        <div className="hidden md:flex flex-col items-center gap-y-[3px] ml-[80px]">
-          <p className="text-white font-semibold text-[16px] tracking-wide">
-            Welcome to TrustLoop
-          </p>
-
+        <div className="hidden md:flex flex-col items-center ml-[80px]">
           <ul className="flex gap-[60px]">
             {navLinks.map((item) => (
               <li key={item.href}>
                 <Link href={item.href}>
                   <span
-                    className={`inline-block text-white text-[14px] font-medium px-2 py-1 border-b-2 transition-all duration-500 ease-in-out active:scale-[0.95] ${
+                    className={`inline-block text-white text-[14px] font-[] px-2 py-2.5 border-b-2 transition-all duration-500 ease-in-out active:scale-[0.95] ${
                       isActiveLink(item.href)
                         ? "border-white"
                         : "border-transparent hover:border-white"
@@ -469,7 +465,7 @@ function NavBar() {
       </header>
 
       {/* Spacer to push content down */}
-      <div className="h-[82px]" />
+      <div className="h-[74px]" />
 
       {/* Overlay */}
       {showMenu && (

@@ -224,11 +224,12 @@ export default function EditProductClient({ initialProduct }) {
                 <option value="" disabled>
                   Select Category *
                 </option>
-                <option value="electronics">Electronics</option>
-                <option value="books">Books</option>
-                <option value="furniture">Furniture</option>
-                <option value="clothing">Clothing</option>
-                <option value="others">Others</option>
+                <option value="IT/Tech">IT/Tech Devices</option>
+                <option value="Home Appliances">Home Appliances</option>
+                <option value="Furniture">Furniture</option>
+                <option value="Stationeries">Stationeries</option>
+                <option value="Clothing">Clothing</option>
+                <option value="Others">Others</option>
               </select>
               <select
                 name="condition"
