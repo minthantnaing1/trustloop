@@ -31,7 +31,7 @@ export default function FavoritesClient({ items, currentUserEmail = "" }) {
   }, [router]);
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full max-[426px]:gap-[12px]">
+    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 w-full max-[426px]:gap-[8px]">
       {items.map((p) => (
         <ProductCard
           key={p._id}

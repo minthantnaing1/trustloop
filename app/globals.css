@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 body {
-  font-family: "Libertinus Sans", sans-serif;
+  font-family: sans-serif;
 }
 
 .no-scrollbar::-webkit-scrollbar {
