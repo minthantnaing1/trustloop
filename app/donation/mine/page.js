@@ -49,12 +49,6 @@ export default function MyDonationsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-[25%_50%_25%] items-center gap-4 mb-4 w-full -mt-4.5 sm:mt-0">
           {/* Left (25%): Section title & back link */}
           <div className="sm:justify-self-start flex items-center gap-3">
-            <Link
-              href="/donation"
-              className="text-[#325082] text-sm hover:underline"
-            >
-              ← Back
-            </Link>
             <h1 className="text-2xl font-bold text-[#325082] hidden sm:block">
               My Donations
             </h1>
@@ -86,11 +80,6 @@ export default function MyDonationsPage() {
           {/* Right (25%): Actions */}
           <div className="sm:justify-self-end w-full sm:w-auto">
             <div className="flex gap-2 sm:gap-3 justify-end">
-              <ActionButton
-                text="Refresh"
-                variant="outlineHover"
-                onClick={fetchMyDonations}
-              />
               <Link href="/donation/donate_now">
                 <ActionButton text="+ Donate Items" variant="primaryClick" />
               </Link>
@@ -104,7 +93,9 @@ export default function MyDonationsPage() {
             Items You Are Donating
           </h3>
           {loading ? (
-            <p className="text-center text-gray-400">Loading your donations...</p>
+            <p className="text-center text-gray-400">
+              Loading your donations...
+            </p>
           ) : donations.length === 0 ? (
             <p className="text-center text-gray-500">
               You haven&apos;t donated any items yet.
@@ -117,7 +108,7 @@ export default function MyDonationsPage() {
                   product={item}
                   isOwner
                   currentUserEmail={userEmail}
-                  variant="classicBlur"   // match Buy/Donation style
+                  variant="classicBlur" // match Buy/Donation style
                 />
               ))}
             </div>

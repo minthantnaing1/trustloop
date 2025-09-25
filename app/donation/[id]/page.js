@@ -61,7 +61,7 @@ export default async function DonationDetailPage({ params }) {
   return (
     <>
       <NavBar />
-      <main className="max-w-[1200px] mx-auto mt-[120px] mb-[40px] px-5 w-full">
+      <main className="max-w-[1200px] mx-auto mb-[40px] px-5 w-full">
         {/* Top Section */}
         <div className="flex justify-between items-start mb-4 flex-col sm:flex-row gap-4">
           {/* Back Button */}
@@ -134,13 +134,18 @@ export default async function DonationDetailPage({ params }) {
 
             {/* Price (donations = Free) */}
             <p className="text-lg font-bold text-green-600">
-              {isDonation ? "Free" : `${Number(product.price).toLocaleString()} ฿`}
+              {isDonation
+                ? "Free"
+                : `${Number(product.price).toLocaleString()} ฿`}
             </p>
 
             {/* Actions for non-owner (Donation flow) */}
             {!isOwner && (
               <div className="flex flex-wrap justify-center gap-2 w-full">
-                <Link href={`/donation/${product._id}/request`} className="flex-[1]">
+                <Link
+                  href={`/donation/${product._id}/request`}
+                  className="flex-[1]"
+                >
                   <ActionButton
                     text="🤝 Request This Item"
                     variant="buyOutlineClick"
@@ -173,7 +178,10 @@ export default async function DonationDetailPage({ params }) {
               </div>
               <p className="text-sm text-gray-600 mb-4">{donorBio}</p>
               <div className="flex gap-2">
-                <Link href={`/donation/${product._id}/contact`} className="flex-1">
+                <Link
+                  href={`/donation/${product._id}/contact`}
+                  className="flex-1"
+                >
                   <ActionButton
                     text="Contact Donor"
                     variant="primaryClick"
@@ -190,7 +198,9 @@ export default async function DonationDetailPage({ params }) {
               <div className="grid grid-cols-2 gap-3 text-sm mb-3">
                 <p>
                   <span className="text-gray-500">Condition:</span>{" "}
-                  <span className="font-medium">{product.condition || "-"}</span>
+                  <span className="font-medium">
+                    {product.condition || "-"}
+                  </span>
                 </p>
                 {size && (
                   <p>
@@ -223,24 +233,29 @@ export default async function DonationDetailPage({ params }) {
                 {product?.recipientNote && (
                   <div>
                     <h4 className="font-medium mb-1">Recipient Note</h4>
-                    <p className="text-sm text-gray-600">{product.recipientNote}</p>
+                    <p className="text-sm text-gray-600">
+                      {product.recipientNote}
+                    </p>
                   </div>
                 )}
 
-                {Array.isArray(product.includes) && product.includes.length > 0 && (
-                  <div>
-                    <h4 className="font-medium mb-1">What's Included</h4>
-                    <ul className="text-sm text-gray-600 list-disc pl-5">
-                      {product.includes.map((it, idx) => (
-                        <li key={idx}>{it}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                {Array.isArray(product.includes) &&
+                  product.includes.length > 0 && (
+                    <div>
+                      <h4 className="font-medium mb-1">What's Included</h4>
+                      <ul className="text-sm text-gray-600 list-disc pl-5">
+                        {product.includes.map((it, idx) => (
+                          <li key={idx}>{it}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
 
                 <div>
                   <h4 className="font-medium mb-1">Meetup Location</h4>
-                  <p className="text-sm text-gray-600">{product.location || "-"}</p>
+                  <p className="text-sm text-gray-600">
+                    {product.location || "-"}
+                  </p>
                 </div>
               </div>
             </div>
