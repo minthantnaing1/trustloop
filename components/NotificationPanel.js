@@ -90,7 +90,7 @@ export default function NotificationPanel({ open, onClose, onUnreadChange }) {
       >
         <div className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-[#2b446a]/5 to-[#325082]/5">
           <h3 className="text-lg font-semibold text-[#2b446a]">
-            Notifications
+            Unread Notifications
           </h3>
           <button
             onClick={onClose}

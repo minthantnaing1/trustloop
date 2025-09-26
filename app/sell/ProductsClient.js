@@ -1,12 +1,13 @@
+// app/sell/ProductsClient.js
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import Link from "next/link";
 import NavBar from "@/components/NavBar";
 import FilterDropdown from "@/components/FilterDropdown";
 import ProductCard from "@/components/ProductCard";
 import { AdjustmentsHorizontalIcon } from "@heroicons/react/24/outline";
 import ActionButton from "@/components/ActionButton";
+import ConfirmModal from "@/components/ConfirmModal"; // ← add
 
 const SELL_CACHE_KEY = "sell:list:mine:v1";
 
@@ -26,6 +27,10 @@ export default function ProductsClient({ initial }) {
   });
 
   const [isPending, startTransition] = useTransition();
+
+  // ▼ modal state for profile guard
+  const [guardOpen, setGuardOpen] = useState(false);
+  const missing = initial?.sellGuard?.missing || [];
 
   const fetchProducts = async (nextFilters = filters, nextSearch = search) => {
     if (!products.length) setLoading(true);
@@ -102,6 +107,15 @@ export default function ProductsClient({ initial }) {
 
   const ownProducts = products.filter((p) => p.owner?.email === userEmail);
 
+  // ▼ sell button click
+  function onSellClick() {
+    if (initial?.sellGuard?.ok) {
+      window.location.href = "/sell/post";
+      return;
+    }
+    setGuardOpen(true);
+  }
+
   return (
     <>
       <NavBar />
@@ -109,14 +123,12 @@ export default function ProductsClient({ initial }) {
       <div className="max-w-[1200px] mx-auto px-2.5 sm:px-3 mb-6 w-full">
         {/* Header as strict 25% / 50% / 25% grid to keep search perfectly centered */}
         <div className="grid grid-cols-1 sm:grid-cols-[25%_50%_25%] items-center gap-4 mb-2 w-full -mt-4.5 sm:mt-0">
-          {/* Left (25%): Title (or any left text) */}
           <div className="sm:justify-self-start">
             <h1 className="text-2xl font-bold text-[#325082] hidden sm:block">
               Sell
             </h1>
           </div>
 
-          {/* Middle (50%): Centered Search */}
           <div className="sm:justify-self-center w-full">
             <div className="flex items-center w-full border border-gray-300 shadow-md rounded-[6px] px-[3.5px]">
               <input
@@ -141,10 +153,8 @@ export default function ProductsClient({ initial }) {
             </div>
           </div>
 
-          {/* Right (25%): Blank spacer to lock symmetry */}
           <div className="hidden sm:block" />
 
-          {/* Filter Dropdown (positioned relative to header controls) */}
           <FilterDropdown
             show={showFilter}
             filters={filters}
@@ -154,15 +164,18 @@ export default function ProductsClient({ initial }) {
           />
         </div>
 
-        {/* Section header with left text and right button (previous design) */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg font-semibold text-[#325082]">
               My Selling Items
             </h3>
-            <Link href="/sell/post">
-              <ActionButton text="+ Sell Your Items" variant="primaryClick" />
-            </Link>
+
+            {/* Was <Link><ActionButton/></Link> —> avoid nested button */}
+            <ActionButton
+              text="+ Sell Your Items"
+              variant="primaryClick"
+              onClick={onSellClick}
+            />
           </div>
 
           {loading ? (
@@ -188,6 +201,22 @@ export default function ProductsClient({ initial }) {
           )}
         </section>
       </div>
+
+      {/* Profile requirement modal */}
+      <ConfirmModal
+        isOpen={guardOpen}
+        message={
+          `Before posting a product, please add the following in your profile:\n\n` +
+          (missing.length ? "• " + missing.join("\n• ") : "—") +
+          `\n\nYou'll be redirected to update them.`
+        }
+        onCancel={() => setGuardOpen(false)}
+        onConfirm={() => {
+          setGuardOpen(false);
+          window.location.href = "/profile/edit";
+        }}
+        variant="default"
+      />
     </>
   );
 }

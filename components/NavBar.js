@@ -326,13 +326,13 @@ function NavBar() {
         </div>
 
         {/* Middle - Welcome & Nav Links (Desktop Only) */}
-        <div className="hidden md:flex flex-col items-center ml-[80px]">
+        <div className="hidden md:flex flex-col items-center mt-[2px] ml-[80px]">
           <ul className="flex gap-[60px]">
             {navLinks.map((item) => (
               <li key={item.href}>
                 <Link href={item.href}>
                   <span
-                    className={`inline-block text-white text-[14px] font-[] px-2 py-2.5 border-b-2 transition-all duration-500 ease-in-out active:scale-[0.95] ${
+                    className={`inline-block text-white text-[14px] font-[500] px-2 py-2.5 border-b-2 transition-all duration-500 ease-in-out active:scale-[0.95] ${
                       isActiveLink(item.href)
                         ? "border-white"
                         : "border-transparent hover:border-white"

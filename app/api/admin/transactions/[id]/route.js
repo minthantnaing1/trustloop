@@ -198,21 +198,29 @@ export async function DELETE(_req, { params }) {
     if (!mongoose.Types.ObjectId.isValid(id))
       return new Response("Invalid id", { status: 400 });
 
-    // ↓ include product id so we can free the listing
+    // ↓ include product id so we can free the listing + BOTH receipts
     const txn = await Transaction.findById(id).select(
-      "buyerReceiptUrl product"
+      "buyerReceiptUrl adminPayoutReceiptUrl product"
     );
     if (!txn) return new Response("Not found", { status: 404 });
 
-    // Optionally remove receipt from Cloudinary
-    const pid = extractPublicId(txn.buyerReceiptUrl);
-    if (pid) {
-      try {
-        await cloudinary.uploader.destroy(pid);
-      } catch (e) {
-        console.warn("cloudinary destroy failed:", pid, e?.message);
-      }
-    }
+    // Remove any Cloudinary receipts (buyer + admin). De-dupe just in case.
+    const pids = new Set(
+      [txn.buyerReceiptUrl, txn.adminPayoutReceiptUrl]
+        .filter(Boolean)
+        .map((url) => extractPublicId(url))
+        .filter(Boolean)
+    );
+
+    await Promise.allSettled(
+      Array.from(pids).map(async (pid) => {
+        try {
+          await cloudinary.uploader.destroy(pid);
+        } catch (e) {
+          console.warn("cloudinary destroy failed:", pid, e?.message);
+        }
+      })
+    );
 
     // ↓ make the product available again if there is one
     if (txn.product) {

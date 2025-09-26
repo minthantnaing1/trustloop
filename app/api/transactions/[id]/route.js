@@ -128,6 +128,14 @@ export async function GET(_req, { params }) {
       action: "AUTO_CONFIRMED_AFTER_3_DAYS",
       meta: { source: "get_auto_confirm" },
     });
+
+    // 👇 ADD THIS: mirror buyer_confirm expenses update
+    const spendAmount = Number(txn.total || 0);
+    await User.updateOne(
+      { _id: txn.buyer },
+      { $inc: { expenses: spendAmount } }
+    );
+
     await txn.save();
     // RIGHT AFTER await txn.save();
     await notifyTxnEvent({

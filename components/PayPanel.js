@@ -167,7 +167,7 @@ export default function PayPanel({ txn }) {
           <div className="mt-3 flex items-center justify-center">
             <div className="p-1 rounded-[5px] border border-gray-300 shadow-md">
               <img
-                src="/AbelScan.jpg"
+                src="/AbelScan1.jpg"
                 alt="PromptPay QR"
                 className="w-[320px] h-[320px] object-contain" // ⬅️ slightly bigger than before
               />

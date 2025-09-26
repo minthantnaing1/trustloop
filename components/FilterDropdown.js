@@ -19,16 +19,18 @@ export default function FilterDropdown({
           className="border border-gray-400 p-2 rounded-[4px] text-sm w-full"
         >
           <option value="">All Categories</option>
-          <option value="electronics">Electronics</option>
-          <option value="books">Books</option>
-          <option value="furniture">Furniture</option>
-          <option value="clothing">Clothing</option>
-          <option value="others">Others</option>
+          <option value="IT/Tech">IT/Tech Devices</option>
+          <option value="Home Appliances">Home Appliances</option>
+          <option value="Furniture">Furniture</option>
+          <option value="Stationeries">Stationeries</option>
+          <option value="Clothing">Clothing</option>
+          <option value="Others">Others</option>
         </select>
 
         <input
           type="number"
           placeholder="Min Price"
+          min="0"
           value={filters.minPrice}
           onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })}
           className="border border-gray-400 p-2 rounded-[4px] text-sm w-full"
@@ -37,6 +39,7 @@ export default function FilterDropdown({
         <input
           type="number"
           placeholder="Max Price"
+          min="0"
           value={filters.maxPrice}
           onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })}
           className="border border-gray-400 p-2 rounded-[4px] text-sm w-full"

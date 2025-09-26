@@ -41,11 +41,11 @@ export default function AdminSidebar({ collapsed, setCollapsed }) {
       href: "/admin/transactions",
       icon: <BanknotesIcon className="w-5 h-5" />,
     },
-    {
-      label: "Settings",
-      href: "/admin/settings",
-      icon: <Cog6ToothIcon className="w-5 h-5" />,
-    },
+    // {
+    //   label: "Settings",
+    //   href: "/admin/settings",
+    //   icon: <Cog6ToothIcon className="w-5 h-5" />,
+    // },
   ];
 
   return (

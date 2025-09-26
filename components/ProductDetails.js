@@ -111,13 +111,16 @@ export default function ProductDetails({
             </div>
 
             <div className="flex items-center gap-4 mt-3 p-3 rounded-md bg-[#f0f0f0] border border-[#ccc]">
-              <Image
-                src={product.owner?.image || "/default-profile.png"}
-                alt="Seller Image"
-                width={60}
-                height={60}
-                className="rounded-full object-cover border-2 border-[#325082] w-[60px] h-[60px]"
-              />
+              <Link href={`/profile/${product.owner?._id}`}>
+                <Image
+                  src={product.owner?.image || "/default-profile.png"}
+                  alt="Seller Image"
+                  width={60}
+                  height={60}
+                  className="rounded-full object-cover border-2 border-[#325082] w-[60px] h-[60px] 
+               transition-transform duration-200 hover:scale-105"
+                />
+              </Link>
               <div className="flex flex-col">
                 <h3 className="font-normal">Seller:</h3>
                 <p className="font-semibold text-[#222]">
