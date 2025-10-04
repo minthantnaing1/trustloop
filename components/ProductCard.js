@@ -133,32 +133,32 @@ export default function ProductCard({
     );
   };
 
-  const InfoContent = () => (
-    <>
-      <h4 className="font-semibold truncate text-[13px] text-[#153969] md:text-[15px]">
-        {product.title}
-      </h4>
-        {isDonation
-    ? "Free"
-    : product.price != null
-    ? `${Number(product.price).toLocaleString()} ฿`
-    : ""}
-      <div className="mt-1 flex items-center justify-between gap-2">
-        <p className="text-[12px] md:text-[13px] text-gray-700 truncate">
-          {product.category}
-        </p>
-        {product.price != null && (
-          <p className="text-[13px] md:text-[15px] text-[#153969] font-semibold shrink-0">
-            {Number(product.price).toLocaleString()} ฿
-          </p>
-        )}
-      </div>
+const InfoContent = () => (
+  <>
+    <h4 className="font-semibold truncate text-[13px] text-[#153969] md:text-[15px]">
+      {product.title}
+    </h4>
 
-      <p className="text-[11px] md:text-[12px] text-gray-600">
-        {product.createdAt ? timeAgo(product.createdAt) : ""}
+    <div className="mt-1 flex items-center justify-between gap-2">
+      <p className="text-[12px] md:text-[13px] text-gray-700 truncate">
+        {product.category}
       </p>
-    </>
-  );
+
+      {(isDonation || product.price != null) && (
+        <p className="text-[13px] md:text-[15px] text-[#153969] font-semibold shrink-0">
+          {isDonation
+            ? "Free"
+            : `${Number(product.price).toLocaleString()} ฿`}
+        </p>
+      )}
+    </div>
+
+    <p className="text-[11px] md:text-[12px] text-gray-600">
+      {product.createdAt ? timeAgo(product.createdAt) : ""}
+    </p>
+  </>
+);
+
 
   const TopImage = ({ className = "" }) => (
     <div className={`relative ${className}`}>

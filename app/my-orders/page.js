@@ -105,6 +105,15 @@ function RoleSwitch({ role, setRole }) {
   );
 }
 
+/** Donator messages quick link */
+function DonatorMessagesBtn() {
+  return (
+    <Link href="/donation/messages">
+      <ActionButton text="Donator Messages" variant="outlineClick" className="h-9" />
+    </Link>
+  );
+}
+
 /* ------------------ INNER CLIENT (uses useSearchParams) ------------------ */
 function MyOrdersClient() {
   const router = useRouter();
@@ -312,14 +321,25 @@ function MyOrdersClient() {
                 onChange={setStatusFilter}
               />
             </div>
-            <RoleSwitch role={role} setRole={setRole} />
+
+            {/* Right: Role switch + Donator messages */}
+            <div className="flex items-center gap-2">
+              <RoleSwitch role={role} setRole={setRole} />
+              <DonatorMessagesBtn />
+              {/* If you want to show only for sellers/donators:
+                  {role === "seller" && <DonatorMessagesBtn />} */}
+            </div>
           </div>
 
-          {/* Mobile: title top, filter below, role switch right */}
+          {/* Mobile: title top, filter below, role switch + button right */}
           <div className="flex flex-col sm:hidden">
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-bold text-[#325082]">My Orders</h1>
-              <RoleSwitch role={role} setRole={setRole} />
+              <div className="flex items-center gap-2">
+                <RoleSwitch role={role} setRole={setRole} />
+                <DonatorMessagesBtn />
+                {/* Or conditionally: {role === "seller" && <DonatorMessagesBtn />} */}
+              </div>
             </div>
             <div className="flex items-center gap-2 mt-2">
               <span className="text-md font-bold text-[#325082]">Filter:</span>
@@ -334,10 +354,7 @@ function MyOrdersClient() {
 
         {/* Seller-only progress (UI stepper at step 2) */}
         {role === "seller" && (
-          <div
-            className="mb-4"
-            style={{ animation: "fadeSlide 800ms ease-out" }}
-          >
+          <div className="mb-4" style={{ animation: "fadeSlide 800ms ease-out" }}>
             <Stepper current={2} variant="seller" className="px-1" />
           </div>
         )}
@@ -358,8 +375,7 @@ function MyOrdersClient() {
             list.map((t) => {
               const id = t._id?.toString?.() || t._id;
               const isSeller = role === "seller";
-              const canAcceptOrCancel =
-                isSeller && t.status === "ESCROW_FUNDED";
+              const canAcceptOrCancel = isSeller && t.status === "ESCROW_FUNDED";
               const counterparty = isSeller ? t.buyer : t.seller;
               const method = t.fulfillment?.method;
 
@@ -462,7 +478,7 @@ function MyOrdersClient() {
                   {/* Divider */}
                   <div className="border-t border-slate-200 mx-4"></div>
 
-                  {/* Timeline summary + button, dropdown unchanged */}
+                  {/* Timeline summary + button */}
                   <details className="px-4 pb-1">
                     <summary className="list-none [&::-webkit-details-marker]:hidden">
                       <div className="flex items-center justify-between py-2">
@@ -470,47 +486,34 @@ function MyOrdersClient() {
                           View timeline
                         </span>
 
-                        {/* 👇 Replace this single Link with a small group */}
                         <div className="flex items-center gap-2">
-                          {/* NEW: Buyer can go back to pay page while still within 5 mins */}
+                          {/* Buyer can go back to pay page while still within 5 mins */}
                           {role === "buyer" && isPendingUploadActive(t) && (
                             <Link href={`/buy/pay/${id}`}>
-                              <ActionButton
-                                text="Pay & Upload"
-                                variant="outlineClick"
-                              />
+                              <ActionButton text="Pay & Upload" variant="outlineClick" />
                             </Link>
                           )}
 
                           <Link href={`/my-orders/${id}`}>
-                            <ActionButton
-                              text="Order Details"
-                              variant="primaryClick"
-                            />
+                            <ActionButton text="Order Details" variant="primaryClick" />
                           </Link>
                         </div>
                       </div>
-                      {/* ⚠️ Warning note — same visibility logic as the Pay button */}
+
                       {role === "buyer" &&
                         isPendingUploadActive(t) &&
                         t.expiresAt && (
                           <div className="text-center mb-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900 text-sm">
                             Payment pending — please click{" "}
-                            <span className="font-semibold">
-                              “Pay &amp; Upload”
-                            </span>{" "}
+                            <span className="font-semibold">“Pay &amp; Upload”</span>{" "}
                             and complete your payment within{" "}
-                            <Countdown expiresAt={t.expiresAt} /> or this order
-                            will be automatically cancelled.
+                            <Countdown expiresAt={t.expiresAt} /> or this order will be
+                            automatically cancelled.
                           </div>
                         )}
                     </summary>
 
-                    <Timeline
-                      events={t.timeline}
-                      compact
-                      maxHeight="max-h-40"
-                    />
+                    <Timeline events={t.timeline} compact maxHeight="max-h-40" />
                   </details>
                 </article>
               );
@@ -531,9 +534,7 @@ function MyOrdersClient() {
               <div className="mt-4">
                 <Link href={role === "buyer" ? "/buy" : "/sell"}>
                   <ActionButton
-                    text={
-                      role === "buyer" ? "Browse products" : "Create a listing"
-                    }
+                    text={role === "buyer" ? "Browse products" : "Create a listing"}
                     variant="primaryHover"
                     className="inline-flex items-center"
                   />

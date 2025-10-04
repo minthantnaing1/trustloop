@@ -146,11 +146,7 @@ export default async function DonationDetailPage({ params }) {
                   href={`/donation/${product._id}/request`}
                   className="flex-[1]"
                 >
-                  <ActionButton
-                    text="🤝 Request This Item"
-                    variant="buyOutlineClick"
-                    className="w-full"
-                  />
+                  
                 </Link>
                 {/* Keep heart here OR in Donor card below; avoid duplicates if you add it there */}
                 {/* <ActionButton text="♡" variant="iconOutlineHover" /> */}
