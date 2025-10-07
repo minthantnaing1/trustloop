@@ -3,7 +3,7 @@ import { connectDB } from "@/lib/db";
 import Notification from "@/models/Notification";
 import User from "@/models/User";
 import Product from "@/models/Product";
-import Transaction from "@/models/Product";
+import Transaction from "@/models/Transaction";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;

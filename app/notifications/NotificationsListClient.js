@@ -55,6 +55,7 @@ export default function NotificationsListClient({ initialItems = [] }) {
 
   const handleView = async (n, isUnread) => {
     await markRead(n._id, isUnread); // optimistic + PATCH
+    window.dispatchEvent(new Event("overlay:show"));
     router.push(n.link); // navigate immediately
   };
 

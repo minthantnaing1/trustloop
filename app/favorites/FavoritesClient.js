@@ -36,11 +36,11 @@ export default function FavoritesClient({ items, currentUserEmail = "" }) {
         <ProductCard
           key={p._id}
           product={p}
-          isOwner={false}
           variant="overlay"
+          isOwner={false}
+          currentUserEmail={currentUserEmail}
           showFavToggle
           initialIsFav={true}
-          currentUserEmail={currentUserEmail}
         />
       ))}
     </div>

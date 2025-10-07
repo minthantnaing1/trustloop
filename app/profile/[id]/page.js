@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 import NavBar from "@/components/NavBar";
 import BackButton from "@/components/BackButton";
+import MaskedUserId from "@/components/MaskedUserId";
 import Image from "next/image";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +20,9 @@ export default async function PublicProfilePage({ params }) {
       <NavBar />
       <main className="max-w-[1200px] mx-auto mb-6 px-3">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold text-[#325082]">Seller Profile</h1>
+          <h1 className="text-2xl font-bold text-[#325082]">
+            Seller Profile (Public)
+          </h1>
           <BackButton />
         </div>
         {/* Not found */}
@@ -45,7 +48,9 @@ export default async function PublicProfilePage({ params }) {
                   )}
                   <div className="flex flex-col gap-2 text-center sm:text-left">
                     <p className="font-bold text-[18px]">{user.name}</p>
-                    <p>{String(user.email || "").split("@")[0]}</p>
+                    <p>
+                      <MaskedUserId email={user.email} />
+                    </p>
                     <p>{user.faculty || "Faculty not set"}</p>
                     <p>{user.year || "Year not set"}</p>
                   </div>

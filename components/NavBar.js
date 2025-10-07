@@ -297,7 +297,7 @@ function NavBar() {
       { label: "HOME", href: "/home" },
       { label: "BUY", href: "/buy" },
       { label: "SELL", href: "/sell" },
-      // { label: "DONATION", href: "/donation" },
+      { label: "DONATION", href: "/donation" },
       { label: "MY ORDERS", href: "/my-orders" },
     ],
     []
@@ -307,6 +307,7 @@ function NavBar() {
     pathname === href ||
     (href === "/buy" && pathname.startsWith("/buy/")) ||
     (href === "/sell" && pathname.startsWith("/sell/")) ||
+    (href === "/donation" && pathname.startsWith("/donation/")) ||
     (href === "/my-orders" && pathname.startsWith("/my-orders/"));
 
   const blurDataURL =
@@ -314,138 +315,142 @@ function NavBar() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 w-full h-[60px] bg-gradient-to-r from-[#153969] to-[#325082] shadow-md shadow-gray-900/30 flex justify-between items-center px-4 md:px-8 z-[10000]">
-        <div className="flex items-center">
-          <Image
-            src="/TrustLoopLogoW.png"
-            alt="Logo"
-            width={64}
-            height={55}
-            priority
-          />
-        </div>
+      <header className="fixed top-0 left-0 w-full h-[60px] bg-[image:var(--tl-gradient)] shadow-md shadow-gray-900/30 z-[10000]">
+        <div className="w-full h-full grid grid-cols-12 items-center px-3 lg:px-8">
+          {/* Left */}
+          <div className="col-span-6 md:col-span-1 lg:col-span-2 flex items-center">
+            <Image
+              src="/TrustLoopLogoW.png"
+              alt="Logo"
+              width={128}
+              height={64}
+              priority
+              className="h-12 w-auto"
+            />
+          </div>
 
-        {/* Middle - Welcome & Nav Links (Desktop Only) */}
-        <div className="hidden md:flex flex-col items-center mt-[2px] ml-[80px]">
-          <ul className="flex gap-[60px]">
-            {navLinks.map((item) => (
-              <li key={item.href}>
-                <Link href={item.href}>
-                  <span
-                    className={`inline-block text-white text-[14px] font-[500] px-2 py-2.5 border-b-2 transition-all duration-500 ease-in-out active:scale-[0.95] ${
-                      isActiveLink(item.href)
-                        ? "border-white"
-                        : "border-transparent hover:border-white"
-                    }`}
-                  >
-                    {item.label}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+          {/* Middle */}
+          <div className="hidden md:flex md:col-span-8 lg:col-span-8 items-center justify-center overflow-hidden">
+            <ul className="flex gap-[30px] lg:gap-[55px] text-[14px]">
+              {navLinks.map((item) => (
+                <li key={item.href}>
+                  <Link href={item.href}>
+                    <span
+                      className={`inline-block text-white font-[500] px-2 py-2.5 border-b-2 transition-all duration-500 ease-in-out active:scale-[0.95] ${
+                        isActiveLink(item.href)
+                          ? "border-white"
+                          : "border-transparent hover:border-white"
+                      }`}
+                    >
+                      {item.label}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-        {/* Right - Action Icons */}
-        <div className="flex items-center gap-6.5 text-white">
-          {/* Notifications */}
-          <button
-            type="button"
-            onMouseEnter={() => setHover((h) => ({ ...h, notif: true }))}
-            onMouseLeave={() => setHover((h) => ({ ...h, notif: false }))}
-            onClick={() => setShowNotifPanel(true)}
-            className="relative cursor-pointer transition-transform duration-500 ease-in-out hover:scale-110 active:scale-[0.9]"
-            aria-label="Notifications"
-          >
-            {hover.notif ? (
-              <BellSolid className="w-6.5 h-6.5" />
-            ) : (
-              <BellIcon className="w-6.5 h-6.5" />
-            )}
-
-            {mounted && notifCount > 0 && (
-              <span
-                className="absolute -top-[6px] -right-[8px] min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-white text-[12.5px] leading-[18px] text-center font-semibold pointer-events-none"
-                aria-label={`${notifCount} unread notifications`}
-              >
-                {notifCount}
-              </span>
-            )}
-          </button>
-
-          {/* Heart with counter */}
-          <Link
-            href="/favorites"
-            className="inline-block"
-            aria-label="Favorites"
-          >
-            <div
-              onMouseEnter={() => setHover({ ...hover, heart: true })}
-              onMouseLeave={() => setHover({ ...hover, heart: false })}
-              className="relative cursor-pointer mr-1 transition-transform duration-500 ease-in-out hover:scale-110 active:scale-[0.9]"
+          {/* Right */}
+          <div className="col-span-6 md:col-span-3 lg:col-span-2 flex items-center justify-end gap-5 md:gap-5 lg:gap-6 text-white">
+            {/* Notifications */}
+            <button
+              type="button"
+              onMouseEnter={() => setHover((h) => ({ ...h, notif: true }))}
+              onMouseLeave={() => setHover((h) => ({ ...h, notif: false }))}
+              onClick={() => setShowNotifPanel(true)}
+              className="relative cursor-pointer transition-transform duration-500 ease-in-out hover:scale-110 active:scale-[0.9]"
+              aria-label="Notifications"
             >
-              {hover.heart ? (
-                <HeartSolid className="w-6 h-6" />
+              {hover.notif ? (
+                <BellSolid className="w-6.5 h-6.5" />
               ) : (
-                <HeartIcon className="w-6 h-6" />
+                <BellIcon className="w-6.5 h-6.5" />
               )}
 
-              {mounted && favCount > 0 && (
+              {mounted && notifCount > 0 && (
                 <span
-                  className="absolute -top-[6px] -right-[9px] min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-white text-[12.5px] leading-[18px] text-center font-semibold pointer-events-none"
-                  aria-label={`${favCount} favorites`}
+                  className="absolute -top-[6px] -right-[8px] min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-white text-[12.5px] leading-[18px] text-center font-semibold pointer-events-none"
+                  aria-label={`${notifCount} unread notifications`}
                 >
-                  {favCount}
+                  {notifCount}
                 </span>
               )}
-            </div>
-          </Link>
+            </button>
 
-          {/* Profile / Avatar */}
-          <div
-            onMouseEnter={() => setHover((h) => ({ ...h, profile: true }))}
-            onMouseLeave={() => setHover((h) => ({ ...h, profile: false }))}
-            className="cursor-pointer transition-transform duration-500 ease-in-out hover:scale-[1.05] active:scale-[0.9]"
-          >
-            <Link href="/profile" className="block">
-              <div className={`relative w-9 h-9`}>
-                {avatarUrl ? (
-                  <Image
-                    src={avatarUrl}
-                    alt={me?.name || "Profile"}
-                    fill
-                    sizes="32px"
-                    priority
-                    placeholder="blur"
-                    blurDataURL={blurDataURL}
-                    className={`rounded-full ring-2 ring-white/70 shadow-sm object-cover ${
-                      hover.profile ? "scale-[1.02]" : ""
-                    }`}
-                    onError={() => {
-                      // Fallback to placeholder if remote image fails
-                      setAvatarUrl("");
-                    }}
-                  />
+            {/* Heart with counter */}
+            <Link
+              href="/favorites"
+              className="inline-block"
+              aria-label="Favorites"
+            >
+              <div
+                onMouseEnter={() => setHover({ ...hover, heart: true })}
+                onMouseLeave={() => setHover({ ...hover, heart: false })}
+                className="relative cursor-pointer mr-1 transition-transform duration-500 ease-in-out hover:scale-110 active:scale-[0.9]"
+              >
+                {hover.heart ? (
+                  <HeartSolid className="w-6 h-6" />
                 ) : (
-                  // Circular placeholder (always a circle)
-                  <div className="w-9 h-9 rounded-full ring-2 ring-white/70 shadow-sm bg-white/20 flex items-center justify-center">
-                    {hover.profile ? (
-                      <UserIconSolid className="w-5 h-5 text-white" />
-                    ) : (
-                      <UserIcon className="w-5 h-5 text-white" />
-                    )}
-                  </div>
+                  <HeartIcon className="w-6 h-6" />
+                )}
+
+                {mounted && favCount > 0 && (
+                  <span
+                    className="absolute -top-[6px] -right-[9px] min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-white text-[12.5px] leading-[18px] text-center font-semibold pointer-events-none"
+                    aria-label={`${favCount} favorites`}
+                  >
+                    {favCount}
+                  </span>
                 )}
               </div>
             </Link>
-          </div>
 
-          {/* Menu Icon */}
-          <div
-            onClick={() => setShowMenu((s) => !s)}
-            className="cursor-pointer transition-transform duration-500 ease-in-out hover:scale-110 active:scale-[0.9]"
-          >
-            <Bars4Icon className="w-6 h-6" />
+            {/* Profile / Avatar */}
+            <div
+              onMouseEnter={() => setHover((h) => ({ ...h, profile: true }))}
+              onMouseLeave={() => setHover((h) => ({ ...h, profile: false }))}
+              className="cursor-pointer transition-transform duration-500 ease-in-out hover:scale-[1.05] active:scale-[0.9]"
+            >
+              <Link href="/profile" className="block">
+                <div className={`relative w-9 h-9`}>
+                  {avatarUrl ? (
+                    <Image
+                      src={avatarUrl}
+                      alt={me?.name || "Profile"}
+                      fill
+                      sizes="32px"
+                      priority
+                      placeholder="blur"
+                      blurDataURL={blurDataURL}
+                      className={`rounded-full ring-2 ring-white/70 shadow-sm object-cover ${
+                        hover.profile ? "scale-[1.02]" : ""
+                      }`}
+                      onError={() => {
+                        // Fallback to placeholder if remote image fails
+                        setAvatarUrl("");
+                      }}
+                    />
+                  ) : (
+                    // Circular placeholder (always a circle)
+                    <div className="w-9 h-9 rounded-full ring-2 ring-white/70 shadow-sm bg-white/20 flex items-center justify-center">
+                      {hover.profile ? (
+                        <UserIconSolid className="w-5 h-5 text-white" />
+                      ) : (
+                        <UserIcon className="w-5 h-5 text-white" />
+                      )}
+                    </div>
+                  )}
+                </div>
+              </Link>
+            </div>
+
+            {/* Menu Icon */}
+            <div
+              onClick={() => setShowMenu((s) => !s)}
+              className="cursor-pointer transition-transform duration-500 ease-in-out hover:scale-110 active:scale-[0.9]"
+            >
+              <Bars4Icon className="w-6 h-6" />
+            </div>
           </div>
         </div>
         {/* Notification slide-over */}

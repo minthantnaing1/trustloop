@@ -146,7 +146,9 @@ export default async function CheckoutPage({ params }) {
                   <li>
                     Pay to the admin account and upload your payment slip.
                   </li>
-                  <li>Seller delivers or meets you; you confirm receipt.</li>
+                  <li>
+                    Seller delivers or meets you; you confirm received the item.
+                  </li>
                   <li>Admin releases payout to the seller.</li>
                 </ul>
               </div>
@@ -249,9 +251,9 @@ export default async function CheckoutPage({ params }) {
 
                   <p className="text-xs text-center text-gray-600 -mt-1 leading-relaxed">
                     By confirming, you agree to TrustLoop&apos;s escrow process.
-                    You&apos;ll pay on the next screen and upload a receipt.
-                    Funds are held until you confirm you&apos;ve received the
-                    item.
+                    You&apos;ll pay on the next screen and upload a payment
+                    slip. Funds are held until you confirm you&apos;ve received
+                    the item.
                   </p>
                 </form>
               </div>

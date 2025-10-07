@@ -10,6 +10,7 @@ import FavoriteButton from "@/components/FavoriteButton";
 import HideToggleButton from "@/components/HideToggleButton";
 import BackButton from "@/components/BackButton";
 import { PencilIcon } from "@heroicons/react/24/solid";
+import MaskedUserId from "@/components/MaskedUserId";
 
 export default function ProductDetails({
   product,
@@ -118,7 +119,7 @@ export default function ProductDetails({
                   width={60}
                   height={60}
                   className="rounded-full object-cover border-2 border-[#325082] w-[60px] h-[60px] 
-               transition-transform duration-200 hover:scale-105"
+               transition-transform duration-500 hover:scale-105"
                 />
               </Link>
               <div className="flex flex-col">
@@ -127,7 +128,7 @@ export default function ProductDetails({
                   {product.owner?.name}
                 </p>
                 <p className="text-[14px] text-[#555]">
-                  {product.owner?.email}
+                  <MaskedUserId email={product.owner?.email} reveal={isOwner} />
                 </p>
               </div>
             </div>

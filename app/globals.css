@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* ---------- Custom Brand Variables ---------- */
+:root {
+  --tl-blue: #325082; /* main calm blue */
+  --tl-dark: #153969; /* darker shade for gradients or hover */
+  --tl-gradient: linear-gradient(to bottom, #283d70, #0f1b40);
+}
+
+/* ---------- Scrollbar Hidden Utility ---------- */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -8,6 +16,7 @@
   scrollbar-width: none;
 }
 
+/* ---------- Hover Variant ---------- */
 @custom-variant hover {
   &:hover {
     @slot;
