@@ -1,10 +1,9 @@
-// app/sell/[id]/edit/page.js
 import { auth } from "@/auth";
 import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
-import EditProductClient from "./EditProductClient";
+import EditDonationClient from "./EditDonationClient";
 
-export default async function EditProductPage({ params }) {
+export default async function EditDonationPage({ params }) {
   const { id } = await params;
 
   const session = await auth();
@@ -23,13 +22,14 @@ export default async function EditProductPage({ params }) {
 
   const product = await res.json();
 
-  if (product?.type !== "sell") redirect(`/donation/${id}/edit`);
+  // ensure it’s a donation
+  if (product?.type !== "donation") redirect(`/sell/${id}/edit`);
 
   const isOwner = sessionEmail === product?.owner?.email;
-  if (!isOwner) redirect(`/buy/${id}`);
+  if (!isOwner) redirect(`/donation/${id}`);
 
-  // If you want to block editing when an active transaction exists:
-  if (product.isAvailable !== true) redirect(`/sell/${id}`);
+  // prevent editing if item already given away
+  if (product.isAvailable !== true) redirect(`/donation/${id}`);
 
-  return <EditProductClient initialProduct={product} />;
+  return <EditDonationClient initialProduct={product} />;
 }

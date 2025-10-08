@@ -47,6 +47,14 @@ const TransactionSchema = new mongoose.Schema({
   seller: { type: ObjectId, ref: "User", required: true },
   buyer: { type: ObjectId, ref: "User", required: true },
 
+  // NEW: distinguish donation vs buy/sell without relying on product later
+  kind: {
+    type: String,
+    enum: ["BUY_SELL", "DONATION", "AUCTION"],
+    default: "BUY_SELL",
+    index: true,
+  },
+
   status: {
     type: String,
     enum: [

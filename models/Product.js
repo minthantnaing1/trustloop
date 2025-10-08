@@ -45,6 +45,14 @@ const ProductSchema = new mongoose.Schema(
     // Donation
     acceptedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
+    // NEW: Donation mode & optional deadline (for selective)
+    donationMode: {
+      type: String,
+      enum: ["instant", "selective"],
+      default: "instant",
+    },
+    requestDeadline: { type: Date },
+
     // Auction timing
     auctionEndsAt: { type: Date },
 
@@ -62,9 +70,9 @@ const ProductSchema = new mongoose.Schema(
     likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     comments: [
       {
-        userEmail: { type: String, required: true }, // ✅ Add this
+        userEmail: { type: String, required: true },
         username: String,
-        userImage: String, // ✅ Add this
+        userImage: String,
         message: String,
         createdAt: { type: Date, default: Date.now },
       },

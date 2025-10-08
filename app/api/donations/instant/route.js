@@ -1,0 +1,69 @@
+// app/api/donations/instant/route.js
+import { auth } from "@/auth";
+import { connectDB } from "@/lib/db";
+import Product from "@/models/Product";
+import User from "@/models/User";
+import Transaction from "@/models/Transaction";
+
+export async function POST(req) {
+  try {
+    const session = await auth();
+    if (!session?.user?.email)
+      return new Response("Unauthorized", { status: 401 });
+
+    const { productId, reason } = await req.json();
+    if (!productId || !reason || reason.trim().length < 10) {
+      return new Response("Reason is required (min 10 chars).", {
+        status: 400,
+      });
+    }
+
+    await connectDB();
+
+    const me = await User.findOne({ email: session.user.email });
+    if (!me) return new Response("Unauthorized", { status: 401 });
+
+    const product = await Product.findById(productId).populate("owner");
+    if (!product) return new Response("Product not found", { status: 404 });
+
+    if (product.type !== "donation") {
+      return new Response("Not a donation item.", { status: 400 });
+    }
+    if (String(product.owner?._id) === String(me._id)) {
+      return new Response("You cannot request your own donation.", {
+        status: 403,
+      });
+    }
+    if (product.isAvailable === false) {
+      return new Response("This item is already reserved/unavailable.", {
+        status: 409,
+      });
+    }
+    if (product.donationMode !== "instant") {
+      return new Response("This donation is selective only.", { status: 400 });
+    }
+
+    // Reserve item + create zero-cost transaction
+    product.isAvailable = false;
+    await product.save();
+
+    const txn = await Transaction.create({
+      product: product._id,
+      buyer: me._id,
+      seller: product.owner?._id || product.owner,
+      price: 0,
+      platformFee: 0,
+      // Choose a status that fits your existing flow (no payment phase):
+      status: "PENDING_SELLER_ACTION", // or "ESCROW_FUNDED" if your UI expects it
+      note: reason.trim(),
+    });
+
+    return new Response(
+      JSON.stringify({ ok: true, orderId: String(txn._id) }),
+      { status: 200 }
+    );
+  } catch (e) {
+    console.error("instant-claim POST error:", e);
+    return new Response("Server Error", { status: 500 });
+  }
+}

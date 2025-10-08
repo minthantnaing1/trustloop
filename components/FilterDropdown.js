@@ -7,12 +7,20 @@ export default function FilterDropdown({
   setFilters,
   onApply,
   onClear,
+  isDonationPage = false, // ✅ NEW: flag to hide price filters
 }) {
   if (!show) return null;
 
   return (
     <div className="absolute left-1/2 transform -translate-x-1/2 mt-[220px] max-w-[95%] w-[500px] bg-white border border-gray-300 rounded-[6px] p-4 shadow-xl z-50 max-[768px]:w-[50%] max-[768px]:mt-[400px]">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+      <div
+        className={`grid ${
+          isDonationPage
+            ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3"
+            : "grid-cols-1 sm:grid-cols-2 md:grid-cols-4"
+        } gap-3`}
+      >
+        {/* Category */}
         <select
           value={filters.category}
           onChange={(e) => setFilters({ ...filters, category: e.target.value })}
@@ -27,24 +35,34 @@ export default function FilterDropdown({
           <option value="Others">Others</option>
         </select>
 
-        <input
-          type="number"
-          placeholder="Min Price"
-          min="0"
-          value={filters.minPrice}
-          onChange={(e) => setFilters({ ...filters, minPrice: e.target.value })}
-          className="border border-gray-400 p-2 rounded-[4px] text-sm w-full"
-        />
+        {/* ✅ Hide Min/Max Price if donation page */}
+        {!isDonationPage && (
+          <>
+            <input
+              type="number"
+              placeholder="Min Price"
+              min="0"
+              value={filters.minPrice}
+              onChange={(e) =>
+                setFilters({ ...filters, minPrice: e.target.value })
+              }
+              className="border border-gray-400 p-2 rounded-[4px] text-sm w-full"
+            />
 
-        <input
-          type="number"
-          placeholder="Max Price"
-          min="0"
-          value={filters.maxPrice}
-          onChange={(e) => setFilters({ ...filters, maxPrice: e.target.value })}
-          className="border border-gray-400 p-2 rounded-[4px] text-sm w-full"
-        />
+            <input
+              type="number"
+              placeholder="Max Price"
+              min="0"
+              value={filters.maxPrice}
+              onChange={(e) =>
+                setFilters({ ...filters, maxPrice: e.target.value })
+              }
+              className="border border-gray-400 p-2 rounded-[4px] text-sm w-full"
+            />
+          </>
+        )}
 
+        {/* Condition */}
         <select
           value={filters.condition}
           onChange={(e) =>
@@ -59,15 +77,36 @@ export default function FilterDropdown({
           <option value="poor">Poor</option>
         </select>
 
+        {/* ✅ Donation mode (only on donation page) */}
+        {isDonationPage && (
+          <select
+            value={filters.donationMode || ""} // "" | "instant" | "selective"
+            onChange={(e) =>
+              setFilters({ ...filters, donationMode: e.target.value })
+            }
+            className="border border-gray-400 p-2 rounded-[4px] text-sm w-full"
+          >
+            <option value="">All Donation</option>
+            <option value="instant">Instant (first-come)</option>
+            <option value="selective">Selective (choose recipient)</option>
+          </select>
+        )}
+
+        {/* Location */}
         <input
           type="text"
           placeholder="Meetup Location"
           value={filters.location}
           onChange={(e) => setFilters({ ...filters, location: e.target.value })}
-          className="border border-gray-400 p-2 rounded-[4px] text-sm w-full col-span-1 sm:col-span-2 md:col-span-4"
+          className={`border border-gray-400 p-2 rounded-[4px] text-sm w-full ${
+            isDonationPage
+              ? "col-span-1 sm:col-span-2 md:col-span-3"
+              : "col-span-1 sm:col-span-2 md:col-span-4"
+          }`}
         />
       </div>
 
+      {/* Buttons */}
       <div className="flex justify-between max-[376px]:flex-col gap-y-2 mt-3">
         <button
           onClick={onClear}

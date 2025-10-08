@@ -46,7 +46,7 @@ export default function ProductDetails({
                 />
               </Link>
 
-              <ProductDeleteButton productId={product._id} />
+              <ProductDeleteButton productId={product._id} type="sell" />
             </div>
           )}
         </div>

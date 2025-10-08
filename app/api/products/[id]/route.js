@@ -4,6 +4,7 @@ import Product from "@/models/Product";
 import Transaction from "@/models/Transaction";
 import { auth } from "@/auth";
 import cloudinary from "@/lib/cloudinary";
+import DonationRequest from "@/models/DonationRequest";
 
 // ✅ Get Single Product by ID (with reserved access guard)
 export async function GET(_req, { params }) {
@@ -53,6 +54,46 @@ export async function GET(_req, { params }) {
     const viewerEmail = session?.user?.email || null;
     let isFav = false;
 
+    // --- Donation-specific hydration (requests + viewer pending) ---
+    let viewerHasPendingRequest = false;
+    let requestsOut = undefined;
+
+    if (product.type === "donation" && product.donationMode === "selective") {
+      // who is viewing?
+      const viewerEmail2 = session?.user?.email || null;
+      const viewer2 = viewerEmail2
+        ? await User.findOne({ email: viewerEmail2 }).select("_id")
+        : null;
+
+      if (viewer2) {
+        viewerHasPendingRequest = !!(await DonationRequest.exists({
+          product: product._id,
+          requester: viewer2._id,
+          status: "pending",
+        }));
+      }
+
+      // Only the owner sees the list of requests
+      if (isOwner) {
+        const reqs = await DonationRequest.find({ product: product._id })
+          .populate({ path: "requester", select: "name email image" })
+          .sort({ createdAt: -1 })
+          .lean();
+
+        requestsOut = reqs.map((r) => ({
+          _id: String(r._id),
+          status: r.status,
+          message: r.reason,
+          user: {
+            name: r.requester?.name || r.requester?.email || "",
+            email: r.requester?.email || "",
+            image: r.requester?.image || "",
+          },
+          createdAt: r.createdAt,
+        }));
+      }
+    }
+
     if (viewerEmail) {
       const viewer = await User.findOne({ email: viewerEmail }).select(
         "favorites"
@@ -69,6 +110,10 @@ export async function GET(_req, { params }) {
       JSON.stringify({
         ...(product.toObject ? product.toObject() : product),
         isFav,
+        ...(typeof viewerHasPendingRequest === "boolean"
+          ? { viewerHasPendingRequest }
+          : {}),
+        ...(requestsOut ? { requests: requestsOut } : {}),
       }),
       { status: 200 }
     );
@@ -181,9 +226,45 @@ export async function PATCH(req, { params }) {
       "images",
       "defaultImage",
       "isHidden",
+      "type",
+      "donationMode",
+      "requestDeadline",
     ];
     for (const k of allowed) {
       if (k in body) product[k] = body[k];
+    }
+
+    // ✅ Donation-specific enforcement
+    if (product.type === "donation") {
+      // Always free
+      product.price = 0;
+
+      const MS_14D = 14 * 24 * 60 * 60 * 1000;
+      const createdAt = new Date(product.createdAt);
+      const hardMax = new Date(createdAt.getTime() + MS_14D);
+
+      if (product.donationMode === "instant") {
+        // Instant → must not have a deadline
+        product.requestDeadline = null;
+      } else if (product.donationMode === "selective") {
+        // Selective → must have a deadline and it must not exceed createdAt + 14 days
+        if (!product.requestDeadline) {
+          return new Response(
+            "requestDeadline is required for selective donation",
+            { status: 400 }
+          );
+        }
+
+        const reqDeadline = new Date(product.requestDeadline);
+        if (Number.isNaN(reqDeadline.getTime())) {
+          return new Response("Invalid requestDeadline", { status: 400 });
+        }
+
+        // Enforce the hard cap: clamp down to createdAt + 14 days if needed
+        if (reqDeadline > hardMax) {
+          product.requestDeadline = hardMax.toISOString();
+        }
+      }
     }
 
     await product.save();

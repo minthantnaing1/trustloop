@@ -20,6 +20,46 @@ export async function POST(req) {
       return new Response("User not found", { status: 404 });
     }
 
+    // ---- Minimal donation normalization/validation (only when type === "donation") ----
+    if (body?.type === "donation") {
+      const mode = body?.donationMode || "instant";
+      body.donationMode = mode;
+
+      // donations should be zero-price; don't override if client already set 0
+      if (typeof body.price !== "number") body.price = 0;
+
+      if (mode === "instant") {
+        delete body.requestDeadline;
+      } else if (mode === "selective") {
+        const dl = body.requestDeadline ? new Date(body.requestDeadline) : null;
+        if (!dl || Number.isNaN(dl.getTime())) {
+          return new Response(
+            "requestDeadline is required for selective donation",
+            { status: 400 }
+          );
+        }
+        const now = new Date();
+        if (dl <= now) {
+          return new Response("requestDeadline must be in the future", {
+            status: 400,
+          });
+        }
+        // Optional hard cap (keep minimal but safe): max 14 days window
+        const max = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+        if (dl > max) {
+          return new Response("requestDeadline too far. Max 14 days.", {
+            status: 400,
+          });
+        }
+        body.requestDeadline = dl;
+      }
+    } else {
+      // Non-donation: ignore donation-only fields if sent
+      delete body.donationMode;
+      delete body.requestDeadline;
+    }
+    // -------------------------------------------------------------------------------
+
     const created = await Product.create({
       ...body,
       owner: user._id,
@@ -45,14 +85,15 @@ export async function GET(req) {
     const maxPrice = parseFloat(searchParams.get("maxPrice")) || 999999999;
     const condition = searchParams.get("condition");
     const location = searchParams.get("location");
-    const type = searchParams.get("type"); // ← add this for type
+    const type = searchParams.get("type"); // ← already supports type
+    const donationMode = searchParams.get("donationMode");
 
     const user = session?.user?.email
       ? await User.findOne({ email: session.user.email })
       : null;
 
+    // ✅ Base filters (hide hidden unless owner)
     const filters = {
-      price: { $gte: minPrice, $lte: maxPrice },
       $or: [
         { isHidden: false },
         { isHidden: { $exists: false } },
@@ -60,15 +101,35 @@ export async function GET(req) {
       ],
     };
 
+    // ✅ Apply price filter only for non-donation
+    if (type !== "donation") {
+      filters.price = { $gte: minPrice, $lte: maxPrice };
+    } else {
+      filters.price = 0; // donations are always free
+    }
+
+    // ✅ Apply optional filters
     if (search) filters.title = { $regex: search, $options: "i" };
     if (category) filters.category = category;
     if (condition) filters.condition = condition;
     if (location) filters.location = { $regex: location, $options: "i" };
-    if (type) filters.type = type; // ← add this (e.g., "sell")
+    if (type) filters.type = type;
+    if (donationMode) filters.donationMode = donationMode;
+
+    // ✅ Sorting: newest first for everything.
+    // For donations/selective, break ties by earlier deadline.
+    let sortQuery = { createdAt: -1 };
+
+    if (type === "donation") {
+      sortQuery =
+        donationMode === "selective"
+          ? { createdAt: -1, requestDeadline: 1 } // newest first; among those, sooner deadline first
+          : { createdAt: -1 }; // instant donations: just newest first
+    }
 
     const products = await Product.find(filters)
       .populate("owner")
-      .sort({ createdAt: -1 });
+      .sort(sortQuery);
 
     // attach buyer/info for reserved products (and include the order status)
     const reservedIds = products
@@ -107,6 +168,20 @@ export async function GET(req) {
         return p;
       });
     }
+
+    // ✅ Optional: Mark expired selective donations
+    const now = new Date();
+    productsOut = productsOut.map((p) => {
+      if (
+        p.type === "donation" &&
+        p.donationMode === "selective" &&
+        p.requestDeadline &&
+        new Date(p.requestDeadline) < now
+      ) {
+        p.expired = true;
+      }
+      return p;
+    });
 
     return new Response(
       JSON.stringify({

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import timeAgo from "@/utils/timeAgo";
+import timeAgo, { fmtBKK } from "@/utils/timeAgo";
 import FavoriteButton from "@/components/FavoriteButton";
 
 export default function ProductCard({
@@ -19,6 +19,12 @@ export default function ProductCard({
     !!product.buyerEmail &&
     !!currentUserEmail &&
     product.buyerEmail === currentUserEmail;
+
+  const isDonation = product?.type === "donation";
+  const deadlineTxt =
+    isDonation && product?.requestDeadline
+      ? fmtBKK(product.requestDeadline)
+      : null;
 
   // Seller should be sent to the Seller tab (not order detail) while the order
   // is in an early state. After that, go to order detail.
@@ -58,8 +64,14 @@ export default function ProductCard({
     }
   }
 
-  const href =
-    orderHref ?? (isOwner ? `/sell/${product._id}` : `/buy/${product._id}`);
+  // Routing tweak: donations go to donation detail page
+  const typeHref = isDonation
+    ? `/donation/${product._id}`
+    : isOwner
+    ? `/sell/${product._id}`
+    : `/buy/${product._id}`;
+
+  const href = orderHref ?? typeHref;
 
   const img = product.defaultImage || "/placeholder.png";
 
@@ -143,11 +155,14 @@ export default function ProductCard({
         </p>
         {product.price != null && (
           <p className="text-[13px] md:text-[15px] text-[#153969] font-semibold shrink-0">
-            {Number(product.price).toLocaleString()} ฿
+            {Number(product.price) === 0
+              ? "Free"
+              : `${Number(product.price).toLocaleString()} ฿`}
           </p>
         )}
       </div>
 
+      {/* created time */}
       <p className="text-[11px] md:text-[12px] text-gray-600">
         {product.createdAt ? timeAgo(product.createdAt) : ""}
       </p>
@@ -163,6 +178,16 @@ export default function ProductCard({
           isHidden ? "opacity-50" : "opacity-100"
         }`}
       />
+
+      {/* For classic/classicBlur: no type pill; deadline at top-right */}
+      {variant !== "overlay" && isDonation && deadlineTxt && (
+        <div className="absolute top-1 right-1">
+          <span className="text-[10px] md:text-[11px] font-medium px-2 py-0.5 rounded bg-white/85 text-rose-700">
+            Deadline: {deadlineTxt}
+          </span>
+        </div>
+      )}
+
       <Badges />
     </div>
   );
@@ -204,6 +229,17 @@ export default function ProductCard({
               }}
             />
             <Badges />
+            {/* Type and deadline (moved from TopImage, since overlay doesn’t call it) */}
+            <div className="absolute top-1 left-1 flex flex-col gap-1 items-start">
+              <span className="text-[10px] md:text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-600 text-white">
+                {isDonation ? "DONATION" : "SELL"}
+              </span>
+              {isDonation && deadlineTxt && (
+                <span className="text-[10px] md:text-[11px] font-medium px-2 py-0.5 rounded bg-white/85 text-rose-700">
+                  Deadline: {deadlineTxt}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Info bar (blurred image + white scrim) */}

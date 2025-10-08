@@ -41,6 +41,8 @@ export default async function FavoritesPage() {
     location: p.location || "",
     category: p.category || "",
     condition: p.condition || "",
+    type: p.type || "",
+    requestDeadline: p.requestDeadline || null,
     defaultImage:
       p.defaultImage ||
       p.images?.[0]?.url ||

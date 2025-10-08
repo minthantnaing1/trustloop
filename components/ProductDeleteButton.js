@@ -1,3 +1,4 @@
+// components/ProductDeleteButton.js
 "use client";
 
 import { useState } from "react";
@@ -6,7 +7,7 @@ import ActionButton from "./ActionButton";
 import ConfirmModal from "./ConfirmModal";
 import { TrashIcon } from "@heroicons/react/24/solid";
 
-export default function ProductDeleteButton({ productId }) {
+export default function ProductDeleteButton({ productId, type = "sell" }) {
   const [showModal, setShowModal] = useState(false);
   const router = useRouter();
 
@@ -17,12 +18,15 @@ export default function ProductDeleteButton({ productId }) {
       });
 
       if (res.ok) {
-        router.push("/sell");
+        router.push(type === "donation" ? "/donation" : "/sell");
+        router.refresh();
       } else {
         alert("Failed to delete product.");
       }
     } catch (err) {
       alert("Error deleting product.");
+    } finally {
+      setShowModal(false);
     }
   };
 
