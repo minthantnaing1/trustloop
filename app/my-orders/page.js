@@ -62,45 +62,96 @@ function MethodTag({ method }) {
 }
 
 /** Animated sliding pill role switch (800ms) */
-function RoleSwitch({ role, setRole }) {
-  const isBuyer = role === "buyer";
+function labelsForKind(kind) {
+  if (kind === "DONATION") return { left: "As Recipient", right: "As Donor" };
+  if (kind === "AUCTION") return { left: "As Bidder", right: "As Seller" };
+  return { left: "As Buyer", right: "As Seller" }; // BUY_SELL
+}
+
+function RoleSwitch({ role, setRole, kind }) {
+  const isLeft = role === "buyer";
+  const { left, right } = labelsForKind(kind);
 
   return (
-    <div className="relative inline-grid grid-cols-2 rounded-full bg-slate-100 p-1 shadow-sm w-[200px]">
-      {/* Sliding highlight */}
+    <div className="relative inline-grid grid-cols-2 rounded-full bg-slate-100 p-1 shadow-sm w-[214px]">
       <span
         aria-hidden="true"
         className={`absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-[#325082]
                     transition-transform duration-[800ms] ease-[cubic-bezier(.2,.8,.2,1)]
                     transform-gpu will-change-transform
-                    ${isBuyer ? "translate-x-0" : "translate-x-full"}`}
+                    ${isLeft ? "translate-x-0" : "translate-x-full"}`}
       />
       <button
         type="button"
         onClick={() => setRole("buyer")}
         className={`relative z-10 h-9 px-3 text-sm font-medium rounded-full transition-colors duration-[800ms]
                     ${
-                      isBuyer
+                      isLeft
                         ? "text-white"
                         : "text-[#325082] hover:text-[#22365a]"
                     }`}
-        aria-pressed={isBuyer}
+        aria-pressed={isLeft}
       >
-        As Buyer
+        {left}
       </button>
       <button
         type="button"
         onClick={() => setRole("seller")}
         className={`relative z-10 h-9 px-3 text-sm font-medium rounded-full transition-colors duration-[800ms]
                     ${
-                      !isBuyer
+                      !isLeft
                         ? "text-white"
                         : "text-[#325082] hover:text-[#22365a]"
                     }`}
-        aria-pressed={!isBuyer}
+        aria-pressed={!isLeft}
       >
-        As Seller
+        {right}
       </button>
+    </div>
+  );
+}
+
+function KindSwitch({ kind, setKind }) {
+  const options = [
+    { v: "BUY_SELL", label: "Buy/Sell" },
+    { v: "DONATION", label: "Donation" },
+    // { v: "AUCTION", label: "Auction" }, for later
+  ];
+
+  const activeIndex = options.findIndex((o) => o.v === kind);
+
+  return (
+    <div className="relative inline-grid grid-cols-2 rounded-full bg-slate-100 p-1 shadow-sm w-[190px]">
+      {/* Sliding background */}
+      <span
+        aria-hidden="true"
+        className={`absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-[#325082]
+                    transition-transform duration-[800ms] ease-[cubic-bezier(.2,.8,.2,1)]
+                    transform-gpu will-change-transform
+                    ${
+                      activeIndex === 0 ? "translate-x-0" : "translate-x-full"
+                    }`}
+      />
+
+      {options.map((o, i) => {
+        const active = kind === o.v;
+        return (
+          <button
+            key={o.v}
+            type="button"
+            onClick={() => setKind(o.v)}
+            className={`relative z-10 h-9 px-3 text-sm font-medium rounded-full transition-colors duration-[800ms]
+                        ${
+                          active
+                            ? "text-white"
+                            : "text-[#325082] hover:text-[#22365a]"
+                        }`}
+            aria-pressed={active}
+          >
+            {o.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -121,6 +172,13 @@ function MyOrdersClient() {
   const [errSeller, setErrSeller] = useState("");
   const [pendingActionId, setPendingActionId] = useState(null);
   const [statusFilter, setStatusFilter] = useState(statusParam || "ALL");
+
+  const kindParam = searchParams.get("kind");
+  const [kindFilter, setKindFilter] = useState(
+    ["BUY_SELL", "DONATION", "AUCTION"].includes(kindParam)
+      ? kindParam
+      : "BUY_SELL"
+  );
 
   // keep track of scheduled refresh timers so we can clean them up
   const refreshTimersRef = useRef([]);
@@ -261,17 +319,19 @@ function MyOrdersClient() {
   const rawList = role === "buyer" ? buyerTxns : sellerTxns;
   const list = useMemo(() => {
     if (!Array.isArray(rawList)) return rawList;
-    if (statusFilter === "ALL") return rawList;
 
-    // Combine only for BUYER tab
+    const byKind = rawList.filter((t) => t.kind === kindFilter);
+
+    if (statusFilter === "ALL") return byKind;
+
     if (role === "buyer" && statusFilter === "BUYER_CONFIRMED") {
-      return rawList.filter(
+      return byKind.filter(
         (t) => t.status === "BUYER_CONFIRMED" || t.status === "PAID_OUT"
       );
     }
 
-    return rawList.filter((t) => t.status === statusFilter);
-  }, [rawList, statusFilter, role]);
+    return byKind.filter((t) => t.status === statusFilter);
+  }, [rawList, statusFilter, role, kindFilter]);
 
   useEffect(() => {
     if (role === "buyer" && statusFilter === "PAID_OUT") {
@@ -280,6 +340,52 @@ function MyOrdersClient() {
   }, [role, statusFilter]);
 
   const err = role === "buyer" ? errBuyer : errSeller;
+
+  function partyLabel({ isSeller, kind }) {
+    if (kind === "DONATION") return isSeller ? "Recipient" : "Donor";
+    if (kind === "AUCTION") return isSeller ? "Winner" : "Seller"; // tweak if you like
+    return isSeller ? "Buyer" : "Seller"; // default Buy/Sell
+  }
+
+  const emptyText =
+    kindFilter === "DONATION"
+      ? role === "buyer"
+        ? "You haven't requested any donations."
+        : "No donation requests yet."
+      : kindFilter === "AUCTION"
+      ? role === "buyer"
+        ? "You haven't joined any auctions."
+        : "No active auctions."
+      : role === "buyer"
+      ? "You haven't placed any orders."
+      : "You don't have any sales transactions.";
+
+  // ✅ choose the right CTA link + text by kind/role
+  const { ctaHref, ctaText } = (() => {
+    if (kindFilter === "DONATION") {
+      return role === "buyer"
+        ? { ctaHref: "/donation", ctaText: "Browse donations" }
+        : { ctaHref: "/donation/post", ctaText: "Donate your items" };
+    }
+    if (kindFilter === "AUCTION") {
+      return role === "buyer"
+        ? { ctaHref: "/auction", ctaText: "Browse auctions" }
+        : { ctaHref: "/auction/post", ctaText: "Create an auction" };
+    }
+    // default = Buy & Sell
+    return role === "buyer"
+      ? { ctaHref: "/buy", ctaText: "Browse products" }
+      : { ctaHref: "/sell/post", ctaText: "Create a listing" };
+  })();
+
+  useEffect(() => {
+    const sp = new URLSearchParams(searchParams);
+    sp.set("role", role);
+    sp.set("status", statusFilter);
+    sp.set("kind", kindFilter);
+    router.replace(`/my-orders?${sp.toString()}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role, statusFilter, kindFilter]);
 
   return (
     <>
@@ -307,38 +413,61 @@ function MyOrdersClient() {
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-[#325082]">My Orders</h1>
               <MyOrdersStatusFilter
+                key={`status-${role}-${kindFilter}`}
                 role={role}
+                kind={kindFilter}
                 value={statusFilter}
                 onChange={setStatusFilter}
               />
             </div>
-            <RoleSwitch role={role} setRole={setRole} />
+            <div className="flex items-center gap-2">
+              <KindSwitch kind={kindFilter} setKind={setKindFilter} />
+              <RoleSwitch role={role} setRole={setRole} kind={kindFilter} />
+            </div>
           </div>
 
           {/* Mobile: title top, filter below, role switch right */}
           <div className="flex flex-col sm:hidden">
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-bold text-[#325082]">My Orders</h1>
-              <RoleSwitch role={role} setRole={setRole} />
+              <RoleSwitch role={role} setRole={setRole} kind={kindFilter} />
             </div>
-            <div className="flex items-center gap-2 mt-2">
-              <span className="text-md font-bold text-[#325082]">Filter:</span>
+            <div className="flex justify-between items-center mt-2 gap-2">
               <MyOrdersStatusFilter
+                key={`status-${role}-${kindFilter}`}
                 role={role}
+                kind={kindFilter}
                 value={statusFilter}
                 onChange={setStatusFilter}
               />
+              <KindSwitch kind={kindFilter} setKind={setKindFilter} />
             </div>
           </div>
         </div>
 
-        {/* Seller-only progress (UI stepper at step 2) */}
-        {role === "seller" && (
+        {/* Buyer-only progress (Donation recipient stepper at step 2) */}
+        {role === "buyer" && kindFilter === "DONATION" && (
           <div
+            key={`stepper-buyer-${kindFilter}`}
             className="mb-4"
             style={{ animation: "fadeSlide 800ms ease-out" }}
           >
-            <Stepper current={2} variant="seller" className="px-1" />
+            <Stepper current={2} variant="recipient" className="px-1" />
+          </div>
+        )}
+
+        {/* Seller-only progress (UI stepper at step 2) */}
+        {role === "seller" && (
+          <div
+            key={`stepper-seller-${kindFilter}`}
+            className="mb-4"
+            style={{ animation: "fadeSlide 800ms ease-out" }}
+          >
+            <Stepper
+              current={2}
+              variant={kindFilter === "DONATION" ? "donor" : "seller"}
+              className="px-1"
+            />
           </div>
         )}
 
@@ -349,7 +478,7 @@ function MyOrdersClient() {
 
         {/* Entire list fades/slides on tab change */}
         <section
-          key={role}
+          key={`${role}-${kindFilter}`}
           className="space-y-4"
           style={{ animation: "fadeSlide 800ms ease-out" }}
         >
@@ -358,8 +487,10 @@ function MyOrdersClient() {
             list.map((t) => {
               const id = t._id?.toString?.() || t._id;
               const isSeller = role === "seller";
+              const isAwaitingDonor = t.status === "AWAITING_DONOR";
               const canAcceptOrCancel =
-                isSeller && t.status === "ESCROW_FUNDED";
+                isSeller && (t.status === "ESCROW_FUNDED" || isAwaitingDonor);
+
               const counterparty = isSeller ? t.buyer : t.seller;
               const method = t.fulfillment?.method;
 
@@ -378,18 +509,42 @@ function MyOrdersClient() {
                   {/* Banner */}
                   <header className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 bg-slate-50">
                     <div className="text-[15px] font-semibold text-[#325082]">
-                      {isSeller ? "Buyer" : "Seller"}:&nbsp;
+                      {partyLabel({ isSeller, kind: t.kind })}:&nbsp;
                       <span>
                         {counterparty?.name || counterparty?.email || "-"}
                       </span>
                     </div>
+
+                    {/* 👇 New Type label to match layout */}
+                    <div className="flex items-center justify-end gap-2">
+                      <span className="text-[#325082]">Type:</span>
+                      <span
+                        className={`text-sm font-medium px-2 py-0.5 rounded-full ${
+                          t.kind === "DONATION"
+                            ? "bg-pink-100 text-pink-700"
+                            : t.kind === "AUCTION"
+                            ? "bg-yellow-100 text-yellow-700"
+                            : "bg-blue-100 text-blue-700"
+                        }`}
+                      >
+                        {t.kind === "BUY_SELL"
+                          ? "Buy/Sell"
+                          : t.kind === "DONATION"
+                          ? "Donation"
+                          : t.kind === "AUCTION"
+                          ? "Auction"
+                          : t.kind}
+                      </span>
+                    </div>
+
                     <div className="flex items-center justify-end gap-2">
                       <span className="text-[#325082]">Delivery Method:</span>
                       <MethodTag method={method} />
                     </div>
+
                     <div className="flex items-center justify-end gap-2">
                       <span className="text-[#325082]">Order status:</span>
-                      <StatusPill status={t.status} />
+                      <StatusPill status={t.status} kind={t.kind} />
                     </div>
                   </header>
 
@@ -410,7 +565,27 @@ function MyOrdersClient() {
                         <h3 className="text-sm sm:text-base font-semibold text-[#325082] line-clamp-2">
                           {t.product?.title || "-"}
                         </h3>
-                        <div className="mt-2 text-[13px] text-slate-700 space-y-1">
+                        <div className="mt-2 text-[13px] text-slate-700 space-y-1.5">
+                          <div className="text-[14px]">
+                            <span className="text-slate-500">Total:</span>{" "}
+                            <span className="font-semibold text-[#325082]">
+                              {Number(t.total || 0) === 0
+                                ? "Free"
+                                : `฿${Number(t.total).toLocaleString()}`}
+                            </span>
+                          </div>
+
+                          {t.requestReason && (
+                            <div>
+                              <span className="text-slate-500">
+                                Request reason:
+                              </span>{" "}
+                              <span className="font-semibold">
+                                {t.requestReason}
+                              </span>
+                            </div>
+                          )}
+
                           <div>
                             <span className="text-slate-500">Updated:</span>{" "}
                             <time>
@@ -418,12 +593,6 @@ function MyOrdersClient() {
                                 t.updatedAt || t.createdAt
                               ).toLocaleString()}
                             </time>
-                          </div>
-                          <div>
-                            <span className="text-slate-500">Total:</span>{" "}
-                            <span className="font-semibold text-[#325082]">
-                              ฿{Number(t.total || 0).toLocaleString()}
-                            </span>
                           </div>
                         </div>
                       </div>
@@ -433,18 +602,26 @@ function MyOrdersClient() {
                         {isSeller && canAcceptOrCancel && (
                           <>
                             <ActionButton
-                              text="Accept the Order"
+                              text={
+                                isAwaitingDonor
+                                  ? "Accept the request"
+                                  : "Accept the Order"
+                              }
                               variant="primaryClick"
                               disabled={pendingActionId === id}
                               onClick={() => actOnTxn(id, "seller_accept")}
                             />
                             <ActionButton
-                              text="Cancel the Order"
+                              text={
+                                isAwaitingDonor ? "Reject" : "Cancel the Order"
+                              }
                               variant="dangerOutlineHover"
                               disabled={pendingActionId === id}
                               onClick={() => {
                                 const reason = prompt(
-                                  "Please enter a reason for cancellation:"
+                                  isAwaitingDonor
+                                    ? "Please enter a reason for rejection:"
+                                    : "Please enter a reason for cancellation:"
                                 );
                                 if (reason && reason.trim()) {
                                   actOnTxn(id, "seller_cancel", {
@@ -510,6 +687,7 @@ function MyOrdersClient() {
                       events={t.timeline}
                       compact
                       maxHeight="max-h-40"
+                      kind={t.kind}
                     />
                   </details>
                 </article>
@@ -523,17 +701,11 @@ function MyOrdersClient() {
               <div className="text-lg font-medium text-[#1f2d4d] mb-1">
                 Nothing here yet
               </div>
-              <p className="text-sm text-slate-500">
-                {role === "buyer"
-                  ? "You haven't placed any orders."
-                  : "You don't have any sales transactions."}
-              </p>
+              <p className="text-sm text-slate-500">{emptyText}</p>
               <div className="mt-4">
-                <Link href={role === "buyer" ? "/buy" : "/sell"}>
+                <Link href={ctaHref}>
                   <ActionButton
-                    text={
-                      role === "buyer" ? "Browse products" : "Create a listing"
-                    }
+                    text={ctaText}
                     variant="primaryHover"
                     className="inline-flex items-center"
                   />

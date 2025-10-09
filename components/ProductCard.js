@@ -56,7 +56,7 @@ export default function ProductCard({
       // Buyer routes
       if (status === "BUYER_CONFIRMED" || status === "PAID_OUT") {
         // Buyer final review page
-        orderHref = `/buy/review/${product.buyerOrderId}`;
+        orderHref = `/review/${product.buyerOrderId}`;
       } else {
         // Buyer ongoing order
         orderHref = `/my-orders/${product.buyerOrderId}`;
@@ -90,18 +90,22 @@ export default function ProductCard({
 
     if (!reserved) return null;
 
-    // final statuses where the item is effectively "sold"
-    const isFinal =
-      product?.buyerOrderStatus === "BUYER_CONFIRMED" ||
-      product?.buyerOrderStatus === "PAID_OUT";
+    const isDonation = product?.type === "donation";
 
-    // am I the buyer (used for non-owner message)
+    // FINAL:
+    // - donation: ONLY BUYER_CONFIRMED
+    // - sell: BUYER_CONFIRMED or PAID_OUT
+    const isFinal = isDonation
+      ? product?.buyerOrderStatus === "BUYER_CONFIRMED"
+      : product?.buyerOrderStatus === "PAID_OUT";
+
+    // keep your preferred naming
     const iAmBuyer =
       product?.buyerEmail &&
       currentUserEmail &&
       product.buyerEmail === currentUserEmail;
 
-    // ---- Seller view (owner)
+    // ---- Owner view ----
     if (isOwner && product?.buyerName) {
       return (
         <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
@@ -111,14 +115,14 @@ export default function ProductCard({
             }`}
           >
             {isFinal
-              ? `Sold to ${product.buyerName}`
+              ? `${isDonation ? "Donated to" : "Sold to"} ${product.buyerName}`
               : `Reserved by ${product.buyerName}`}
           </span>
         </div>
       );
     }
 
-    // ---- Buyer / public view
+    // ---- Buyer / public view ----
     if (iAmBuyer) {
       return (
         <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
@@ -127,17 +131,25 @@ export default function ProductCard({
               isFinal ? "bg-emerald-700/90" : "bg-[#325082]/90"
             }`}
           >
-            {isFinal ? "Purchased by Me" : "Reserved by Me"}
+            {isFinal
+              ? isDonation
+                ? "Received by Me"
+                : "Purchased by Me"
+              : "Reserved by Me"}
           </span>
         </div>
       );
     }
 
-    // For everyone else
+    // ---- Everyone else ----
     return (
       <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
         <span className="w-full text-center text-xs md:text-sm text-white font-semibold bg-black/60 px-1 py-2">
-          {isFinal ? "Sold" : "This Item is currently Reserved or Unavailable."}
+          {isFinal
+            ? isDonation
+              ? "Donated"
+              : "Sold"
+            : "This Item is currently Reserved or Unavailable."}
         </span>
       </div>
     );
@@ -145,7 +157,7 @@ export default function ProductCard({
 
   const InfoContent = () => (
     <>
-      <h4 className="font-semibold truncate text-[13px] text-[#153969] md:text-[15px]">
+      <h4 className="font-semibold truncate text-[12.5px] text-[#153969] md:text-[15px]">
         {product.title}
       </h4>
 
@@ -154,7 +166,7 @@ export default function ProductCard({
           {product.category}
         </p>
         {product.price != null && (
-          <p className="text-[13px] md:text-[15px] text-[#153969] font-semibold shrink-0">
+          <p className="text-[12.5px] md:text-[15px] text-[#153969] font-semibold shrink-0">
             {Number(product.price) === 0
               ? "Free"
               : `${Number(product.price).toLocaleString()} ฿`}

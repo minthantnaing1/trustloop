@@ -349,7 +349,7 @@ export async function PATCH(req, { params }) {
     const isSeller = String(txn.seller) === String(me._id);
     if (!isSeller) return new Response("Forbidden", { status: 403 });
 
-    if (txn.status !== "ESCROW_FUNDED") {
+    if (!["ESCROW_FUNDED", "AWAITING_DONOR"].includes(txn.status)) {
       return new Response("Not allowed in current state", { status: 409 });
     }
 
@@ -371,9 +371,12 @@ export async function PATCH(req, { params }) {
     if (!isSeller) return new Response("Forbidden", { status: 403 });
 
     if (
-      !["ESCROW_FUNDED", "SELLER_ACCEPTED", "DELIVERY_IN_PROGRESS"].includes(
-        txn.status
-      )
+      ![
+        "AWAITING_DONOR",
+        "ESCROW_FUNDED",
+        "SELLER_ACCEPTED",
+        "DELIVERY_IN_PROGRESS",
+      ].includes(txn.status)
     ) {
       return new Response("Not allowed in current state", { status: 409 });
     }
@@ -514,9 +517,14 @@ export async function PATCH(req, { params }) {
       String(txn.seller) === String(me._id);
     if (!isParty) return new Response("Forbidden", { status: 403 });
 
-    if (!["ESCROW_FUNDED", "SELLER_ACCEPTED"].includes(txn.status)) {
+    if (
+      !["ESCROW_FUNDED", "AWAITING_DONOR", "SELLER_ACCEPTED"].includes(
+        txn.status
+      )
+    ) {
       return new Response("Not allowed in current state", { status: 409 });
     }
+
     if (txn.fulfillment?.method !== "MEETUP") {
       return new Response("Not a meetup order", { status: 409 });
     }
@@ -586,12 +594,23 @@ export async function PATCH(req, { params }) {
     if (txn.fulfillment?.method !== "MEETUP") {
       return new Response("Not a meetup order", { status: 409 });
     }
+
+    // ✅ Allow accept only if current status is valid
+    if (
+      !["ESCROW_FUNDED", "AWAITING_DONOR", "SELLER_ACCEPTED"].includes(
+        txn.status
+      )
+    ) {
+      return new Response("Not allowed in current state", { status: 409 });
+    }
+
     if (
       !txn.fulfillment?.meetupProposedAt ||
       !txn.fulfillment?.meetupLocation
     ) {
       return new Response("No meetup proposal to accept", { status: 409 });
     }
+
     // Optional: ensure the accepter is not the same as the proposer
     if (String(txn.fulfillment?.meetupProposedBy) === String(me._id)) {
       return new Response("Other party must accept", { status: 409 });

@@ -9,6 +9,7 @@ const protectedRoutes = [
   /^\/donation(\/.*)?$/,
   /^\/my-orders(\/.*)?$/,
   /^\/profile(\/.*)?$/,
+  /^\/review(\/.*)?$/,
   /^\/favorites$/,
   /^\/notifications$/,
 ];

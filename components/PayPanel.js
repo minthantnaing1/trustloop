@@ -134,7 +134,7 @@ export default function PayPanel({ txn }) {
       if (!res.ok)
         throw new Error((await res.text()) || "Failed to submit receipt");
 
-      router.replace("/my-orders");
+      router.replace("/my-orders?role=buyer&status=ALL&kind=BUY_SELL");
     } catch (e) {
       setErr(e.message || "Something went wrong");
       setBusy(false);

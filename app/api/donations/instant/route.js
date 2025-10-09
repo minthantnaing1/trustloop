@@ -1,4 +1,3 @@
-// app/api/donations/instant/route.js
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
 import Product from "@/models/Product";
@@ -26,36 +25,50 @@ export async function POST(req) {
     const product = await Product.findById(productId).populate("owner");
     if (!product) return new Response("Product not found", { status: 404 });
 
-    if (product.type !== "donation") {
+    if (product.type !== "donation")
       return new Response("Not a donation item.", { status: 400 });
-    }
-    if (String(product.owner?._id) === String(me._id)) {
+
+    if (String(product.owner?._id) === String(me._id))
       return new Response("You cannot request your own donation.", {
         status: 403,
       });
-    }
-    if (product.isAvailable === false) {
+
+    if (product.isAvailable === false)
       return new Response("This item is already reserved/unavailable.", {
         status: 409,
       });
-    }
-    if (product.donationMode !== "instant") {
-      return new Response("This donation is selective only.", { status: 400 });
-    }
 
-    // Reserve item + create zero-cost transaction
+    if (product.donationMode !== "instant")
+      return new Response("This donation is selective only.", { status: 400 });
+
+    // Reserve the item
     product.isAvailable = false;
     await product.save();
 
+    // Create zero-cost DONATION txn, meetup-only
     const txn = await Transaction.create({
+      kind: "DONATION",
       product: product._id,
       buyer: me._id,
       seller: product.owner?._id || product.owner,
+      status: "AWAITING_DONOR", // donor must still confirm
       price: 0,
-      platformFee: 0,
-      // Choose a status that fits your existing flow (no payment phase):
-      status: "PENDING_SELLER_ACTION", // or "ESCROW_FUNDED" if your UI expects it
-      note: reason.trim(),
+      fee: 0,
+      total: 0,
+      sellerNet: 0,
+      fulfillment: {
+        method: "MEETUP",
+        meetupLocation: product.location || "",
+        notes: "", // reserved for meetup arrangement
+      },
+      requestReason: reason.trim(), // 👈 store requester’s reason properly
+      timeline: [
+        {
+          by: me._id,
+          action: "DONATION_INSTANT_CREATED",
+          meta: { reason: reason.trim() },
+        },
+      ],
     });
 
     return new Response(

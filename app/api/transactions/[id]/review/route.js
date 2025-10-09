@@ -4,9 +4,11 @@ import Transaction from "@/models/Transaction";
 import Review from "@/models/Review";
 import User from "@/models/User";
 
-// ✅ Create a review for a completed transaction
 export async function POST(req, { params }) {
-  const { id } = await params; // transactionId
+  const { id } = await params;
+  const { searchParams } = new URL(req.url);
+  // incoming role from UI: buyer | seller | donor | recipient
+  const incomingRole = (searchParams.get("role") || "buyer").toLowerCase();
 
   try {
     const session = await auth();
@@ -16,53 +18,85 @@ export async function POST(req, { params }) {
 
     await connectDB();
 
-    // 1. Find txn and make sure buyer is correct + status confirmed
-    const txn = await Transaction.findById(id).populate("buyer seller product");
+    // Ensure indexes are up-to-date (drops old unique `transaction_1` if it exists)
+    await Review.syncIndexes();
+
+    // Lean fetch: ids + status
+    const txn = await Transaction.findById(id);
     if (!txn) return new Response("Transaction not found", { status: 404 });
 
-    if (!["BUYER_CONFIRMED", "PAID_OUT"].includes(txn.status)) {
-      return new Response("Review not allowed until buyer has confirmed", {
-        status: 400,
-      });
+    if (!txn.buyer || !txn.seller) {
+      return new Response("Transaction parties incomplete", { status: 400 });
     }
 
-    if (txn.reviewed) {
-      return new Response("This transaction has already been reviewed", {
-        status: 400,
-      });
+    // Resolve users (for email checks)
+    const [buyer, seller] = await Promise.all([
+      User.findById(txn.buyer),
+      User.findById(txn.seller),
+    ]);
+    if (!buyer || !seller) {
+      return new Response("Transaction parties missing", { status: 400 });
     }
 
-    if (txn.buyer.email !== session.user.email) {
-      return new Response("Only the buyer can leave a review", { status: 403 });
+    // Only once the order is complete
+    const allowed = new Set(["BUYER_CONFIRMED", "PAID_OUT"]);
+    if (!allowed.has(txn.status)) {
+      return new Response("Review not allowed yet", { status: 400 });
     }
 
-    // 2. Parse body
+    const viewerEmail = session.user.email.toLowerCase();
+
+    // Map UI role → canonical role + access checks
+    let reviewerDoc, targetDoc, role;
+    if (incomingRole === "buyer" || incomingRole === "recipient") {
+      if ((buyer.email || "").toLowerCase() !== viewerEmail) {
+        return new Response("Only buyer/recipient may review", { status: 403 });
+      }
+      reviewerDoc = buyer;
+      targetDoc = seller;
+      role = "buyer";
+    } else {
+      if ((seller.email || "").toLowerCase() !== viewerEmail) {
+        return new Response("Only seller/donor may review", { status: 403 });
+      }
+      reviewerDoc = seller;
+      targetDoc = buyer;
+      role = "seller";
+    }
+
     const { rating, comment } = await req.json();
     if (!rating || rating < 1 || rating > 5) {
       return new Response("Invalid rating", { status: 400 });
     }
 
-    // 3. Create review
+    // Enforce one review per (transaction, reviewer)
+    const existing = await Review.findOne({
+      transaction: txn._id,
+      reviewer: reviewerDoc._id,
+    });
+    if (existing) {
+      return new Response("Already reviewed", { status: 400 });
+    }
+
+    // Create review
     const review = await Review.create({
       transaction: txn._id,
-      product: txn.product._id,
-      buyer: txn.buyer._id,
-      seller: txn.seller._id,
+      product: txn.product, // ObjectId from txn
+      reviewer: reviewerDoc._id,
+      target: targetDoc._id,
+      role,
       rating,
       comment: comment || "",
     });
 
-    // 4. Mark transaction as reviewed
-    txn.reviewed = true;
-    await txn.save();
-
-    // 5. Update seller aggregate stats
-    const seller = await User.findById(txn.seller._id);
-    if (seller) {
-      const totalScore = seller.rating * seller.reviewsCount + rating;
-      seller.reviewsCount += 1;
-      seller.rating = totalScore / seller.reviewsCount;
-      await seller.save();
+    // Update aggregate stats for the target user
+    const targetUser = await User.findById(targetDoc._id);
+    if (targetUser) {
+      const totalScore =
+        (targetUser.rating || 0) * (targetUser.reviewsCount || 0) + rating;
+      targetUser.reviewsCount = (targetUser.reviewsCount || 0) + 1;
+      targetUser.rating = totalScore / targetUser.reviewsCount;
+      await targetUser.save();
     }
 
     return new Response(JSON.stringify(review), {
@@ -75,9 +109,10 @@ export async function POST(req, { params }) {
   }
 }
 
-// ✅ Fetch review for a transaction (buyer or seller can see it)
-export async function GET(_req, { params }) {
+export async function GET(req, { params }) {
   const { id } = await params;
+  const { searchParams } = new URL(req.url);
+  const incomingRole = (searchParams.get("role") || "buyer").toLowerCase();
 
   try {
     const session = await auth();
@@ -87,22 +122,25 @@ export async function GET(_req, { params }) {
 
     await connectDB();
 
-    const txn = await Transaction.findById(id).populate("buyer seller");
+    const txn = await Transaction.findById(id);
     if (!txn) return new Response("Transaction not found", { status: 404 });
 
-    const review = await Review.findOne({ transaction: txn._id })
-      .populate("buyer", "name email image")
-      .populate("seller", "name email image")
+    // Map UI role → stored role
+    const role =
+      incomingRole === "donor"
+        ? "seller"
+        : incomingRole === "recipient"
+        ? "buyer"
+        : incomingRole === "seller"
+        ? "seller"
+        : "buyer";
+
+    const review = await Review.findOne({ transaction: txn._id, role })
+      .populate("reviewer", "name email image")
+      .populate("target", "name email image")
       .populate("product", "title defaultImage");
 
-    if (!review) {
-      return new Response(JSON.stringify(null), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    return new Response(JSON.stringify(review), {
+    return new Response(JSON.stringify(review || null), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });

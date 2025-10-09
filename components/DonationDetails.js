@@ -12,6 +12,7 @@ import CommentSection from "@/components/CommentSection";
 import FavoriteButton from "@/components/FavoriteButton";
 import HideToggleButton from "@/components/HideToggleButton";
 import BackButton from "@/components/BackButton";
+import Stepper from "@/components/Stepper";
 import { PencilIcon } from "@heroicons/react/24/solid";
 import MaskedUserId from "@/components/MaskedUserId";
 import { fmtBKK } from "@/utils/timeAgo";
@@ -39,6 +40,8 @@ export default function DonationDetails({
 
   const canDonatorManage = isOwner && isAvailable;
 
+  const anyAccepted = product.requests?.some((r) => r.status === "accepted");
+
   async function decide(requestId, action) {
     if (!requestId || !["accept", "reject"].includes(action)) return;
     const confirmTxt =
@@ -49,17 +52,36 @@ export default function DonationDetails({
 
     try {
       setBusyId(requestId);
-      // Adjust these endpoints to your API when you wire them up.
+
       const res = await fetch(`/api/donations/request/${requestId}/${action}`, {
         method: "POST",
+        headers: { Accept: "application/json" },
       });
 
       if (!res.ok) {
         const txt = await res.text();
         alert(txt || `Failed to ${action} request.`);
-      } else {
-        router.refresh();
+        return;
       }
+
+      // Optional JSON { orderId }
+      if (action === "accept") {
+        let orderId = "";
+        const ct = res.headers.get("content-type") || "";
+        if (ct.includes("application/json")) {
+          try {
+            const data = await res.json();
+            orderId = data?.orderId || "";
+          } catch {}
+        }
+
+        // redirect to my-orders doner view
+        router.push(`/my-orders?role=seller&status=ALL&kind=DONATION`);
+        return;
+      }
+
+      // After reject, just refresh
+      router.refresh();
     } catch {
       alert(`Error while trying to ${action} the request.`);
     } finally {
@@ -92,82 +114,161 @@ export default function DonationDetails({
           )}
         </div>
 
+        {/* For Donor view (owner) */}
+        {isOwner && isSelective && (
+          <div className="mb-5">
+            <Stepper current={2} variant="donor" className="px-1" />
+          </div>
+        )}
+
         {/* --- Main Content --- */}
         <div className="flex gap-[30px] flex-col sm:flex-row">
-          {/* LEFT: keep ProductImages sizing exactly as before; just add requests below it */}
+          {/* LEFT: images + requests, tight spacing */}
           <div className="flex flex-col gap-3">
             <ProductImages
               images={product.images}
               defaultImage={product.defaultImage}
             />
 
-            {/* Requests moved BELOW the image (owner only) */}
-            {isOwner && (
-              <div className="bg-[#fafafa] border border-gray-300 p-3 rounded-md">
-                <h3 className="font-semibold text-[#325082] mb-2">
-                  Requests Received
-                </h3>
-                {product.requests?.length ? (
+            {/* Owner view (selective only): requests right under image */}
+            {isOwner && isSelective && (
+              <div className="bg-[#fafafa] border border-gray-300 rounded-md">
+                <div className="px-3 pt-3">
+                  <h3 className="font-semibold text-[#325082]">
+                    Requests Received
+                  </h3>
+                </div>
+
+                {/* Scroll region */}
+                <div className="mt-2 px-3 pb-3 sm:max-h-[190px] overflow-y-auto">
+                  {product.requests?.length ? (
+                    <ul className="space-y-3">
+                      {product.requests.map((r) => (
+                        <li
+                          key={r._id}
+                          className="flex items-start gap-3 p-2 rounded border border-gray-200 bg-white"
+                        >
+                          <Image
+                            src={r.user?.image || "/default-profile.png"}
+                            alt="Requester image"
+                            width={44}
+                            height={44}
+                            className="rounded-full object-cover border-2 border-[#325082] w-[44px] h-[44px]"
+                          />
+
+                          <div className="flex-1">
+                            <div className="flex flex-wrap items-center gap-x-2">
+                              <span className="font-semibold text-[#1f2f4c]">
+                                {r.user?.name ||
+                                  r.user?.email ||
+                                  "Unknown User"}
+                              </span>
+                              <span className="text-[13px] text-[#555]">
+                                <MaskedUserId
+                                  email={r.user?.email}
+                                  reveal={false}
+                                />
+                              </span>
+                            </div>
+
+                            {r.message && (
+                              <p className="text-sm text-gray-700 italic mt-0.5">
+                                “{r.message}”
+                              </p>
+                            )}
+                            <p className="text-[11px] text-gray-500 mt-1">
+                              {r.createdAt ? fmtBKK(r.createdAt) : ""}
+                            </p>
+                          </div>
+
+                          {/* No "Pending" badge for owner; buttons only while pending */}
+                          {isAvailable && r.status === "pending" ? (
+                            <div className="flex flex-col gap-1">
+                              <ActionButton
+                                text="Accept"
+                                variant="primaryClick"
+                                onClick={() => decide(r._id, "accept")}
+                                disabled={busyId === r._id}
+                              />
+                              <ActionButton
+                                text="Reject"
+                                variant="dangerOutlineHover"
+                                onClick={() => decide(r._id, "reject")}
+                                disabled={busyId === r._id}
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex flex-col text-xs font-medium text-center mt-1">
+                              {r.status === "accepted" && (
+                                <span className="text-green-600">
+                                  ✅ Accepted
+                                </span>
+                              )}
+                              {r.status === "rejected" && (
+                                <span className="text-red-500">
+                                  ❌ Rejected
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      No one has requested this item yet.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Viewer’s own request summary (selective only), scrollable */}
+            {!isOwner && isSelective && product.viewerRequests?.length > 0 && (
+              <div className="bg-[#fafafa] border border-gray-300 rounded-md">
+                <div className="px-3 pt-3">
+                  <h3 className="font-semibold text-[#325082]">Your Request</h3>
+                </div>
+
+                <div className="mt-2 px-3 pb-3 sm:max-h-[228px] overflow-y-auto">
                   <ul className="space-y-3">
-                    {product.requests.map((r) => (
+                    {product.viewerRequests.map((r) => (
                       <li
                         key={r._id}
                         className="flex items-start gap-3 p-2 rounded border border-gray-200 bg-white"
                       >
                         <Image
                           src={r.user?.image || "/default-profile.png"}
-                          alt="Requester image"
+                          alt="Your image"
                           width={44}
                           height={44}
-                          className="rounded-full object-cover border-2 border-[#325082] w-[44px] h-[44px]"
+                          className="rounded-full object-cover border-2 border-[#325082]"
                         />
-
                         <div className="flex-1">
-                          <div className="flex flex-wrap items-center gap-x-2">
-                            <span className="font-semibold text-[#1f2f4c]">
-                              {r.user?.name || r.user?.email || "Unknown User"}
-                            </span>
-                            <span className="text-[13px] text-[#555]">
-                              <MaskedUserId
-                                email={r.user?.email}
-                                reveal={false}
-                              />
-                            </span>
-                          </div>
-
                           {r.message && (
                             <p className="text-sm text-gray-700 italic mt-0.5">
                               “{r.message}”
                             </p>
                           )}
-
                           <p className="text-[11px] text-gray-500 mt-1">
                             {r.createdAt ? fmtBKK(r.createdAt) : ""}
                           </p>
                         </div>
-
-                        <div className="flex flex-col gap-1">
-                          <ActionButton
-                            text="Accept"
-                            variant="primaryClick"
-                            onClick={() => decide(r._id, "accept")}
-                            disabled={busyId === r._id}
-                          />
-                          <ActionButton
-                            text="Reject"
-                            variant="dangerOutlineHover"
-                            onClick={() => decide(r._id, "reject")}
-                            disabled={busyId === r._id}
-                          />
+                        <div className="text-sm font-medium mt-1">
+                          {r.status === "pending" && (
+                            <span className="text-yellow-600">⏳ Pending</span>
+                          )}
+                          {r.status === "accepted" && (
+                            <span className="text-green-600">✅ Accepted</span>
+                          )}
+                          {r.status === "rejected" && (
+                            <span className="text-red-600">❌ Rejected</span>
+                          )}
                         </div>
                       </li>
                     ))}
                   </ul>
-                ) : (
-                  <p className="text-sm text-gray-500">
-                    No one has requested this item yet.
-                  </p>
-                )}
+                </div>
               </div>
             )}
           </div>
@@ -189,6 +290,12 @@ export default function DonationDetails({
                     : "Selective Donation"}
                 </span>
               )}
+
+              {/* Meetup-only hint */}
+              <span className="text-[12px] font-medium text-[#325082] bg-white/90 px-2 py-1 rounded border border-[#325082]/60">
+                Meetup only
+              </span>
+
               {product.requestDeadline && (
                 <span className="text-[12px] font-medium text-[#b91c1c] bg-white/90 px-2 py-1 rounded border border-[#fca5a5]">
                   Deadline: {fmtBKK(product.requestDeadline)}
@@ -238,7 +345,7 @@ export default function DonationDetails({
               Condition: {product.condition || "-"}
             </div>
             <div className="bg-[#e2e2e2] p-3 rounded-md">
-              Product Location: {product.owner?.location || "-"}
+              Meetup Location: {product.owner?.location || "-"}
             </div>
 
             <div className="flex items-center gap-4 mt-3 p-3 rounded-md bg-[#f0f0f0] border border-[#ccc]">

@@ -1,4 +1,3 @@
-// models/Transaction.js
 import mongoose from "mongoose";
 
 const { ObjectId } = mongoose.Schema.Types;
@@ -47,7 +46,7 @@ const TransactionSchema = new mongoose.Schema({
   seller: { type: ObjectId, ref: "User", required: true },
   buyer: { type: ObjectId, ref: "User", required: true },
 
-  // NEW: distinguish donation vs buy/sell without relying on product later
+  // Distinguish donation vs buy/sell without relying on product later
   kind: {
     type: String,
     enum: ["BUY_SELL", "DONATION", "AUCTION"],
@@ -61,6 +60,7 @@ const TransactionSchema = new mongoose.Schema({
       "PENDING_UPLOAD",
       "AWAITING_ADMIN_REVIEW",
       "ESCROW_FUNDED",
+      "AWAITING_DONOR", // added for donation flow
       "SELLER_ACCEPTED",
       "DELIVERY_IN_PROGRESS",
       "SELLER_DELIVERED",
@@ -75,7 +75,7 @@ const TransactionSchema = new mongoose.Schema({
     index: true,
   },
 
-  // Money
+  // Money (for donation, all zero)
   price: { type: Number, required: true },
   fee: { type: Number, required: true },
   total: { type: Number, required: true },
@@ -89,10 +89,11 @@ const TransactionSchema = new mongoose.Schema({
   // Unified fulfillment object
   fulfillment: { type: DeliverySchema, required: true },
 
-  // (Optional) enrich cancellations without changing APIs yet
-  cancelledBy: { type: ObjectId, ref: "User" }, // who cancelled (buyer/seller/admin)
-  cancelReason: { type: String, default: "" }, // short free-text reason
-  adminRejectReason: { type: String, default: "" }, // if ADMIN_REJECTED
+  // Optional cancellations / rejections
+  cancelledBy: { type: ObjectId, ref: "User" },
+  cancelReason: { type: String, default: "" },
+  adminRejectReason: { type: String, default: "" },
+  requestReason: { type: String, default: "" },
 
   // Audit
   timeline: [TimelineEventSchema],
@@ -100,7 +101,7 @@ const TransactionSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now, index: true },
   updatedAt: { type: Date, default: Date.now },
 
-  autoConfirmAt: { type: Date }, // when to auto-confirm if buyer forgets
+  autoConfirmAt: { type: Date },
   reviewed: { type: Boolean, default: false },
 });
 
@@ -110,8 +111,7 @@ TransactionSchema.pre("save", function (next) {
   next();
 });
 
-// Prevent multiple *active* transactions for the same buyer+product
-// (Active statuses exclude any cancelled/rejected/paid-out terminal states)
+// Prevent multiple active transactions for the same buyer+product
 TransactionSchema.index(
   { product: 1, buyer: 1 },
   {
@@ -122,6 +122,7 @@ TransactionSchema.index(
           "PENDING_UPLOAD",
           "AWAITING_ADMIN_REVIEW",
           "ESCROW_FUNDED",
+          "AWAITING_DONOR", // include donation’s active state
           "SELLER_ACCEPTED",
           "DELIVERY_IN_PROGRESS",
           "SELLER_DELIVERED",

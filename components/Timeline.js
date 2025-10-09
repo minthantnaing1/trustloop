@@ -1,9 +1,8 @@
-// components/Timeline.js
 "use client";
 
 import { fmtBKK } from "@/utils/timeAgo";
 
-/** Central labels for timeline actions (keep in sync with API pushes) */
+/** Base labels for timeline actions */
 export const TIMELINE_LABELS = {
   ORDER_CREATED: "Order created",
   PAYMENT_WINDOW_STARTED: "Payment window started",
@@ -17,21 +16,36 @@ export const TIMELINE_LABELS = {
   MEETUP_ACCEPTED: "Meetup accepted",
   MEETUP_COMPLETED: "Meetup completed",
   BUYER_CONFIRMED: "Buyer confirmed received",
-  // Both keys supported; API currently uses the latter:
-  AUTO_CONFIRMED: "Order auto-confirmed",
-  AUTO_CONFIRMED_AFTER_3_DAYS: "Order auto-confirmed",
+  AUTO_CONFIRMED_AFTER_3_DAYS: "Order auto-confirmed received",
   ADMIN_PAID_OUT: "Payout released to seller",
   CANCELLED_BY_BUYER: "Buyer cancelled the order",
   CANCELLED_BY_SELLER: "Seller cancelled the order",
   AUTO_CANCELLED_EXPIRED: "Order auto-cancelled (Time Out)",
   REJECTED_BY_ADMIN: "Admin rejected the order",
+
+  // instant donation creation
+  DONATION_INSTANT_CREATED: "Instant donation requested",
 };
 
-export function toFriendlyAction(action) {
+/** Donation-specific label overrides */
+const DONATION_LABEL_OVERRIDES = {
+  SELLER_ACCEPTED: "Donor accepted the request",
+  BUYER_CONFIRMED: "Recipient confirmed received",
+  CANCELLED_BY_SELLER: "Donor cancelled the order",
+};
+
+/** Get a friendly label with kind-aware overrides */
+export function toFriendlyAction(action, kind = "BUY_SELL") {
   if (!action) return "-";
+  const key = String(action).toUpperCase();
+
+  if (kind === "DONATION" && DONATION_LABEL_OVERRIDES[key]) {
+    return DONATION_LABEL_OVERRIDES[key];
+  }
+
   return (
-    TIMELINE_LABELS[action] ||
-    action
+    TIMELINE_LABELS[key] ||
+    key
       .toLowerCase()
       .replace(/_/g, " ")
       .replace(/\b\w/g, (c) => c.toUpperCase())
@@ -40,15 +54,9 @@ export function toFriendlyAction(action) {
 
 /**
  * Timeline
- * props:
- * - events: array of { at: Date|string, by?: userId, action: string, meta?: any }
- * - reverse: boolean (default true) -> most recent first
- * - maxHeight: optional tailwind class e.g. "max-h-40" to clamp height with scroll
- * - compact: boolean (tight rows, minimal chrome) for list view
- * - className: extra classes on the outer container
- * - emptyText: string shown when there are no events
  */
 export default function Timeline({
+  kind = "BUY_SELL",
   events = [],
   reverse = true,
   maxHeight = "",
@@ -56,8 +64,13 @@ export default function Timeline({
   className = "",
   emptyText = "No events yet.",
 }) {
-  const data = Array.isArray(events) ? [...events] : [];
-  if (reverse) data.reverse();
+  const raw = Array.isArray(events) ? [...events] : [];
+  if (reverse) raw.reverse();
+
+  const data = raw.map((e) => ({
+    label: toFriendlyAction(e?.action, kind),
+    at: e?.at ? new Date(e.at) : null,
+  }));
 
   const outerChrome = compact
     ? `border border-slate-200 rounded-md ${maxHeight} overflow-y-auto p-3`
@@ -67,29 +80,24 @@ export default function Timeline({
     <div className={`${outerChrome} ${className}`.trim()}>
       {data.length > 0 ? (
         <ul className={compact ? "space-y-2" : "mt-4 space-y-2"}>
-          {data.map((e, i) => {
-            const label = toFriendlyAction(e?.action);
-            const at = e?.at ? new Date(e.at) : null;
-
-            return (
-              <li
-                key={i}
-                className={
-                  compact
-                    ? "flex items-center justify-between"
-                    : "flex items-center justify-between rounded-[3px] shadow-sm bg-[#f8fbff] ring-1 ring-[#e6eeff] px-3 py-2"
-                }
+          {data.map((e, i) => (
+            <li
+              key={i}
+              className={
+                compact
+                  ? "flex items-center justify-between"
+                  : "flex items-center justify-between rounded-[3px] shadow-sm bg-[#f8fbff] ring-1 ring-[#e6eeff] px-3 py-2"
+              }
+            >
+              <div className="text-sm text-slate-800">{e.label}</div>
+              <time
+                className="text-xs text-slate-500"
+                dateTime={e.at ? e.at.toISOString() : undefined}
               >
-                <div className="text-sm text-slate-800">{label}</div>
-                <time
-                  className="text-xs text-slate-500"
-                  dateTime={at ? at.toISOString() : undefined}
-                >
-                  {at ? fmtBKK(at) : "-"}
-                </time>
-              </li>
-            );
-          })}
+                {e.at ? fmtBKK(e.at) : "-"}
+              </time>
+            </li>
+          ))}
         </ul>
       ) : (
         <div

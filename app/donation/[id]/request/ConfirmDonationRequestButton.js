@@ -20,8 +20,8 @@ export default function ConfirmDonationRequestButton({
     const formData = new FormData(form);
     const reason = (formData.get("reason") || "").toString().trim();
 
-    if (reason.length < 5) {
-      alert("Please write at least 5 characters for your reason.");
+    if (reason.length < 10) {
+      alert("Please write at least 10 characters for your reason.");
       return;
     }
 
@@ -47,7 +47,9 @@ export default function ConfirmDonationRequestButton({
       // Navigate appropriately
       if (donationMode === "instant") {
         // Order created; send requester to their order page list
-        startTransition(() => router.replace("/my-orders"));
+        startTransition(() =>
+          router.replace("/my-orders?role=buyer&status=ALL&kind=DONATION")
+        );
       } else {
         // Selective: back to product page to see "your request is pending"
         startTransition(() => router.replace(`/donation/${productId}`));
@@ -67,7 +69,7 @@ export default function ConfirmDonationRequestButton({
           ? "Confirm to Request"
           : "Send Request"
       }
-      variant="primaryClick"
+      variant="confirmPrimaryHover"
       onClick={onClick}
       disabled={submitting || isPending}
       className="w-full"

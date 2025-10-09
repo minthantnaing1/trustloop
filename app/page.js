@@ -6,7 +6,7 @@ export default function Login() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center relative">
       {/* Top Background */}
-      <div className="absolute top-0 left-0 w-full h-[50vh] bg-[#325082] z-[-1]" />
+      <div className="absolute top-0 left-0 w-full h-[50vh] bg-[image:var(--tl-gradient)] z-[-1]" />
 
       {/* Logo */}
       <div className="mt-[-155px] mb-[20px]">

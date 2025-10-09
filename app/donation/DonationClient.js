@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useRef, useTransition } from "react";
 import NavBar from "@/components/NavBar";
 import FilterDropdown from "@/components/FilterDropdown";
 import ProductCard from "@/components/ProductCard";
@@ -17,6 +17,7 @@ export default function DonationClient({ initial }) {
   const [showFilter, setShowFilter] = useState(false);
   const [loading, setLoading] = useState(!initial?.products?.length);
   const [guardOpen, setGuardOpen] = useState(false);
+  const scrollRef = useRef(null);
 
   const [filters, setFilters] = useState({
     category: "",
@@ -111,6 +112,24 @@ export default function DonationClient({ initial }) {
     setGuardOpen(true);
   }
 
+  // Add this helper inside your component, before the return()
+  function smoothScrollBy(distance, duration = 450) {
+    if (!scrollRef.current) return;
+    const element = scrollRef.current;
+    const start = element.scrollLeft;
+    const startTime = performance.now();
+
+    function animate(time) {
+      const elapsed = time - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const ease = 0.5 - Math.cos(progress * Math.PI) / 2; // ease-in-out
+      element.scrollLeft = start + distance * ease;
+      if (elapsed < duration) requestAnimationFrame(animate);
+    }
+
+    requestAnimationFrame(animate);
+  }
+
   return (
     <>
       <NavBar />
@@ -165,13 +184,12 @@ export default function DonationClient({ initial }) {
         </div>
 
         {/* My Donations - Horizontal scroll row */}
-        <section className="mb-6">
+        <section className="mb-6 relative">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg font-semibold text-[#325082]">
               My Donation Posts
             </h3>
 
-            {/* Match Sell Page Button */}
             <ActionButton
               text="+ Donate Your Items"
               variant="primaryClick"
@@ -186,8 +204,34 @@ export default function DonationClient({ initial }) {
               You haven&apos;t posted any donations yet.
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <div className="flex gap-3 min-w-full w-max">
+            <div className="relative">
+              {/* Left Button */}
+              <button
+                onClick={() => smoothScrollBy(-252, 450)}
+                className="absolute left-[-12px] top-1/2 -translate-y-1/2 bg-[#325082] shadow-md rounded-full p-2 z-10 hover:bg-[#153969] hidden sm:block"
+                aria-label="Scroll left"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
+              </button>
+
+              {/* Scrollable row */}
+              <div
+                ref={scrollRef}
+                className="flex gap-3 overflow-x-auto no-scrollbar"
+              >
                 {myDonations.map((product) => (
                   <div key={product._id} className="w-[240px] shrink-0">
                     <ProductCard
@@ -199,6 +243,28 @@ export default function DonationClient({ initial }) {
                   </div>
                 ))}
               </div>
+
+              {/* Right Button */}
+              <button
+                onClick={() => smoothScrollBy(252, 450)}
+                className="absolute right-[-12px] top-1/2 -translate-y-1/2 bg-[#325082] shadow-md rounded-full p-2 z-10 hover:bg-[#153969] hidden sm:block"
+                aria-label="Scroll right"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
             </div>
           )}
         </section>

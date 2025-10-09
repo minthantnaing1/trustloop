@@ -1,7 +1,6 @@
-// components/StatusPill.js
 "use client";
 
-// Central UI map for status label + Tailwind classes
+// Base UI map (kind-agnostic styles)
 const STATUS_META = {
   PENDING_UPLOAD: {
     label: "Pending Upload",
@@ -17,6 +16,11 @@ const STATUS_META = {
     label: "Escrow Funded",
     bg: "bg-green-100",
     fg: "text-green-700",
+  },
+  AWAITING_DONOR: {
+    label: "Awaiting Donor Response",
+    bg: "bg-pink-100",
+    fg: "text-pink-700",
   },
   SELLER_ACCEPTED: {
     label: "Seller Accepted",
@@ -66,17 +70,35 @@ const STATUS_META = {
   },
 };
 
-export const STATUS_CODES = Object.keys(STATUS_META); // keeps insertion order
+export const STATUS_CODES = Object.keys(STATUS_META);
 
-export function getStatusLabel(s) {
-  return STATUS_META[s]?.label || s || "-";
+// UI-only label overrides per kind
+const DONATION_LABEL_OVERRIDES = {
+  SELLER_ACCEPTED: "Donor Accepted",
+  DELIVERY_IN_PROGRESS: "Meetup In Progress",
+  BUYER_CONFIRMED: "Recipient Received Item",
+  CANCELLED_BY_SELLER: "Cancelled by Donor",
+  // AWAITING_DONOR already reads correctly
+};
+
+export function getStatusLabel(code, kind) {
+  if (kind === "DONATION" && DONATION_LABEL_OVERRIDES[code]) {
+    return DONATION_LABEL_OVERRIDES[code];
+  }
+  return STATUS_META[code]?.label || code || "-";
 }
-export function getStatusClasses(s) {
-  const m = STATUS_META[s];
+
+export function getStatusClasses(code) {
+  const m = STATUS_META[code];
   return m ? `${m.bg} ${m.fg}` : "bg-gray-100 text-gray-700";
 }
 
-export default function StatusPill({ status, className = "", size = "sm" }) {
+export default function StatusPill({
+  status,
+  kind,
+  className = "",
+  size = "sm",
+}) {
   const sizeCls =
     size === "sm"
       ? "text-[11px] px-2 py-1"
@@ -90,7 +112,7 @@ export default function StatusPill({ status, className = "", size = "sm" }) {
         status
       )} ${className}`}
     >
-      {getStatusLabel(status)}
+      {getStatusLabel(status, kind)}
     </span>
   );
 }

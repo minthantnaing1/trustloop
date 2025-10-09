@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import NavBar from "@/components/NavBar";
 import ProductDetails from "@/components/ProductDetails";
 import BackButton from "@/components/BackButton";
@@ -59,6 +60,12 @@ export default async function BuyProductPage({ params }) {
   }
 
   const product = await res.json();
+
+  // 🚦 If this product isn't a buy/sell item, redirect to its proper route
+  if (product?.type && product.type !== "sell") {
+    return redirect(`/${product.type}/${product._id}`);
+  }
+
   const session = await auth();
   const sessionEmail = session?.user?.email || "";
 

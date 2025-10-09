@@ -166,7 +166,7 @@ export default function DonationPostClient({ initialLocation = "" }) {
 
       {/* Progress Stepper (seller-style for posting) */}
       <div className="mb-5">
-        <Stepper current={1} variant="seller" className="px-1" />
+        <Stepper current={1} variant="donor" className="px-1" />
       </div>
 
       <div className="flex flex-col lg:flex-row flex-wrap gap-[30px] items-start">

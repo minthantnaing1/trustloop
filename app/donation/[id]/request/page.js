@@ -49,7 +49,7 @@ export default async function DonationRequestPage({ params }) {
         </div>
 
         <div className="mb-5">
-          <Stepper current={1} variant="buyer" className="px-1" />
+          <Stepper current={1} variant="recipient" className="px-1" />
         </div>
 
         <div className="bg-white border border-gray-300 rounded-[5px] shadow-xl p-6">
@@ -88,7 +88,7 @@ export default async function DonationRequestPage({ params }) {
                       <span className="font-semibold">{product.condition}</span>
                     </div>
                     <div>
-                      Pickup/Meetup Location:{" "}
+                      Meetup Location:{" "}
                       <span className="font-semibold">{product.location}</span>
                     </div>
                     {product.donationMode === "selective" &&
@@ -121,7 +121,7 @@ export default async function DonationRequestPage({ params }) {
                     </li>
                     <li>
                       An order is opened (no payment). You and donor can arrange
-                      pickup/meetup in the order page.
+                      meetup in the order page.
                     </li>
                   </ul>
                 ) : (

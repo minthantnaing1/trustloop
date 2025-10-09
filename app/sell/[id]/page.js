@@ -25,6 +25,12 @@ export default async function SellProductPage({ params }) {
   }
 
   const product = await res.json();
+
+  // 🚦 If this product isn't a sell-type listing, bounce to its canonical route
+  if (product?.type && product.type !== "sell") {
+    return redirect(`/${product.type}/${product._id}`);
+  }
+
   const session = await auth();
   const sessionEmail = session?.user?.email || "";
 

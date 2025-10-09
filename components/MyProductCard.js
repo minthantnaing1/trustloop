@@ -2,6 +2,7 @@
 "use client";
 
 import Link from "next/link";
+import { fmtBKK } from "@/utils/timeAgo";
 
 export default function MyProductCard({
   product,
@@ -12,31 +13,59 @@ export default function MyProductCard({
   const img =
     product?.defaultImage || product?.images?.[0] || "/placeholder.png";
 
-  // Route rules:
+  // Normalize type/kind
+  const rawType = (product?.type || product?.kind || "")
+    .toString()
+    .toLowerCase();
+  const isDonation = rawType === "donation";
+  const deadlineTxt =
+    isDonation && product?.requestDeadline
+      ? fmtBKK(product.requestDeadline)
+      : null;
+
+  // ------- Route rules (updated) -------
+  const orderId = product?.orderId || product?.buyerOrderId;
+  const status = product?.orderStatus;
+  const role = product?.viewerRole; // "buyer" | "seller"
+
   let href;
   if (isOwner) {
-    href = `/sell/${product?._id}`;
-  } else {
-    const orderId = product?.orderId || product?.buyerOrderId;
-    const status = product?.orderStatus;
-    const role = product?.viewerRole; // "buyer" | "seller"
-
+    // owner: donation → donation page, otherwise the normal sell page
+    href = isDonation ? `/donation/${product?._id}` : `/sell/${product?._id}`;
+  } else if (orderId) {
+    // role-aware order routes
     if (
-      orderId &&
       role === "buyer" &&
       (status === "BUYER_CONFIRMED" || status === "PAID_OUT")
     ) {
-      href = `/buy/review/${orderId}`;
-    } else if (orderId && role === "seller" && status === "PAID_OUT") {
-      href = `/my-orders/${orderId}/payout`;
-    } else if (orderId) {
-      href = `/my-orders/${orderId}`;
+      // final review page (keep your existing review route)
+      href = `/review/${orderId}`;
+    } else if (role === "seller") {
+      // seller (donor/seller) final page:
+      // - Buy&Sell: PAID_OUT -> payout
+      // - Donation: BUYER_CONFIRMED -> donor summary/review (same payout page variant)
+      if (!isDonation && status === "PAID_OUT") {
+        href = `/my-orders/${orderId}/payout`;
+      } else if (isDonation && status === "BUYER_CONFIRMED") {
+        href = `/my-orders/${orderId}/payout`;
+      } else {
+        href = `/my-orders/${orderId}`;
+      }
     } else {
-      href = `/buy/${product?._id}`;
+      // any other order state
+      href = `/my-orders/${orderId}`;
     }
+  } else {
+    // browse routes
+    href = isDonation ? `/donation/${product?._id}` : `/buy/${product?._id}`;
   }
 
-  // --- shared bits -----------------------------------------------------------
+  // ------- Shared bits -------
+  const TypePill = () => (
+    <span className="text-[10px] md:text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-600 text-white shadow-sm">
+      {isDonation ? "DONATION" : "SELL"}
+    </span>
+  );
 
   const InfoContent = () => (
     <>
@@ -48,9 +77,12 @@ export default function MyProductCard({
         <p className="text-[14px] text-gray-700 truncate max-sm:text-[11px]">
           {product?.category ?? ""}
         </p>
+
         {product?.price != null && (
           <p className="text-[13px] text-[#153969] font-semibold shrink-0 max-sm:text-[12px]">
-            {Number(product.price).toLocaleString()} ฿
+            {Number(product.price) === 0
+              ? "Free"
+              : `${Number(product.price).toLocaleString()} ฿`}
           </p>
         )}
       </div>
@@ -64,11 +96,24 @@ export default function MyProductCard({
         alt={product?.title || "Product"}
         className="absolute inset-0 w-full h-full object-cover"
       />
+
+      {/* Type pill for BOTH variants */}
+      <div className="absolute top-1 left-1">
+        <TypePill />
+      </div>
+
+      {/* Deadline shown ONLY on classic variant */}
+      {variant === "classic" && isDonation && deadlineTxt && (
+        <div className="absolute top-1 right-1">
+          <span className="text-[10px] md:text-[11px] font-medium px-2 py-0.5 rounded bg-white/85 text-rose-700 shadow">
+            Deadline: {deadlineTxt}
+          </span>
+        </div>
+      )}
     </div>
   );
 
-  // --- variants --------------------------------------------------------------
-
+  // ------- Variants -------
   if (variant === "classicBlur") {
     return (
       <Link href={href} title={product?.title} className="block">

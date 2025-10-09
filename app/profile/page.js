@@ -8,6 +8,7 @@ import NavBar from "@/components/NavBar";
 import ActionButton from "@/components/ActionButton";
 import MyProductCard from "@/components/MyProductCard";
 import SlipLink from "@/components/SlipLink";
+import ProfileKindClient from "./ProfileKindClient";
 
 import User from "@/models/User";
 import Product from "@/models/Product";
@@ -16,14 +17,19 @@ import Transaction from "@/models/Transaction";
 // Keep only fields MyProductCard needs, and make them serializable
 function toPlainProduct(p) {
   if (!p) return null;
+  // normalize a lowercase type for the card (supports either `type` or `kind`)
+  const rawType = (p.type || p.kind || "").toString().toLowerCase();
   return {
     _id: p._id?.toString(),
     title: p.title ?? "",
     price: typeof p.price === "number" ? p.price : Number(p.price || 0),
     defaultImage: p.defaultImage || null,
     images: Array.isArray(p.images) ? p.images : [],
-    category: p.category ?? "", // <- for subtitle in card
-    createdAt: p.createdAt || null, // optional (card can show timeAgo if needed)
+    category: p.category ?? "",
+    createdAt: p.createdAt || null,
+    type: rawType, // <- needed for DONATION pill / routing
+    kind: p.kind || p.type || "", // <- just in case
+    requestDeadline: p.requestDeadline || null, // <- for donation deadline
   };
 }
 
@@ -38,10 +44,12 @@ export default async function ProfilePage() {
     Product.find({ owner: user._id, isAvailable: true })
       .sort({ createdAt: -1 })
       .limit(8)
-      .select("title price images defaultImage category createdAt") // +category
+      .select(
+        "title price images defaultImage category createdAt type kind requestDeadline isAvailable"
+      )
       .lean(),
 
-    // Purchases you've completed
+    // Purchases you've completed (buyer side)
     Transaction.find({
       buyer: user._id,
       status: { $in: ["BUYER_CONFIRMED", "PAID_OUT"] },
@@ -50,24 +58,30 @@ export default async function ProfilePage() {
       .limit(8)
       .populate({
         path: "product",
-        select: "title price images defaultImage category createdAt",
+        select:
+          "title price images defaultImage category createdAt type kind requestDeadline isAvailable",
         lean: true,
       })
       .lean(),
 
-    // Sales you've completed
-    Transaction.find({ seller: user._id, status: "PAID_OUT" })
+    // Sales you've completed (seller side)
+    Transaction.find({
+      seller: user._id,
+      status: { $in: ["PAID_OUT", "BUYER_CONFIRMED"] },
+    })
       .sort({ createdAt: -1 })
       .limit(8)
       .populate({
         path: "product",
-        select: "title price images defaultImage category createdAt", // +category
+        select:
+          "title price images defaultImage category createdAt type kind requestDeadline isAvailable",
         lean: true,
       })
       .lean(),
   ]);
 
   const sellingPlain = sellingProducts.map(toPlainProduct).filter(Boolean);
+
   const boughtProducts = boughtTxns
     .map((t) => {
       const p = toPlainProduct(t.product);
@@ -81,6 +95,7 @@ export default async function ProfilePage() {
         : null;
     })
     .filter(Boolean);
+
   const soldProducts = soldTxns
     .map((t) => {
       const p = toPlainProduct(t.product);
@@ -270,103 +285,12 @@ export default async function ProfilePage() {
           </div>
         </section>
 
-        {/* Bought Items */}
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[16px] font-semibold">My Bought Items</h2>
-            {/* Previously /buy-sell —> route to orders */}
-            <Link
-              href="/my-orders?role=buyer&status=BUYER_CONFIRMED"
-              className="text-[#325082] underline text-sm"
-            >
-              View all...
-            </Link>
-          </div>
-
-          {boughtProducts.length ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {boughtProducts.slice(0, 8).map((p, i) => (
-                <MyProductCard
-                  key={p._id || i}
-                  product={p}
-                  // grid-friendly: make the card fill its cell width
-                  className="!w-full"
-                  // classicBlur looks nice for “history” sections
-                  variant="classicBlur"
-                  isOwner={false}
-                />
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500 italic">
-              No completed purchases yet.
-            </p>
-          )}
-        </section>
-
-        {/* Currently Selling */}
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[16px] font-semibold">My Selling Items</h2>
-            {/* Manage listings page */}
-            <Link href="/sell" className="text-[#325082] underline text-sm">
-              Manage listings
-            </Link>
-          </div>
-
-          {sellingPlain.length ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-3">
-              {sellingPlain.slice(0, 8).map((p, i) => (
-                <MyProductCard
-                  key={p._id || i}
-                  product={p}
-                  className="!w-full"
-                  variant="classic"
-                  isOwner
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-sm text-gray-500">
-              No active listings.&nbsp;
-              <Link href="/sell/post" className="underline text-[#325082]">
-                Post a product
-              </Link>
-            </div>
-          )}
-        </section>
-
-        {/* Sold Items */}
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[16px] font-semibold">My Sold Items</h2>
-            {/* Previously /buy-sell —> orders */}
-            <Link
-              href="/my-orders?role=seller&status=PAID_OUT"
-              className="text-[#325082] underline text-sm"
-            >
-              View all...
-            </Link>
-          </div>
-
-          {soldProducts.length ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {soldProducts.slice(0, 8).map((p, i) => (
-                <MyProductCard
-                  key={p._id || i}
-                  product={p}
-                  className="!w-full"
-                  variant="classicBlur"
-                  isOwner={false}
-                />
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500 italic">
-              No completed sales yet.
-            </p>
-          )}
-        </section>
+        {/* Kind filter + sections (client island) */}
+        <ProfileKindClient
+          sellingPlain={sellingPlain}
+          boughtProducts={boughtProducts}
+          soldProducts={soldProducts}
+        />
       </main>
     </>
   );

@@ -1,3 +1,4 @@
+// app/api/donations/request/[id]/accept/route.js
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
 import DonationRequest from "@/models/DonationRequest";
@@ -5,7 +6,7 @@ import Product from "@/models/Product";
 import Transaction from "@/models/Transaction";
 
 export async function POST(_req, { params }) {
-  const { id } = params; // requestId
+  const { id } = await params; // requestId
   try {
     const session = await auth();
     if (!session?.user?.email)
@@ -13,7 +14,6 @@ export async function POST(_req, { params }) {
 
     await connectDB();
 
-    // Find the request
     const reqDoc = await DonationRequest.findById(id).populate(
       "product requester"
     );
@@ -27,23 +27,44 @@ export async function POST(_req, { params }) {
     if (product.owner.email !== session.user.email)
       return new Response("Unauthorized", { status: 403 });
 
-    // Mark accepted request
+    if (product.isAvailable === false) {
+      return new Response("This item is already reserved/unavailable.", {
+        status: 409,
+      });
+    }
+
+    // Accept this request
     reqDoc.status = "accepted";
     await reqDoc.save();
 
-    // Mark product unavailable
+    // Reserve product
     product.isAvailable = false;
     await product.save();
 
-    // Create zero-cost transaction
+    // Create zero-cost DONATION txn, meetup-only, jump to SELLER_ACCEPTED
     await Transaction.create({
+      kind: "DONATION",
       product: product._id,
       buyer: reqDoc.requester._id,
       seller: product.owner._id,
+      status: "SELLER_ACCEPTED",
       price: 0,
-      platformFee: 0,
-      status: "PENDING_SELLER_ACTION",
-      note: reqDoc.reason || "",
+      fee: 0,
+      total: 0,
+      sellerNet: 0,
+      fulfillment: {
+        method: "MEETUP",
+        meetupLocation: product.location || "",
+        notes: "",
+      },
+      requestReason: reqDoc.reason || "",
+      timeline: [
+        {
+          by: product.owner._id,
+          action: "DONATION_REQUEST_ACCEPTED",
+          meta: { requestId: String(reqDoc._id) },
+        },
+      ],
     });
 
     return new Response("Accepted successfully", { status: 200 });

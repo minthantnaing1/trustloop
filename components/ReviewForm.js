@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import ActionButton from "@/components/ActionButton";
 import { StarIcon as StarSolid } from "@heroicons/react/24/solid";
@@ -25,13 +24,17 @@ function Stars({ value = 0, size = 8 }) {
   );
 }
 
-export default function ReviewForm({ transactionId, initialReview = null }) {
+export default function ReviewForm({
+  transactionId,
+  initialReview = null,
+  role = "buyer",
+}) {
   const [rating, setRating] = useState(initialReview?.rating || 0);
   const [hover, setHover] = useState(0);
   const [comment, setComment] = useState(initialReview?.comment || "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const [existing, setExisting] = useState(initialReview); // if present, render read-only
+  const [existing, setExisting] = useState(initialReview);
 
   async function handleSubmit() {
     if (busy) return;
@@ -42,11 +45,14 @@ export default function ReviewForm({ transactionId, initialReview = null }) {
     setErr("");
     setBusy(true);
     try {
-      const res = await fetch(`/api/transactions/${transactionId}/review`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rating, comment }),
-      });
+      const res = await fetch(
+        `/api/transactions/${transactionId}/review?role=${role}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rating, comment }),
+        }
+      );
       if (!res.ok) throw new Error(await res.text());
       const saved = await res.json().catch(() => ({}));
       setExisting({ rating, comment, ...(saved || {}) });
@@ -70,12 +76,10 @@ export default function ReviewForm({ transactionId, initialReview = null }) {
         </div>
         <div className="bg-green-50 border border-green-300 rounded-[5px] mt-3 p-6 text-center">
           <p className="text-lg font-semibold text-green-700">
-            {" "}
-            Thanks for your review!{" "}
+            Thanks for your review!
           </p>
           <p className="text-sm text-green-600 mt-2">
-            {" "}
-            Your feedback helps build trust in the community.{" "}
+            Your feedback helps build trust in the community.
           </p>
         </div>
       </div>
@@ -85,7 +89,11 @@ export default function ReviewForm({ transactionId, initialReview = null }) {
   return (
     <div className="bg-white border border-gray-200 shadow-md rounded-[5px] p-6">
       <h2 className="text-lg font-semibold text-[#325082] mb-3">
-        Leave a Review
+        {role === "donor"
+          ? "Leave a Review for the Recipient"
+          : role === "seller"
+          ? "Leave a Review for the Buyer"
+          : "Leave a Review"}
       </h2>
 
       <div className="flex gap-2 mb-3">
@@ -112,7 +120,7 @@ export default function ReviewForm({ transactionId, initialReview = null }) {
       </div>
 
       <textarea
-        className="w-full border rounded-md px-3 py-2 text-sm mb-3"
+        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm mb-3"
         rows={3}
         placeholder="Write your review (optional)..."
         value={comment}

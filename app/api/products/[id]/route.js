@@ -57,12 +57,12 @@ export async function GET(_req, { params }) {
     // --- Donation-specific hydration (requests + viewer pending) ---
     let viewerHasPendingRequest = false;
     let requestsOut = undefined;
+    let viewerRequestsOut = undefined;
 
     if (product.type === "donation" && product.donationMode === "selective") {
-      // who is viewing?
       const viewerEmail2 = session?.user?.email || null;
       const viewer2 = viewerEmail2
-        ? await User.findOne({ email: viewerEmail2 }).select("_id")
+        ? await User.findOne({ email: viewerEmail2 }).select("_id email")
         : null;
 
       if (viewer2) {
@@ -71,9 +71,31 @@ export async function GET(_req, { params }) {
           requester: viewer2._id,
           status: "pending",
         }));
+
+        // 🔹 Always get viewer’s own requests (for non-owner UI)
+        const viewerReqs = await DonationRequest.find({
+          product: product._id,
+          requester: viewer2._id,
+        })
+          .select("_id status reason createdAt requester")
+          .populate({ path: "requester", select: "name email image" })
+          .sort({ createdAt: -1 })
+          .lean();
+
+        viewerRequestsOut = viewerReqs.map((r) => ({
+          _id: String(r._id),
+          status: r.status,
+          message: r.reason,
+          user: {
+            name: r.requester?.name || r.requester?.email || "",
+            email: r.requester?.email || "",
+            image: r.requester?.image || "",
+          },
+          createdAt: r.createdAt,
+        }));
       }
 
-      // Only the owner sees the list of requests
+      // 🔹 Owner sees all requests
       if (isOwner) {
         const reqs = await DonationRequest.find({ product: product._id })
           .populate({ path: "requester", select: "name email image" })
@@ -114,6 +136,7 @@ export async function GET(_req, { params }) {
           ? { viewerHasPendingRequest }
           : {}),
         ...(requestsOut ? { requests: requestsOut } : {}),
+        ...(viewerRequestsOut ? { viewerRequests: viewerRequestsOut } : {}), // ✅ NEW
       }),
       { status: 200 }
     );

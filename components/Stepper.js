@@ -1,19 +1,26 @@
-// components/Stepper.js
 "use client";
 import React from "react";
 
-/** Built-in presets so you don't need a utils file */
+/** Built-in presets (sell & donation) */
 const PRESETS = {
+  // Buy & Sell (existing)
   buyer: ["Checkout", "Pay & Upload", "Deliver", "Review"],
   seller: ["Sell", "Accept / Review", "Deliver", "Payout"],
+
+  // Donation (new)
+  // Donor = the person giving the item
+  donor: ["Donate", "Accept / Review", "Meetup", "Complete"],
+  // Recipient = the person receiving the item
+  recipient: ["Request", "Await Donor Response", "Meetup", "Thanks / Review"],
 };
 
 /**
  * Stepper (UI-only)
  * Props:
- * - current: number (1-based) -> which step is active
- * - variant?: 'buyer' | 'seller'  (used only if steps not provided)
- * - steps?: string[]  (override labels; if provided, variant is ignored)
+ * - current: number (1-based)
+ * - variant?: 'buyer' | 'seller' | 'donor' | 'recipient' | 'donationDonor' | 'donationRecipient'
+ *   (ignored if steps[] provided)
+ * - steps?: string[]  (override labels)
  * - className?: string
  */
 export default function Stepper({
@@ -26,6 +33,7 @@ export default function Stepper({
     Array.isArray(steps) && steps.length > 0
       ? steps
       : PRESETS[variant] || PRESETS.buyer;
+
   const total = labels.length || 1;
   const cur = Math.min(Math.max(current, 1), total); // clamp 1..total
 
@@ -76,5 +84,4 @@ export default function Stepper({
   );
 }
 
-// Optional: named export if you still want to import presets elsewhere
 export const STEPPER_PRESETS = PRESETS;

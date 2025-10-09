@@ -1,5 +1,5 @@
-// app/donation/[id]/page.js
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
@@ -21,6 +21,7 @@ export default async function DonationProductPage({ params }) {
     }
   );
 
+  // 404 or not found
   if (!res.ok) {
     return (
       <>
@@ -54,6 +55,12 @@ export default async function DonationProductPage({ params }) {
   }
 
   const product = await res.json();
+
+  // 🚨 Redirect if type mismatch
+  if (product.type && product.type !== "donation") {
+    return redirect(`/${product.type}/${product._id}`);
+  }
+
   const session = await auth();
   const sessionEmail = session?.user?.email || "";
 

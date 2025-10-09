@@ -1,3 +1,4 @@
+// app/api/transactions/route.js
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
