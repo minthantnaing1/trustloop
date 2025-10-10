@@ -3,6 +3,7 @@
 import Link from "next/link";
 import timeAgo, { fmtBKK } from "@/utils/timeAgo";
 import FavoriteButton from "@/components/FavoriteButton";
+import { useState, useEffect } from "react";
 
 export default function ProductCard({
   product,
@@ -20,11 +21,58 @@ export default function ProductCard({
     !!currentUserEmail &&
     product.buyerEmail === currentUserEmail;
 
+  // ---- countdown (minute-resolution) ----
+  function useCountdown(targetIso) {
+    const [txt, setTxt] = useState(null);
+
+    useEffect(() => {
+      if (!targetIso) return;
+
+      const target = new Date(targetIso).getTime();
+
+      const tick = () => {
+        const ms = target - Date.now();
+
+        if (ms <= 0) {
+          setTxt("Closed");
+          return;
+        }
+
+        const d = Math.floor(ms / 86_400_000); // days
+        const h = Math.floor((ms % 86_400_000) / 3_600_000); // hours
+        const m = Math.floor((ms % 3_600_000) / 60_000); // minutes
+        const s = Math.floor((ms % 60_000) / 1000); // seconds
+
+        // Format like "2d 03h 45m 22s" or "03h 45m 22s"
+        if (d > 0) {
+          setTxt(
+            `${d}d ${String(h).padStart(2, "0")}h ${String(m).padStart(
+              2,
+              "0"
+            )}m ${String(s).padStart(2, "0")}s`
+          );
+        } else {
+          setTxt(
+            `${String(h).padStart(2, "0")}h ${String(m).padStart(
+              2,
+              "0"
+            )}m ${String(s).padStart(2, "0")}s`
+          );
+        }
+      };
+
+      tick();
+      const id = setInterval(tick, 1000); // update every second
+
+      return () => clearInterval(id);
+    }, [targetIso]);
+
+    return txt;
+  }
+
   const isDonation = product?.type === "donation";
-  const deadlineTxt =
-    isDonation && product?.requestDeadline
-      ? fmtBKK(product.requestDeadline)
-      : null;
+  const deadlineAt = isDonation ? product?.requestDeadline : null;
+  const deadlineCountdown = useCountdown(deadlineAt);
 
   // Seller should be sent to the Seller tab (not order detail) while the order
   // is in an early state. After that, go to order detail.
@@ -92,10 +140,13 @@ export default function ProductCard({
 
     const isDonation = product?.type === "donation";
 
-    // FINAL:
-    // - donation: ONLY BUYER_CONFIRMED
-    // - sell: BUYER_CONFIRMED or PAID_OUT
-    const isFinal = isDonation
+    // ---- Final status logic (owner vs buyer/public) ----
+    const buyerFinal = isDonation
+      ? product?.buyerOrderStatus === "BUYER_CONFIRMED"
+      : product?.buyerOrderStatus === "BUYER_CONFIRMED" ||
+        product?.buyerOrderStatus === "PAID_OUT";
+
+    const ownerFinal = isDonation
       ? product?.buyerOrderStatus === "BUYER_CONFIRMED"
       : product?.buyerOrderStatus === "PAID_OUT";
 
@@ -111,10 +162,10 @@ export default function ProductCard({
         <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
           <span
             className={`w-full text-center text-xs md:text-sm text-white font-semibold px-1 py-2 ${
-              isFinal ? "bg-emerald-700/90" : "bg-[#325082]/90"
+              ownerFinal ? "bg-emerald-700/90" : "bg-[#325082]/90"
             }`}
           >
-            {isFinal
+            {ownerFinal
               ? `${isDonation ? "Donated to" : "Sold to"} ${product.buyerName}`
               : `Reserved by ${product.buyerName}`}
           </span>
@@ -128,10 +179,10 @@ export default function ProductCard({
         <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
           <span
             className={`w-full text-center text-xs md:text-sm text-white font-semibold px-1 py-2 ${
-              isFinal ? "bg-emerald-700/90" : "bg-[#325082]/90"
+              buyerFinal ? "bg-emerald-700/90" : "bg-[#325082]/90"
             }`}
           >
-            {isFinal
+            {buyerFinal
               ? isDonation
                 ? "Received by Me"
                 : "Purchased by Me"
@@ -145,7 +196,7 @@ export default function ProductCard({
     return (
       <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
         <span className="w-full text-center text-xs md:text-sm text-white font-semibold bg-black/60 px-1 py-2">
-          {isFinal
+          {buyerFinal
             ? isDonation
               ? "Donated"
               : "Sold"
@@ -192,10 +243,16 @@ export default function ProductCard({
       />
 
       {/* For classic/classicBlur: no type pill; deadline at top-right */}
-      {variant !== "overlay" && isDonation && deadlineTxt && (
+      {variant !== "overlay" && isDonation && deadlineCountdown && (
         <div className="absolute top-1 right-1">
-          <span className="text-[10px] md:text-[11px] font-medium px-2 py-0.5 rounded bg-white/85 text-rose-700">
-            Deadline: {deadlineTxt}
+          <span
+            className={`text-[10px] md:text-[11px] font-medium px-2 py-0.5 rounded bg-white/85 ${
+              deadlineCountdown === "Closed" ? "text-gray-600" : "text-rose-700"
+            }`}
+          >
+            {deadlineCountdown === "Closed"
+              ? "Requests closed"
+              : `Ends in ${deadlineCountdown}`}
           </span>
         </div>
       )}
@@ -246,9 +303,17 @@ export default function ProductCard({
               <span className="text-[10px] md:text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-600 text-white">
                 {isDonation ? "DONATION" : "SELL"}
               </span>
-              {isDonation && deadlineTxt && (
-                <span className="text-[10px] md:text-[11px] font-medium px-2 py-0.5 rounded bg-white/85 text-rose-700">
-                  Deadline: {deadlineTxt}
+              {isDonation && deadlineCountdown && (
+                <span
+                  className={`text-[10px] md:text-[11px] font-medium px-2 py-0.5 rounded bg-white/85 ${
+                    deadlineCountdown === "Closed"
+                      ? "text-gray-600"
+                      : "text-rose-700"
+                  }`}
+                >
+                  {deadlineCountdown === "Closed"
+                    ? "Requests closed"
+                    : `Ends in ${deadlineCountdown}`}
                 </span>
               )}
             </div>

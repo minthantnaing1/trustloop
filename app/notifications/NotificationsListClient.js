@@ -153,37 +153,39 @@ export default function NotificationsListClient({ initialItems = [] }) {
             </div>
 
             {/* History toggle + right-aligned actions (full card width) */}
-            {evs.length > 1 && (
-              <div className="mt-2 flex items-center justify-between">
-                {/* Left: history toggle */}
-                <button
-                  className="text-xs text-[#325082] underline"
-                  onClick={() =>
-                    setExpanded((m) => ({ ...m, [n._id]: !isOpen }))
-                  }
-                >
-                  {isOpen ? "Hide history" : `Show history (${evs.length})`}
-                </button>
-
-                {/* Right: action buttons pinned to right edge */}
-                <div className="flex items-center gap-2">
-                  {n.link && (
-                    <ActionButton
-                      text="View"
-                      variant="primaryClick"
-                      onClick={() => handleView(n, isUnread)}
-                    />
-                  )}
-                  {isUnread && (
-                    <ActionButton
-                      text="Mark read"
-                      variant="outlineClick"
-                      onClick={() => markRead(n._id, isUnread)}
-                    />
-                  )}
-                </div>
+            <div className="mt-2 flex items-center justify-between">
+              {/* Left: history toggle (only when there is history) */}
+              <div>
+                {evs.length > 1 && (
+                  <button
+                    className="text-xs text-[#325082] underline"
+                    onClick={() =>
+                      setExpanded((m) => ({ ...m, [n._id]: !isOpen }))
+                    }
+                  >
+                    {isOpen ? "Hide history" : `Show history (${evs.length})`}
+                  </button>
+                )}
               </div>
-            )}
+
+              {/* Right: action buttons (always visible if applicable) */}
+              <div className="flex items-center gap-2">
+                {n.link && (
+                  <ActionButton
+                    text="View"
+                    variant="primaryClick"
+                    onClick={() => handleView(n, isUnread)}
+                  />
+                )}
+                {isUnread && (
+                  <ActionButton
+                    text="Mark read"
+                    variant="outlineClick"
+                    onClick={() => markRead(n._id, isUnread)}
+                  />
+                )}
+              </div>
+            </div>
 
             {/* History (newest → oldest) */}
             {isOpen && (

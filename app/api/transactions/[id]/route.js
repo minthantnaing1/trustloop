@@ -665,9 +665,20 @@ export async function PATCH(req, { params }) {
       return new Response("Not allowed in current state", { status: 409 });
     }
 
+    // ⛔ new: must not be before scheduledAt
+    const sched = txn.fulfillment?.scheduledAt
+      ? new Date(txn.fulfillment.scheduledAt).getTime()
+      : NaN;
+    if (!Number.isFinite(sched)) {
+      return new Response("scheduledAt is missing", { status: 409 });
+    }
+    if (Date.now() < sched) {
+      return new Response("Too early to mark delivered", { status: 409 });
+    }
+
     txn.status = "SELLER_DELIVERED";
     //txn.autoConfirmAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // +3 days
-    txn.autoConfirmAt = new Date(Date.now() + 30 * 1000); // +30 seconds
+    txn.autoConfirmAt = new Date(Date.now() + 60 * 1000); // +60 seconds
     txn.timeline.push({
       at: new Date(),
       by: me._id,
@@ -696,9 +707,20 @@ export async function PATCH(req, { params }) {
       return new Response("Not allowed in current state", { status: 409 });
     }
 
+    // ⛔ new: must not be before agreed/scheduled meetup time
+    const scheduled =
+      txn.fulfillment?.meetupScheduledAt || txn.fulfillment?.meetupProposedAt;
+    const meetTs = scheduled ? new Date(scheduled).getTime() : NaN;
+    if (!Number.isFinite(meetTs)) {
+      return new Response("Meetup time is missing", { status: 409 });
+    }
+    if (Date.now() < meetTs) {
+      return new Response("Too early to complete meetup", { status: 409 });
+    }
+
     txn.status = "MEETUP_COMPLETED";
     //txn.autoConfirmAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // +3 days
-    txn.autoConfirmAt = new Date(Date.now() + 30 * 1000); // +30 seconds
+    txn.autoConfirmAt = new Date(Date.now() + 60 * 1000); // +60 seconds
     txn.timeline.push({
       at: new Date(),
       by: me._id,

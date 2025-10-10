@@ -35,7 +35,7 @@ export async function GET(req) {
     .populate("product", "_id title")
     .populate({
       path: "transaction",
-      select: "_id status buyer seller",
+      select: "_id status buyer seller kind",
       populate: [
         { path: "buyer", select: "name email" },
         { path: "seller", select: "name email" },

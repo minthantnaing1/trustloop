@@ -12,8 +12,8 @@ export async function POST(req) {
       return new Response("Unauthorized", { status: 401 });
 
     const { productId, reason } = await req.json();
-    if (!productId || !reason || reason.trim().length < 10) {
-      return new Response("Reason is required (min 10 chars).", {
+    if (!productId || !reason || reason.trim().length < 5) {
+      return new Response("Reason is required (min 5 chars).", {
         status: 400,
       });
     }

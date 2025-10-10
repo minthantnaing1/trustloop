@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db";
 import Product from "@/models/Product";
 import User from "@/models/User";
 import Transaction from "@/models/Transaction";
+import { notifyTxnEvent } from "@/lib/notify";
 
 export async function POST(req) {
   try {
@@ -11,8 +12,8 @@ export async function POST(req) {
       return new Response("Unauthorized", { status: 401 });
 
     const { productId, reason } = await req.json();
-    if (!productId || !reason || reason.trim().length < 10) {
-      return new Response("Reason is required (min 10 chars).", {
+    if (!productId || !reason || reason.trim().length < 5) {
+      return new Response("Reason is required (min 5 chars).", {
         status: 400,
       });
     }
@@ -69,6 +70,13 @@ export async function POST(req) {
           meta: { reason: reason.trim() },
         },
       ],
+    });
+
+    // 🔔 notify donor/recipient/admins
+    await notifyTxnEvent({
+      txn,
+      actorId: me._id,
+      type: "DONATION_INSTANT_CREATED",
     });
 
     return new Response(

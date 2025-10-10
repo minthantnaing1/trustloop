@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import AdminPayoutPanel from "@/components/admin/AdminPayoutPanel";
 import Link from "next/link";
@@ -39,6 +40,11 @@ export default async function AdminPayoutPage({ params }) {
   }
 
   const txn = await res.json();
+
+  // Donations have no payout screen — bounce to the list
+  if (String(txn?.kind).toUpperCase() === "DONATION") {
+    redirect("/admin/transactions");
+  }
 
   return (
     <main className="max-w-[1200px] mx-auto px-4">

@@ -20,8 +20,8 @@ export default function ConfirmDonationRequestButton({
     const formData = new FormData(form);
     const reason = (formData.get("reason") || "").toString().trim();
 
-    if (reason.length < 10) {
-      alert("Please write at least 10 characters for your reason.");
+    if (reason.length < 5) {
+      alert("Please write at least 5 characters for your reason.");
       return;
     }
 

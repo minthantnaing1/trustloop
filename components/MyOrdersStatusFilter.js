@@ -53,7 +53,7 @@ export default function MyOrdersStatusFilter({
       <select
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
-        className="px-2 py-1.5 rounded-lg border border-gray-300 bg-white text-sm shadow-sm
+        className="px-2 py-1.5 pr-6 rounded-lg border border-gray-300 bg-white text-sm shadow-sm
                    focus:outline-none focus:ring-2 focus:ring-[#325082] focus:border-[#325082]
                    hover:border-gray-400 transition-colors appearance-none"
         style={{ backgroundImage: "none" }}

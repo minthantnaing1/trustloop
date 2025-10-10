@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/db";
 import DonationRequest from "@/models/DonationRequest";
 import Product from "@/models/Product";
 import Transaction from "@/models/Transaction";
+import { notifyTxnEvent } from "@/lib/notify";
 
 export async function POST(_req, { params }) {
   const { id } = await params; // requestId
@@ -42,7 +43,7 @@ export async function POST(_req, { params }) {
     await product.save();
 
     // Create zero-cost DONATION txn, meetup-only, jump to SELLER_ACCEPTED
-    await Transaction.create({
+    const txn = await Transaction.create({
       kind: "DONATION",
       product: product._id,
       buyer: reqDoc.requester._id,
@@ -61,13 +62,23 @@ export async function POST(_req, { params }) {
       timeline: [
         {
           by: product.owner._id,
-          action: "DONATION_REQUEST_ACCEPTED",
+          action: "SELLER_ACCEPTED",
           meta: { requestId: String(reqDoc._id) },
         },
       ],
     });
 
-    return new Response("Accepted successfully", { status: 200 });
+    // 🔔 notify recipient/donor/admins
+    await notifyTxnEvent({
+      txn,
+      actorId: product.owner._id,
+      type: "SELLER_ACCEPTED",
+    });
+
+    return new Response(
+      JSON.stringify({ ok: true, orderId: String(txn._id) }),
+      { status: 200 }
+    );
   } catch (err) {
     console.error("❌ accept error:", err);
     return new Response("Server Error", { status: 500 });

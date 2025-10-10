@@ -8,6 +8,7 @@ import BackButton from "@/components/BackButton";
 import SlipLink from "@/components/SlipLink";
 import Stepper from "@/components/Stepper";
 import ReviewForm from "@/components/ReviewForm";
+import { PhoneIcon } from "@heroicons/react/24/outline";
 
 export const dynamic = "force-dynamic";
 
@@ -105,8 +106,9 @@ export default async function SellerPayoutPage({ params }) {
     "PAID_OUT",
   ]);
 
-  // Donation guard: allow only once recipient has confirmed
-  const DONATION_ALLOWED = (status) => status === "BUYER_CONFIRMED";
+  // Donation guard: allow only once donor marks meetup completed or recipient confirms
+  const DONATION_ALLOWED = (status) =>
+    ["MEETUP_COMPLETED", "BUYER_CONFIRMED"].includes(status);
 
   if (!isDonation && !SELL_ALLOWED.has(txn?.status)) {
     return (
@@ -136,7 +138,8 @@ export default async function SellerPayoutPage({ params }) {
             <BackButton />
           </div>
           <div className="rounded-[5px] bg-white p-6 border border-[#325082] text-[#325082] text-center">
-            This page is available after the recipient confirms the donation.
+            This page is available after donor marks meetup completed or the
+            recipient confirms that he received the donation.
           </div>
         </main>
       </>
@@ -170,9 +173,15 @@ export default async function SellerPayoutPage({ params }) {
   const initialReview = revRes.ok ? await revRes.json() : null;
 
   const card = "rounded-[5px] bg-white shadow p-6";
-  const subCard = "rounded-[5px] bg-[#f9fbff] p-4 shadow-sm";
   const title = "text-xl font-semibold text-[#1f2d4d]";
   const small = "text-sm text-gray-600";
+  const priceBlock = isDonation ? (
+    <p className="text-lg font-bold text-[#325082] mt-3">Free</p>
+  ) : (
+    <p className="text-lg font-bold text-[#325082] mt-3">
+      ฿{Number(txn.total || 0).toLocaleString()}
+    </p>
+  );
 
   return (
     <>
@@ -198,37 +207,82 @@ export default async function SellerPayoutPage({ params }) {
         {/* Donation (donor) view */}
         {isDonation ? (
           <>
-            <div className="bg-white border border-gray-200 p-6 shadow-sm rounded-[5px] text-center text-[#325082] mb-8">
-              <h2 className="text-lg font-semibold">
-                Thank you for your generous donation!
-              </h2>
-              <p className="text-sm mt-2">
-                Your contribution helps other students in need. You can leave a
-                review below.
-              </p>
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-                <div className={subCard}>
-                  <div className="text-sm text-gray-500">Recipient</div>
-                  <div className="text-[13px] text-gray-700">
-                    <div>
-                      <b>Name/Email:</b> {buyer?.name || buyer?.email || "-"}
-                    </div>
-                    <div className="truncate">{buyer?.email}</div>
-                  </div>
+            <div className="bg-white border border-gray-200 p-6 shadow-sm rounded-[5px] text-[#325082] mb-8">
+              {/* Keep only this part centered */}
+              <div className="text-center">
+                <h2 className="text-lg font-semibold">
+                  Thank you for your generous donation!
+                </h2>
+                <p className="text-sm mt-2">
+                  Your contribution helps other students in need. You can leave
+                  a review below.
+                </p>
+              </div>
+
+              {/* Make only the cards left-aligned */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 text-left">
+                {/* Left: Product Image */}
+                <div className="rounded-[5px] border border-gray-200 bg-[#f9fbff] p-4 flex items-center justify-center">
+                  <img
+                    src={
+                      product?.defaultImage ||
+                      product?.images?.[0] ||
+                      "/placeholder.png"
+                    }
+                    alt={product?.title || "Donation item"}
+                    className="w-[150px] h-[150px] object-cover rounded-[3px] border border-gray-300"
+                  />
                 </div>
-                <div className={subCard}>
-                  <div className="text-sm text-gray-500">Donation Item</div>
-                  <div className="font-semibold text-[#1f2f4c]">
+
+                {/* Middle: Product Info */}
+                <div className="rounded-[5px] border border-gray-200 bg-[#f9fbff] p-4">
+                  <p className="font-semibold text-[#325082] text-lg">
                     {product?.title || "-"}
+                  </p>
+                  <div className="mt-1 space-y-1">
+                    <p className="text-sm text-gray-700">
+                      <span className="font-medium text-[#325082]">
+                        Category:
+                      </span>{" "}
+                      {product?.category || "-"}
+                    </p>
+                    <p className="text-sm text-gray-700">
+                      <span className="font-medium text-[#325082]">
+                        Condition:
+                      </span>{" "}
+                      {product?.condition || "-"}
+                    </p>
+                    <p className="text-sm text-gray-700">
+                      <span className="font-medium text-[#325082]">
+                        Description:
+                      </span>{" "}
+                      {product?.description || "-"}
+                    </p>
                   </div>
-                  <div className="text-sm text-gray-600 mt-1">
-                    Category: {product?.category || "-"}
-                  </div>
-                  <div className="text-sm text-gray-600 mt-1">
-                    Condition: {product?.condition || "-"}
-                  </div>
-                  <div className="text-sm text-gray-600 mt-1">
-                    Description: {product?.description || "-"}
+                  {priceBlock}
+                </div>
+
+                {/* Right: Recipient Info */}
+                <div className="rounded-[5px] border border-gray-200 bg-[#f9fbff] p-4">
+                  <p className="font-semibold text-[#325082] text-lg">
+                    Recipient:
+                  </p>
+                  <div className="mt-1 space-y-1">
+                    <p className="text-sm text-[#305082]">
+                      {buyer?.name || buyer?.email || "-"}
+                    </p>
+                    <p className="text-sm text-[#1f2f4c]">
+                      {buyer?.email || "-"}
+                    </p>
+                    {buyer?.phone && (
+                      <a
+                        href={`tel:${buyer.phone}`}
+                        className="flex items-center gap-1 text-sm text-[#325082] hover:underline"
+                      >
+                        <PhoneIcon className="w-4 h-4" />
+                        {buyer.phone}
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>
@@ -259,39 +313,72 @@ export default async function SellerPayoutPage({ params }) {
                     <StatusPill status={txn?.status} />
                   </div>
 
-                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className={subCard}>
-                      <div className="text-sm text-gray-500">Parties</div>
-                      <div className="text-[13px] text-gray-600">
-                        <div>
-                          <b>Buyer:</b> {buyer?.name || buyer?.email || "-"}
+                  {/* Two boxes: wider left (2fr) and narrower right (1fr) */}
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-3">
+                    {/* LEFT: Image + Product Info (merged, wider) */}
+                    <div className="rounded-[5px] border border-gray-200 bg-[#f9fbff] p-4 flex items-center gap-4">
+                      <img
+                        src={
+                          product?.defaultImage ||
+                          product?.images?.[0] ||
+                          "/placeholder.png"
+                        }
+                        alt={product?.title || "Product"}
+                        className="w-[130px] h-[130px] object-cover rounded-[3px] border border-gray-300 flex-shrink-0"
+                      />
+                      <div className="text-left">
+                        <p className="font-semibold text-[#325082] text-base">
+                          {product?.title || "-"}
+                        </p>
+                        <div className="mt-1 space-y-1">
+                          <p className="text-[13px] text-gray-700">
+                            <span className="font-medium text-[#325082]">
+                              Total:
+                            </span>{" "}
+                            {fmtTHB(total)}
+                          </p>
+                          <p className="text-[13px] text-gray-700">
+                            <span className="font-medium text-[#325082]">
+                              Category:
+                            </span>{" "}
+                            {product?.category || "-"}
+                          </p>
+                          <p className="text-[13px] text-gray-700">
+                            <span className="font-medium text-[#325082]">
+                              Condition:
+                            </span>{" "}
+                            {product?.condition || "-"}
+                          </p>
+                          <p className="text-[13px] text-gray-700">
+                            <span className="font-medium text-[#325082]">
+                              Description:
+                            </span>{" "}
+                            {product?.description || "-"}
+                          </p>
                         </div>
-                        <div className="truncate">{buyer?.email}</div>
-                        <div className="mt-4">
-                          <b>Seller (Me):</b>{" "}
-                          {seller?.name || seller?.email || "-"}
-                        </div>
-                        <div className="truncate">{seller?.email}</div>
                       </div>
                     </div>
-                    <div className={subCard}>
-                      <div className="text-sm text-gray-500">Product:</div>
-                      <div className="font-semibold text-[#1f2f4c]">
-                        {product?.title || "-"}
-                      </div>
-                      <div className="text-sm text-gray-600 mt-1">
-                        Total: {fmtTHB(total)}
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="text-sm text-gray-600 mt-1">
-                          Category: {product?.category || "-"}
-                        </div>
-                        <div className="text-sm text-gray-600 mt-1">
-                          Condition: {product?.condition || "-"}
-                        </div>
-                      </div>
-                      <div className="text-sm text-gray-600 mt-1">
-                        Description: {product?.description || "-"}
+
+                    {/* RIGHT: Buyer Info (narrower) */}
+                    <div className="rounded-[5px] border border-gray-200 bg-[#f9fbff] p-4 text-left">
+                      <p className="font-semibold text-[#325082] text-base">
+                        Buyer:
+                      </p>
+                      <div className="mt-1 space-y-1">
+                        <p className="text-[13px] font-semibold text-[#305082]">
+                          {buyer?.name || buyer?.email || "-"}
+                        </p>
+                        <p className="text-[13px] text-[#1f2f4c]">
+                          {buyer?.email || "-"}
+                        </p>
+                        {buyer?.phone && (
+                          <a
+                            href={`tel:${buyer.phone}`}
+                            className="text-[13px] text-[#325082] hover:underline"
+                          >
+                            {buyer.phone}
+                          </a>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -348,7 +435,7 @@ export default async function SellerPayoutPage({ params }) {
                 </div>
               </div>
 
-              {/* RIGHT: Summary */}
+              {/* RIGHT: Summary (unchanged) */}
               <div className={`${card} lg:col-span-1`}>
                 <div className="flex items-center justify-between mb-3">
                   <div className={title}>Summary</div>

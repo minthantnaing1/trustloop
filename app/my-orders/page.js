@@ -284,31 +284,65 @@ function MyOrdersClient() {
   async function actOnTxn(id, action, extra = {}) {
     try {
       setPendingActionId(id);
+
       const res = await fetch(`/api/transactions/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action, ...extra }), // include cancelReason
       });
-      if (!res.ok) throw new Error(await res.text());
 
+      if (!res.ok) throw new Error(await res.text());
+      const updated = await res.json();
+
+      // ✅ Optimistic update (local UI)
       setSellerTxns((prev) =>
-        (prev || []).map((t) =>
-          (t._id?.toString?.() || t._id) === id
-            ? {
-                ...t,
-                status:
-                  action === "seller_accept"
-                    ? "SELLER_ACCEPTED"
-                    : action === "seller_cancel"
-                    ? "CANCELLED_BY_SELLER"
-                    : t.status,
-                updatedAt: new Date().toISOString(),
-              }
-            : t
-        )
+        (prev || []).map((t) => {
+          if ((t._id?.toString?.() || t._id) !== id) return t;
+
+          const nextStatus =
+            action === "seller_accept"
+              ? "SELLER_ACCEPTED"
+              : action === "seller_cancel"
+              ? "CANCELLED_BY_SELLER"
+              : t.status;
+
+          const nextCancelReason =
+            action === "seller_cancel"
+              ? extra?.cancelReason ?? updated?.cancelReason ?? t.cancelReason
+              : t.cancelReason;
+
+          return {
+            ...t,
+            status: nextStatus,
+            cancelReason: nextCancelReason,
+            updatedAt: new Date().toISOString(),
+          };
+        })
       );
 
-      if (action === "seller_accept") router.push(`/my-orders/${id}#delivery`);
+      // ✅ Redirect and refresh logic unified for all kinds
+      const kind = (
+        updated?.kind ||
+        updated?.product?.type ||
+        extra?.kind ||
+        kindFilter
+      ).toUpperCase();
+
+      if (action === "seller_accept") {
+        router.push(`/my-orders/${id}#delivery`);
+      } else if (action === "seller_cancel") {
+        setRole("seller");
+        setKindFilter(kind);
+        setStatusFilter("CANCELLED_BY_SELLER");
+        router.push(
+          `/my-orders?role=seller&status=CANCELLED_BY_SELLER&kind=${encodeURIComponent(
+            kind
+          )}`
+        );
+      }
+
+      // 🪄 Always re-fetch seller list in background (sync across all kinds)
+      await refreshRoleLists("seller");
     } catch (e) {
       alert(e.message || "Action failed");
     } finally {
@@ -386,6 +420,22 @@ function MyOrdersClient() {
     router.replace(`/my-orders?${sp.toString()}`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role, statusFilter, kindFilter]);
+
+  // Keep local state in sync when someone navigates with new query params
+  useEffect(() => {
+    const sp = new URLSearchParams(searchParams);
+    const nextRole = sp.get("role") === "seller" ? "seller" : "buyer";
+    const nextStatus = sp.get("status") || "ALL";
+    const rawKind = sp.get("kind");
+    const nextKind = ["BUY_SELL", "DONATION", "AUCTION"].includes(rawKind)
+      ? rawKind
+      : "BUY_SELL";
+
+    if (nextRole !== role) setRole(nextRole);
+    if (nextStatus !== statusFilter) setStatusFilter(nextStatus);
+    if (nextKind !== kindFilter) setKindFilter(nextKind);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   return (
     <>
@@ -575,14 +625,48 @@ function MyOrdersClient() {
                             </span>
                           </div>
 
-                          {t.requestReason && (
-                            <div>
-                              <span className="text-slate-500">
-                                Request reason:
-                              </span>{" "}
-                              <span className="font-semibold">
-                                {t.requestReason}
-                              </span>
+                          {/* Request / Cancel / Reject reasons (right-aligned) */}
+                          {(t.requestReason ||
+                            t.cancelReason ||
+                            t.adminRejectReason) && (
+                            <div className="flex flex-wrap justify-end items-center gap-x-2 text-[13px] mt-1 text-right">
+                              {t.kind === "DONATION" && t.requestReason && (
+                                <>
+                                  <span className="text-slate-500">
+                                    Request reason:
+                                  </span>
+                                  <span className="font-semibold">
+                                    {t.requestReason}
+                                  </span>
+                                </>
+                              )}
+
+                              {/* Cancel reason (can come from either buyer/seller) */}
+                              {t.cancelReason && (
+                                <>
+                                  {t.kind === "DONATION" && t.requestReason && (
+                                    <span className="text-slate-400">·</span>
+                                  )}
+                                  <span className="text-slate-500">
+                                    Cancel reason:
+                                  </span>
+                                  <span className="font-semibold">
+                                    {t.cancelReason}
+                                  </span>
+                                </>
+                              )}
+
+                              {/* Admin rejection reason (Buy/Sell only) */}
+                              {t.kind === "BUY_SELL" && t.adminRejectReason && (
+                                <>
+                                  <span className="text-slate-500">
+                                    Reject reason:
+                                  </span>
+                                  <span className="font-semibold">
+                                    {t.adminRejectReason}
+                                  </span>
+                                </>
+                              )}
                             </div>
                           )}
 

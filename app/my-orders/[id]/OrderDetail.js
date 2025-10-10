@@ -94,6 +94,7 @@ export default function OrderDetail({ id }) {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [remainMs, setRemainMs] = useState(null);
+  const [nowMs, setNowMs] = useState(Date.now());
   const router = useRouter();
 
   // refresh once when the timer hits zero (server GET will flip to BUYER_CONFIRMED)
@@ -129,6 +130,10 @@ export default function OrderDetail({ id }) {
   const meetMax = useMemo(() => addDaysLocalInput(MEETUP_MAX_DAYS), []);
   const deliveryMin = useMemo(() => deliveryMinLocalInput(), []);
   const deliveryMax = useMemo(() => deliveryMaxLocalInput(), []);
+
+  // deliver/meetup
+  const [deliveredWarn, setDeliveredWarn] = useState("");
+  const [meetupWarnClick, setMeetupWarnClick] = useState("");
 
   async function load() {
     const [txnRes, meRes] = await Promise.all([
@@ -231,6 +236,51 @@ export default function OrderDetail({ id }) {
       setBusy(false);
     }
   }
+
+  // times as numbers (ms) for comparisons
+  const schedAtMs = txn?.fulfillment?.scheduledAt
+    ? new Date(txn.fulfillment.scheduledAt).getTime()
+    : null;
+
+  const meetupAtMs =
+    txn?.fulfillment?.meetupScheduledAt || txn?.fulfillment?.meetupProposedAt
+      ? new Date(
+          txn.fulfillment.meetupScheduledAt || txn.fulfillment.meetupProposedAt
+        ).getTime()
+      : null;
+
+  // Keep "now" fresh while delivery/meetup completion buttons might unlock
+  useEffect(() => {
+    const active =
+      txn &&
+      txn.status === "DELIVERY_IN_PROGRESS" &&
+      (txn.fulfillment?.method === "MEETUP" ||
+        txn.fulfillment?.method === "DELIVERY");
+
+    if (!active) return;
+    const t = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [txn?.status, txn?.fulfillment?.method]);
+
+  const canMarkDeliveredNow =
+    method === "DELIVERY" &&
+    txn.status === "DELIVERY_IN_PROGRESS" &&
+    Number.isFinite(schedAtMs) &&
+    nowMs >= schedAtMs;
+
+  const canMarkMeetupNow =
+    method === "MEETUP" &&
+    txn.status === "DELIVERY_IN_PROGRESS" &&
+    Number.isFinite(meetupAtMs) &&
+    nowMs >= meetupAtMs;
+
+  useEffect(() => {
+    if (canMarkDeliveredNow && deliveredWarn) setDeliveredWarn("");
+  }, [canMarkDeliveredNow, deliveredWarn]);
+
+  useEffect(() => {
+    if (canMarkMeetupNow && meetupWarnClick) setMeetupWarnClick("");
+  }, [canMarkMeetupNow, meetupWarnClick]);
 
   // Validation helpers
   function validateMeetupWindow(dtStr) {
@@ -714,14 +764,33 @@ export default function OrderDetail({ id }) {
                     )}
 
                     {txn.status === "DELIVERY_IN_PROGRESS" && (
-                      <ActionButton
-                        text="Mark Delivered"
-                        variant="primaryClick"
-                        disabled={busy}
-                        onClick={() =>
-                          doPatch({ action: "seller_mark_delivered" })
-                        }
-                      />
+                      <div className="flex flex-col gap-1">
+                        <ActionButton
+                          text="Mark Delivered"
+                          variant="primaryClick"
+                          disabled={
+                            busy /* keep clickable even if blocked by time */
+                          }
+                          onClick={() => {
+                            if (!canMarkDeliveredNow) {
+                              setDeliveredWarn(
+                                `You can only mark as delivered after the scheduled time: ${fmtBKK(
+                                  txn.fulfillment?.scheduledAt
+                                )}.`
+                              );
+                              return;
+                            }
+                            setDeliveredWarn("");
+                            doPatch({ action: "seller_mark_delivered" });
+                          }}
+                        />
+
+                        {deliveredWarn && (
+                          <span className="text-[12px] text-amber-700">
+                            {deliveredWarn}
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
 
@@ -854,15 +923,31 @@ export default function OrderDetail({ id }) {
 
                 {/* After delivery started, only “mark completed” remains */}
                 {isSeller && txn.status === "DELIVERY_IN_PROGRESS" && (
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-col gap-1">
                     <ActionButton
                       text="Mark Meetup Completed"
                       variant="primaryClick"
                       disabled={busy}
-                      onClick={() =>
-                        doPatch({ action: "mark_meetup_completed" })
-                      }
+                      onClick={() => {
+                        if (!canMarkMeetupNow) {
+                          setMeetupWarnClick(
+                            `You can only complete the meetup after ${fmtBKK(
+                              txn.fulfillment?.meetupScheduledAt ||
+                                txn.fulfillment?.meetupProposedAt
+                            )}.`
+                          );
+                          return;
+                        }
+                        setMeetupWarnClick("");
+                        doPatch({ action: "mark_meetup_completed" });
+                      }}
                     />
+
+                    {meetupWarnClick && (
+                      <span className="text-[12px] text-amber-700">
+                        {meetupWarnClick}
+                      </span>
+                    )}
                   </div>
                 )}
 

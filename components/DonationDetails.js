@@ -124,7 +124,7 @@ export default function DonationDetails({
         {/* --- Main Content --- */}
         <div className="flex gap-[30px] flex-col sm:flex-row">
           {/* LEFT: images + requests, tight spacing */}
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 w-full sm:w-[520px] lg:w-[560px] flex-none">
             <ProductImages
               images={product.images}
               defaultImage={product.defaultImage}
@@ -274,7 +274,7 @@ export default function DonationDetails({
           </div>
 
           {/* RIGHT: Donation Info (unchanged layout/sizing) */}
-          <div className="flex-1 flex flex-col gap-3">
+          <div className="min-w-0 flex-1 flex flex-col gap-3">
             <h2 className="text-xl font-bold text-[#325082]">
               {product.title}
             </h2>
@@ -304,39 +304,42 @@ export default function DonationDetails({
             </div>
 
             {/* Receiver Buttons / State */}
-            <div className="flex flex-wrap justify-center gap-2 w-full h-full">
-              {!isOwner && isSelective && hasPendingMyRequest && (
-                <div className="w-full text-center text-xs sm:text-sm px-3 py-2 rounded bg-yellow-50 border border-yellow-200 text-yellow-800">
-                  You&apos;ve already requested this item. Please wait for the
-                  donor&apos;s decision.
-                </div>
-              )}
-
-              {canReceiverRequest && (
-                <>
-                  <Link
-                    href={`/donation/${product._id}/request`}
-                    className="flex-5 sm:flex-9"
-                  >
-                    <ActionButton
-                      text={
-                        isInstant ? "🎁 Get this Item" : "✍️ Request this Item"
-                      }
-                      variant="buyPrimaryClick"
-                      className="w-full"
-                    />
-                  </Link>
-
-                  <div className="flex-1">
-                    <FavoriteButton
-                      productId={product._id?.toString()}
-                      initialIsFav={Boolean(initialIsFav)}
-                      className="w-full h-full"
-                    />
+            {!isOwner && (
+              <div className="flex flex-wrap justify-center gap-2 w-full">
+                {isSelective && hasPendingMyRequest && (
+                  <div className="w-full text-center text-xs sm:text-sm px-3 py-2 rounded bg-yellow-50 border border-yellow-200 text-yellow-800">
+                    You&apos;ve already requested this item. Please wait for the
+                    donor&apos;s decision.
                   </div>
-                </>
-              )}
-            </div>
+                )}
+
+                {canReceiverRequest && (
+                  <>
+                    <Link
+                      href={`/donation/${product._id}/request`}
+                      className="flex-5 sm:flex-9"
+                    >
+                      <ActionButton
+                        text={
+                          isInstant
+                            ? "🎁 Get this Item"
+                            : "✍️ Request this Item"
+                        }
+                        variant="buyPrimaryClick"
+                        className="w-full"
+                      />
+                    </Link>
+                    <div className="flex-1">
+                      <FavoriteButton
+                        productId={product._id?.toString()}
+                        initialIsFav={Boolean(initialIsFav)}
+                        className="w-full h-full"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
 
             <div className="bg-[#e2e2e2] p-3 rounded-md">
               Description: {product.description || "-"}

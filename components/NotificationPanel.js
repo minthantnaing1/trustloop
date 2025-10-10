@@ -203,39 +203,36 @@ export default function NotificationPanel({ open, onClose, onUnreadChange }) {
                       )}
                     </div>
 
-                    {/* Toggle history */}
-                    {evs.length > 1 && (
-                      <div className="flex justify-between">
-                        <button
-                          className="mt-2 text-[12.5px] text-[#325082] underline"
-                          onClick={() => toggleExpanded(n._id)}
-                        >
-                          {open
-                            ? "Hide history"
-                            : `Show history (${evs.length})`}
-                        </button>
-                        {/* Actions */}
-                        <div className="flex items-center justify-end gap-2 mt-3">
-                          {n.link && (
-                            <Link
-                              href={n.link}
-                              data-suppress-overlay="true"
-                              onClick={() => markOneRead(n._id)}
-                            >
-                              <ActionButton
-                                text="View"
-                                variant="primaryClick"
-                              />
-                            </Link>
-                          )}
-                          <ActionButton
-                            text="Mark read"
-                            variant="outlineClick"
+                    {/* Toggle history + actions */}
+                    <div className="flex justify-between">
+                      {/* Left: toggle only when there are multiple events */}
+                      <button
+                        className={`mt-2 text-[12.5px] text-[#325082] underline ${
+                          evs.length > 1 ? "" : "invisible"
+                        }`}
+                        onClick={() => toggleExpanded(n._id)}
+                      >
+                        {open ? "Hide history" : `Show history (${evs.length})`}
+                      </button>
+
+                      {/* Right: action buttons (always visible if applicable) */}
+                      <div className="flex items-center justify-end gap-2 mt-3">
+                        {n.link && (
+                          <Link
+                            href={n.link}
+                            data-suppress-overlay="true"
                             onClick={() => markOneRead(n._id)}
-                          />
-                        </div>
+                          >
+                            <ActionButton text="View" variant="primaryClick" />
+                          </Link>
+                        )}
+                        <ActionButton
+                          text="Mark read"
+                          variant="outlineClick"
+                          onClick={() => markOneRead(n._id)}
+                        />
                       </div>
-                    )}
+                    </div>
 
                     {open && (
                       <div className="mt-3 border-t border-gray-300 pt-2">

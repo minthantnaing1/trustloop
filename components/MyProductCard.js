@@ -3,6 +3,7 @@
 
 import Link from "next/link";
 import { fmtBKK } from "@/utils/timeAgo";
+import { useState, useEffect } from "react";
 
 export default function MyProductCard({
   product,
@@ -18,10 +19,58 @@ export default function MyProductCard({
     .toString()
     .toLowerCase();
   const isDonation = rawType === "donation";
-  const deadlineTxt =
-    isDonation && product?.requestDeadline
-      ? fmtBKK(product.requestDeadline)
-      : null;
+
+  // ---- countdown (minute-resolution) ----
+  function useCountdown(targetIso) {
+    const [txt, setTxt] = useState(null);
+
+    useEffect(() => {
+      if (!targetIso) return;
+
+      const target = new Date(targetIso).getTime();
+
+      const tick = () => {
+        const ms = target - Date.now();
+
+        if (ms <= 0) {
+          setTxt("Closed");
+          return;
+        }
+
+        const d = Math.floor(ms / 86_400_000); // days
+        const h = Math.floor((ms % 86_400_000) / 3_600_000); // hours
+        const m = Math.floor((ms % 3_600_000) / 60_000); // minutes
+        const s = Math.floor((ms % 60_000) / 1000); // seconds
+
+        // Format like "2d 03h 45m 22s" or "03h 45m 22s"
+        if (d > 0) {
+          setTxt(
+            `${d}d ${String(h).padStart(2, "0")}h ${String(m).padStart(
+              2,
+              "0"
+            )}m ${String(s).padStart(2, "0")}s`
+          );
+        } else {
+          setTxt(
+            `${String(h).padStart(2, "0")}h ${String(m).padStart(
+              2,
+              "0"
+            )}m ${String(s).padStart(2, "0")}s`
+          );
+        }
+      };
+
+      tick();
+      const id = setInterval(tick, 1000); // update every second
+
+      return () => clearInterval(id);
+    }, [targetIso]);
+
+    return txt;
+  }
+
+  const deadlineAt = isDonation ? product?.requestDeadline : null;
+  const deadlineCountdown = useCountdown(deadlineAt);
 
   // ------- Route rules (updated) -------
   const orderId = product?.orderId || product?.buyerOrderId;
@@ -97,19 +146,21 @@ export default function MyProductCard({
         className="absolute inset-0 w-full h-full object-cover"
       />
 
-      {/* Type pill for BOTH variants */}
-      <div className="absolute top-1 left-1">
+      {/* Type pill and Deadline stacked vertically */}
+      <div className="absolute top-1 left-1 flex flex-col gap-1 items-start">
         <TypePill />
-      </div>
-
-      {/* Deadline shown ONLY on classic variant */}
-      {variant === "classic" && isDonation && deadlineTxt && (
-        <div className="absolute top-1 right-1">
-          <span className="text-[10px] md:text-[11px] font-medium px-2 py-0.5 rounded bg-white/85 text-rose-700 shadow">
-            Deadline: {deadlineTxt}
+        {variant === "classic" && isDonation && deadlineCountdown && (
+          <span
+            className={`text-[10px] md:text-[11px] font-medium px-2 py-0.5 rounded bg-white/85 shadow ${
+              deadlineCountdown === "Closed" ? "text-gray-600" : "text-rose-700"
+            }`}
+          >
+            {deadlineCountdown === "Closed"
+              ? "Requests closed"
+              : `Ends in ${deadlineCountdown}`}
           </span>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 
