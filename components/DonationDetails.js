@@ -293,16 +293,26 @@ export default function DonationDetails({
 
             <div className="flex items-center gap-2 flex-wrap">
               {product.donationMode && (
-                <span className="bg-[#325082] text-white text-xs font-medium px-2 py-1 rounded">
+                <span
+                  title={
+                    product.donationMode === "instant"
+                      ? "Anyone can request the item immediately on a first-come basis."
+                      : "The donor reviews all requests and selects a recipient before the deadline."
+                  }
+                  className="bg-[#325082] text-white text-[12px] font-medium px-2 py-1 rounded border border-[#325082] cursor-help"
+                >
                   {product.donationMode === "instant"
-                    ? "Instant Donation"
-                    : "Selective Donation"}
+                    ? "Instant Donation (First come first serve)"
+                    : "Selective Donation (Chosen by donor)"}
                 </span>
               )}
 
               {/* Meetup-only hint */}
-              <span className="text-[12px] font-medium text-[#325082] bg-white/90 px-2 py-1 rounded border border-[#325082]/60">
-                Meetup only
+              <span
+                title="Only meetup delivery option is allowed for donation."
+                className="text-[12px] font-medium text-[#325082] bg-white/90 px-2 py-1 rounded border border-[#325082]/60 cursor-help"
+              >
+                Meetup Only
               </span>
 
               {product.requestDeadline && (

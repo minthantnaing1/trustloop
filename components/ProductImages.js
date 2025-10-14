@@ -156,7 +156,7 @@ export default function ProductImages({ images = [], defaultImage }) {
 
         {/* Carousel */}
         <div
-          className="flex transition-transform duration-800 ease-in-out w-full h-full cursor-zoom-in"
+          className="flex transition-transform duration-800 ease-in-out w-full h-full cursor-pointer"
           style={{ transform: `translateX(-${currentIndex * 100}%)` }}
           onClick={() => openLightbox(currentIndex)}
         >
@@ -178,7 +178,7 @@ export default function ProductImages({ images = [], defaultImage }) {
                 e.stopPropagation();
                 handlePrev();
               }}
-              className="absolute top-1/2 left-2 -translate-y-1/2 p-1 bg-[#325082] text-white rounded-full z-10 transition-all duration-200 hover:scale-[1.1] shadow-md"
+              className="absolute top-1/2 left-2 -translate-y-1/2 p-1 bg-[#325082] text-white rounded-full z-10 transition-all duration-500 hover:scale-[1.1] shadow-md"
               aria-label="Previous image"
             >
               <ChevronLeftIcon className="w-6 h-6" />
@@ -189,7 +189,7 @@ export default function ProductImages({ images = [], defaultImage }) {
                 e.stopPropagation();
                 handleNext();
               }}
-              className="absolute top-1/2 right-2 -translate-y-1/2 p-1 bg-[#325082] text-white rounded-full z-10 transition-all duration-200 hover:scale-[1.1] shadow-md"
+              className="absolute top-1/2 right-2 -translate-y-1/2 p-1 bg-[#325082] text-white rounded-full z-10 transition-all duration-500 hover:scale-[1.1] shadow-md"
               aria-label="Next image"
             >
               <ChevronRightIcon className="w-6 h-6" />
@@ -223,7 +223,7 @@ export default function ProductImages({ images = [], defaultImage }) {
       {/* LIGHTBOX */}
       {open && (
         <div
-          className="fixed inset-0 z-[30000] bg-black/90 backdrop-blur-sm flex items-center justify-center"
+          className="fixed inset-0 z-[30000] bg-black/60 backdrop-blur-sm flex items-center justify-center select-none"
           onMouseUp={onMouseUp}
           onMouseMove={onMouseMove}
           onTouchEnd={onTouchEnd}
@@ -245,28 +245,35 @@ export default function ProductImages({ images = [], defaultImage }) {
             <>
               <button
                 onClick={handlePrev}
-                className="absolute left-4 md:left-6 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white"
+                className="absolute left-4 md:left-6 z-20 pointer-events-auto flex items-center justify-center w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white transition"
                 aria-label="Previous"
                 title="Previous"
               >
-                <ChevronLeftIcon className="w-7 h-7" />
+                <ChevronLeftIcon className="w-6 h-6" />
               </button>
+
               <button
                 onClick={handleNext}
-                className="absolute right-4 md:right-6 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white"
+                className="absolute right-4 md:right-6 z-20 pointer-events-auto flex items-center justify-center w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white transition"
                 aria-label="Next"
                 title="Next"
               >
-                <ChevronRightIcon className="w-7 h-7" />
+                <ChevronRightIcon className="w-6 h-6" />
               </button>
             </>
           )}
 
           {/* Image canvas */}
           <div
-            className="relative max-w-[92vw] max-h-[86vh] w-full h-full flex items-center justify-center cursor-grab active:cursor-grabbing"
-            onMouseDown={onMouseDown}
-            onTouchStart={onTouchStart}
+            className="relative z-0 max-w-[92vw] max-h-[86vh] w-full h-full flex items-center justify-center cursor-grab active:cursor-grabbing select-none"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              onMouseDown(e);
+            }}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              onTouchStart(e);
+            }}
           >
             <img
               src={orderedImages[currentIndex]}
@@ -282,6 +289,8 @@ export default function ProductImages({ images = [], defaultImage }) {
                 objectFit: "contain",
               }}
               draggable={false}
+              onDragStart={(e) => e.preventDefault()}
+              onContextMenu={(e) => e.preventDefault()}
             />
           </div>
 

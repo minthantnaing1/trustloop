@@ -42,7 +42,6 @@ const NotificationSchema = new mongoose.Schema(
         MEETUP_ACCEPTED: 1,
         MEETUP_COMPLETED: 1,
         BUYER_CONFIRMED: 1,
-        AUTO_CONFIRMED: 1,
         AUTO_CONFIRMED_AFTER_3_DAYS: 1,
         ADMIN_PAID_OUT: 1,
         CANCELLED_BY_BUYER: 1,

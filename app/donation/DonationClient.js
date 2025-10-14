@@ -6,7 +6,11 @@ import FilterDropdown from "@/components/FilterDropdown";
 import ProductCard from "@/components/ProductCard";
 import ActionButton from "@/components/ActionButton";
 import ConfirmModal from "@/components/ConfirmModal";
-import { AdjustmentsHorizontalIcon } from "@heroicons/react/24/outline";
+import {
+  AdjustmentsHorizontalIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+} from "@heroicons/react/24/outline";
 
 const DONATION_CACHE_KEY = "donation:list:v1";
 
@@ -206,26 +210,15 @@ export default function DonationClient({ initial }) {
           ) : (
             <div className="relative">
               {/* Left Button */}
-              <button
-                onClick={() => smoothScrollBy(-252, 450)}
-                className="absolute left-[-12px] top-1/2 -translate-y-1/2 bg-[#325082] shadow-md rounded-full p-2 z-10 hover:bg-[#153969] hidden sm:block"
-                aria-label="Scroll left"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-white"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+              {myDonations.length > 4 && (
+                <button
+                  onClick={() => smoothScrollBy(-252, 450)}
+                  className="absolute left-[-12px] top-1/2 -translate-y-1/2 bg-[#325082] shadow-md rounded-full p-2 z-10 hover:bg-[#153969] hidden sm:flex items-center justify-center transition-all duration-500 hover:scale-[1.08]"
+                  aria-label="Scroll left"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-              </button>
+                  <ChevronLeftIcon className="h-5 w-5 text-white" />
+                </button>
+              )}
 
               {/* Scrollable row */}
               <div
@@ -245,26 +238,15 @@ export default function DonationClient({ initial }) {
               </div>
 
               {/* Right Button */}
-              <button
-                onClick={() => smoothScrollBy(252, 450)}
-                className="absolute right-[-12px] top-1/2 -translate-y-1/2 bg-[#325082] shadow-md rounded-full p-2 z-10 hover:bg-[#153969] hidden sm:block"
-                aria-label="Scroll right"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-white"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+              {myDonations.length > 4 && (
+                <button
+                  onClick={() => smoothScrollBy(252, 450)}
+                  className="absolute right-[-12px] top-1/2 -translate-y-1/2 bg-[#325082] shadow-md rounded-full p-2 z-10 hover:bg-[#153969] hidden sm:flex items-center justify-center transition-all duration-500 hover:scale-[1.08]"
+                  aria-label="Scroll right"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </button>
+                  <ChevronRightIcon className="h-5 w-5 text-white" />
+                </button>
+              )}
             </div>
           )}
         </section>

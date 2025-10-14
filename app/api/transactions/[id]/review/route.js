@@ -39,7 +39,13 @@ export async function POST(req, { params }) {
     }
 
     // Only once the order is complete
-    const allowed = new Set(["BUYER_CONFIRMED", "PAID_OUT"]);
+    const allowed = new Set([
+      "SELLER_DELIVERED",
+      "MEETUP_COMPLETED",
+      "AUTO_CONFIRMED_AFTER_3_DAYS",
+      "BUYER_CONFIRMED",
+      "PAID_OUT",
+    ]);
     if (!allowed.has(txn.status)) {
       return new Response("Review not allowed yet", { status: 400 });
     }

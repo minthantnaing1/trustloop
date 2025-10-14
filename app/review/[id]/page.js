@@ -65,7 +65,11 @@ export default async function ReviewPage({ params }) {
     session.user.email &&
     txn?.buyer?.email?.toLowerCase?.() === session.user.email.toLowerCase();
 
-  const allowedStatuses = ["BUYER_CONFIRMED", "PAID_OUT"];
+  const allowedStatuses = [
+    "AUTO_CONFIRMED_AFTER_3_DAYS",
+    "BUYER_CONFIRMED",
+    "PAID_OUT",
+  ];
   const statusAllowed = allowedStatuses.includes(txn?.status);
 
   // Block unless the viewer is the buyer/recipient AND the order is complete

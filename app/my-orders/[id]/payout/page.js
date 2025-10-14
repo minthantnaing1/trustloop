@@ -101,13 +101,18 @@ export default async function SellerPayoutPage({ params }) {
   const SELL_ALLOWED = new Set([
     "SELLER_DELIVERED",
     "MEETUP_COMPLETED",
+    "AUTO_CONFIRMED_AFTER_3_DAYS",
     "BUYER_CONFIRMED",
     "PAID_OUT",
   ]);
 
   // Donation guard: allow only once donor marks meetup completed or recipient confirms
   const DONATION_ALLOWED = (status) =>
-    ["MEETUP_COMPLETED", "BUYER_CONFIRMED"].includes(status);
+    [
+      "MEETUP_COMPLETED",
+      "AUTO_CONFIRMED_AFTER_3_DAYS",
+      "BUYER_CONFIRMED",
+    ].includes(status);
 
   if (!isDonation && !SELL_ALLOWED.has(txn?.status)) {
     return (
