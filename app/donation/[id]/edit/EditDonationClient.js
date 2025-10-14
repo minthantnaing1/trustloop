@@ -70,6 +70,17 @@ export default function EditDonationClient({ initialProduct }) {
   };
 
   const handleUpdate = async () => {
+    // ✅ Early client-side guard: stop BEFORE any uploads
+    const deadlinePassed =
+      initialProduct?.donationMode === "selective" &&
+      initialProduct?.requestDeadline &&
+      new Date(initialProduct.requestDeadline) <= new Date();
+
+    if (deadlinePassed) {
+      alert("Editing is closed after the request deadline.");
+      return;
+    }
+
     const { title, category, condition, donationMode, requestDeadlineLocal } =
       form;
     if (!title || !category || !condition) {

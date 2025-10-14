@@ -220,6 +220,18 @@ export async function PATCH(req, { params }) {
       return new Response("Locked by active transaction", { status: 409 });
     }
 
+    // Disallow any edits if donation deadline has passed
+    if (
+      product.type === "donation" &&
+      product.donationMode === "selective" &&
+      product.requestDeadline &&
+      new Date(product.requestDeadline) <= new Date()
+    ) {
+      return new Response("Editing is closed after the request deadline.", {
+        status: 409,
+      });
+    }
+
     // ✅ Only perform Cloudinary deletion if `images` field is present
     if ("images" in body && Array.isArray(body.images)) {
       const removed = (product.images || []).filter(

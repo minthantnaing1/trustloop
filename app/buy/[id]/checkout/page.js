@@ -29,6 +29,7 @@ export default async function CheckoutPage({ params }) {
 
   // Fetch me (to prefill location from User.location)
   let userLocation = "";
+  let userPhone = "";
   if (session) {
     try {
       const meRes = await fetch(
@@ -38,10 +39,16 @@ export default async function CheckoutPage({ params }) {
       if (meRes.ok) {
         const { user } = await meRes.json();
         userLocation = user?.location || "";
+        userPhone = user?.phone || "";
       }
     } catch {
       // ignore – show empty input if fetch fails
     }
+  }
+
+  // 🚫 Gate: require Phone + Location to reach checkout
+  if (!userPhone || !userLocation) {
+    return redirect(`/buy/${id}`); // product page will pop the modal on Buy Now
   }
 
   const fee = Number(process.env.PLATFORM_FEE || 10);

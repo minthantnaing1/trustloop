@@ -12,7 +12,7 @@ export default async function PublicProfilePage({ params }) {
   await connectDB();
 
   const user = await User.findById(params.id)
-    .select("name email image faculty year phone location rating")
+    .select("name email image faculty year rating badges")
     .lean();
 
   return (
@@ -68,36 +68,9 @@ export default async function PublicProfilePage({ params }) {
                     })()}
                   </div>
                 </div>
-              </div>
-            </section>
-
-            {/* Contact only (no QR / bank) */}
-            <section className="mt-6 mb-8">
-              <div className="bg-white rounded-[6px] p-6 shadow-sm">
-                <h3 className="text-sm font-semibold text-[#1f2f4c] mb-4">
-                  Contact Info
-                </h3>
-
-                <div className="w-full rounded-[3px] border border-[#eef2fb] overflow-hidden bg-[#fbfdff]">
-                  <div className="grid grid-cols-[140px_minmax(0,1fr)] sm:grid-cols-[180px_minmax(0,1fr)] items-center h-12 px-3 sm:px-4 border-b border-[#e7ecf8]">
-                    <span className="text-sm text-gray-500">Phone -</span>
-                    <span className="text-sm font-medium text-gray-900 text-right truncate">
-                      {user.phone ? (
-                        <a href={`tel:${user.phone}`} className="underline">
-                          {user.phone}
-                        </a>
-                      ) : (
-                        "Not set"
-                      )}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-[140px_minmax(0,1fr)] sm:grid-cols-[180px_minmax(0,1fr)] items-center h-12 px-3 sm:px-4">
-                    <span className="text-sm text-gray-500">Location -</span>
-                    <span className="text-sm font-medium text-gray-900 text-right truncate">
-                      {user.location?.trim() || "Not set"}
-                    </span>
-                  </div>
+                <div className="flex-1 min-w-[140px] bg-white p-4 rounded-[10px] text-center">
+                  <p>Badge</p>
+                  <strong>{(user.badges && user.badges[0]) || "None"}</strong>
                 </div>
               </div>
             </section>

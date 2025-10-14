@@ -81,8 +81,14 @@ export async function PATCH(req, { params }) {
     ];
 
     allowedFields.forEach((field) => {
-      if (body[field] !== undefined) {
-        user[field] = body[field];
+      if (Object.prototype.hasOwnProperty.call(body, field)) {
+        const val = body[field];
+        if (typeof val === "string" && val.trim() === "") {
+          // treat blank string as "unset"
+          user[field] = undefined;
+        } else {
+          user[field] = val;
+        }
       }
     });
 

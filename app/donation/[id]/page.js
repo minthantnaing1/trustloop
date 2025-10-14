@@ -66,18 +66,25 @@ export default async function DonationProductPage({ params }) {
 
   await connectDB();
 
-  let initialIsFav = false;
+  let me = null;
   if (sessionEmail) {
-    const me = await User.findOne({ email: sessionEmail })
-      .select("favorites")
+    me = await User.findOne({ email: sessionEmail })
+      .select("favorites phone location")
       .lean();
-
-    initialIsFav = !!me?.favorites?.some(
-      (fid) => String(fid) === String(product._id)
-    );
   }
 
+  const initialIsFav = Boolean(
+    product.isFav ??
+      me?.favorites?.some((fid) => String(fid) === String(product._id))
+  );
+
   const isOwner = sessionEmail === product.owner?.email;
+
+  // ✅ Request guard (Phone + Location only)
+  const missing = [];
+  if (!me?.phone) missing.push("Phone");
+  if (!me?.location) missing.push("Location");
+  const requestGuard = { ok: missing.length === 0, missing };
 
   return (
     <DonationDetails
@@ -85,6 +92,7 @@ export default async function DonationProductPage({ params }) {
       sessionEmail={sessionEmail}
       initialIsFav={initialIsFav}
       isOwner={isOwner}
+      guard={requestGuard}
     />
   );
 }

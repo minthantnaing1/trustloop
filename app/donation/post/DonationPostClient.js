@@ -149,10 +149,11 @@ export default function DonationPostClient({ initialLocation = "" }) {
     }
   };
 
-  // Min = now + 1h; Max = now + 14 days (match API)
-  const minDeadlineLocal = toLocalInputValue(
-    new Date(Date.now() + 60 * 60 * 1000)
-  );
+  // // Min = now + 1h; Max = now + 14 days (match API)
+  // const minDeadlineLocal = toLocalInputValue(
+  //   new Date(Date.now())
+  // );
+  const minDeadlineLocal = toLocalInputValue(new Date(Date.now()));
   const maxDeadlineLocal = toLocalInputValue(
     new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
   );

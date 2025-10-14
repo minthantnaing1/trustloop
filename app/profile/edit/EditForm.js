@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import ActionButton from "@/components/ActionButton";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 
-export default function EditForm({ initialUser }) {
+export default function EditForm({ initialUser, nextPath = "" }) {
   const [user, setUser] = useState(initialUser);
   const [saving, setSaving] = useState(false);
   const router = useRouter();
@@ -32,7 +32,7 @@ export default function EditForm({ initialUser }) {
       }),
     });
     if (res.ok) {
-      router.push("/profile");
+      router.push(nextPath || "/profile");
     } else {
       alert("Failed to update profile.");
       setSaving(false);
@@ -162,7 +162,7 @@ export default function EditForm({ initialUser }) {
             name="location"
             value={user.location || ""}
             onChange={handleChange}
-            placeholder="Default location (e.g., AU Dorm 2, Bangna Campus, etc.)"
+            placeholder="Default location (e.g., King Solomon, Queen of Sheba, etc.)"
             className="w-full p-3 rounded-md bg-[#f1f1f1] outline-none"
           />
           <p className="text-xs text-gray-500 -mt-2">
@@ -242,7 +242,7 @@ export default function EditForm({ initialUser }) {
         <ActionButton
           text="Cancel"
           variant="outlineClick"
-          onClick={() => router.push("/profile")}
+          onClick={() => router.push(nextPath || "/profile")}
         />
         <ActionButton
           text={saving ? "Saving..." : "Save Changes"}

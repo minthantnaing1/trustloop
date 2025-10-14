@@ -1,4 +1,3 @@
-// app/review/[id]/page.js
 import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import NavBar from "@/components/NavBar";
@@ -113,6 +112,14 @@ export default async function ReviewPage({ params }) {
   // At this stage the order is completed; safe to show contact if present.
   const canShowContact = true;
 
+  // Fetch counterparty review (seller/donor)
+  const counterRole = isDonation ? "donor" : "seller";
+  const counterRes = await fetch(
+    `${process.env.NEXT_PUBLIC_BASE_URL}/api/transactions/${id}/review?role=${counterRole}`,
+    { headers: { Cookie: cookieStore.toString() }, cache: "no-store" }
+  );
+  const counterpartyReview = counterRes.ok ? await counterRes.json() : null;
+
   return (
     <>
       <NavBar />
@@ -204,8 +211,28 @@ export default async function ReviewPage({ params }) {
           </div>
         </div>
 
-        {/* Review form */}
+        {/* Review form (buyer/recipient) */}
         <ReviewForm transactionId={id} initialReview={initialReview} />
+
+        {/* Counterparty's review (seller/donor) */}
+        <div className="bg-white border border-gray-200 shadow-md rounded-[5px] p-6 mt-6">
+          <h2 className="text-lg font-semibold text-[#325082] mb-3">
+            {isDonation ? "Donor's Review" : "Seller's Review"}
+          </h2>
+          {counterpartyReview ? (
+            <>
+              <div className="text-sm text-gray-700">
+                <span className="font-medium">Rating:</span>{" "}
+                {counterpartyReview.rating}/5
+              </div>
+              <div className="text-sm text-gray-800 whitespace-pre-wrap mt-1">
+                {counterpartyReview.comment || "—"}
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-gray-500">No review yet.</p>
+          )}
+        </div>
       </main>
     </>
   );

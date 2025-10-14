@@ -5,13 +5,19 @@ import User from "@/models/User";
 import NavBar from "@/components/NavBar";
 import EditForm from "./EditForm";
 
-export default async function ProfileEditPage() {
+export default async function ProfileEditPage({ searchParams }) {
   const session = await auth();
   if (!session?.user?.email) redirect("/");
 
   await connectDB();
   const me = await User.findOne({ email: session.user.email }).lean();
   if (!me?._id) redirect("/");
+
+  // sanitize next: allow only same-origin relative paths like "/buy/123"
+  const rawNext =
+    typeof searchParams?.next === "string" ? searchParams.next : "";
+  const safeNext =
+    rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "";
 
   const initialUser = {
     _id: me._id.toString(),
@@ -33,7 +39,7 @@ export default async function ProfileEditPage() {
         <h1 className="text-2xl font-bold text-[#325082] mb-6">
           Edit My Profile
         </h1>
-        <EditForm initialUser={initialUser} />
+        <EditForm initialUser={initialUser} nextPath={safeNext} />
       </main>
     </>
   );

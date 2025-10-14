@@ -11,12 +11,14 @@ import HideToggleButton from "@/components/HideToggleButton";
 import BackButton from "@/components/BackButton";
 import { PencilIcon } from "@heroicons/react/24/solid";
 import MaskedUserId from "@/components/MaskedUserId";
+import BuyRequestGuard from "@/components/BuyRequestGuard";
 
 export default function ProductDetails({
   product,
   sessionEmail,
   initialIsFav,
   isOwner,
+  guard,
 }) {
   const canBuyerInteract = !isOwner && product.isAvailable === true;
   const canSellerManage = isOwner && product.isAvailable === true;
@@ -73,21 +75,19 @@ export default function ProductDetails({
             <div className="flex flex-wrap justify-center gap-2 w-full h-full">
               {canBuyerInteract && (
                 <>
-                  <Link
-                    href={`/buy/${product._id}/checkout`}
-                    className="flex-5 sm:flex-9"
-                  >
-                    <ActionButton
+                  <div className="flex-5 sm:flex-9 w-full">
+                    <BuyRequestGuard
+                      href={`/buy/${product._id}/checkout`}
+                      guard={guard}
                       text="🏷️ Buy Now"
-                      variant="buyPrimaryClick"
                       className="w-full"
                     />
-                  </Link>
+                  </div>
 
                   <div className="flex-1">
                     <FavoriteButton
                       productId={product._id?.toString()}
-                      initialIsFav={Boolean(product.isFav)}
+                      initialIsFav={Boolean(product.isFav ?? initialIsFav)}
                       className="w-full h-full"
                     />
                   </div>
@@ -108,7 +108,7 @@ export default function ProductDetails({
               Condition: {product.condition || "-"}
             </div>
             <div className="bg-[#e2e2e2] p-3 rounded-md">
-              Product Location: {product.owner?.location || "-"}
+              Product Location: {product.location || "-"}
             </div>
 
             <div className="flex items-center gap-4 mt-3 p-3 rounded-md bg-[#f0f0f0] border border-[#ccc]">

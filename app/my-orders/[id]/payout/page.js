@@ -1,4 +1,3 @@
-// app/my-orders/[id]/payout/page.js
 import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import Link from "next/link";
@@ -172,8 +171,16 @@ export default async function SellerPayoutPage({ params }) {
   );
   const initialReview = revRes.ok ? await revRes.json() : null;
 
+  // Fetch counterparty review (buyer/recipient)
+  const counterRole = isDonation ? "recipient" : "buyer";
+  const counterRes = await fetch(
+    `${process.env.NEXT_PUBLIC_BASE_URL}/api/transactions/${id}/review?role=${counterRole}`,
+    { headers: { Cookie: cookieStore.toString() }, cache: "no-store" }
+  );
+  const counterpartyReview = counterRes.ok ? await counterRes.json() : null;
+
   const card = "rounded-[5px] bg-white shadow p-6";
-  const title = "text-xl font-semibold text-[#1f2d4d]";
+  const title = "text-xl font-semibold text-[#1f2f4c]";
   const small = "text-sm text-gray-600";
   const priceBlock = isDonation ? (
     <p className="text-lg font-bold text-[#325082] mt-3">Free</p>
@@ -294,6 +301,26 @@ export default async function SellerPayoutPage({ params }) {
               initialReview={initialReview}
               role="donor"
             />
+
+            {/* Counterparty's review (recipient) */}
+            <div className="bg-white border border-gray-200 shadow-md rounded-[5px] p-6 mt-6">
+              <h2 className="text-lg font-semibold text-[#325082] mb-3">
+                Recipient&apos;s Review
+              </h2>
+              {counterpartyReview ? (
+                <>
+                  <div className="text-sm text-gray-700">
+                    <span className="font-medium">Rating:</span>{" "}
+                    {counterpartyReview.rating}/5
+                  </div>
+                  <div className="text-sm text-gray-800 whitespace-pre-wrap mt-1">
+                    {counterpartyReview.comment || "—"}
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-gray-500">No review yet.</p>
+              )}
+            </div>
           </>
         ) : (
           // Buy & Sell (seller) view — your original UI preserved
@@ -497,6 +524,26 @@ export default async function SellerPayoutPage({ params }) {
                 initialReview={initialReview}
                 role="seller"
               />
+            </div>
+
+            {/* Counterparty's review (buyer) */}
+            <div className="bg-white border border-gray-200 shadow-md rounded-[5px] p-6 mt-6">
+              <h2 className="text-lg font-semibold text-[#325082] mb-3">
+                Buyer&apos;s Review
+              </h2>
+              {counterpartyReview ? (
+                <>
+                  <div className="text-sm text-gray-700">
+                    <span className="font-medium">Rating:</span>{" "}
+                    {counterpartyReview.rating}/5
+                  </div>
+                  <div className="text-sm text-gray-800 whitespace-pre-wrap mt-1">
+                    {counterpartyReview.comment || "—"}
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-gray-500">No review yet.</p>
+              )}
             </div>
           </>
         )}

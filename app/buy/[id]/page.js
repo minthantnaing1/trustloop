@@ -71,18 +71,24 @@ export default async function BuyProductPage({ params }) {
 
   await connectDB();
 
-  let initialIsFav = false;
-  if (session?.user?.email) {
-    const me = await User.findOne({ email: session.user.email })
-      .select("favorites")
+  let me = null;
+  if (sessionEmail) {
+    me = await User.findOne({ email: sessionEmail })
+      .select("favorites phone location")
       .lean();
-
-    initialIsFav = !!me?.favorites?.some(
-      (fid) => String(fid) === String(product._id)
-    );
   }
 
+  const initialIsFav = Boolean(
+    product.isFav ??
+      me?.favorites?.some((fid) => String(fid) === String(product._id))
+  );
   const isOwner = sessionEmail === product.owner?.email;
+
+  // ✅ Buy guard (Phone + Location only; no QR needed)
+  const missing = [];
+  if (!me?.phone) missing.push("Phone");
+  if (!me?.location) missing.push("Location");
+  const buyGuard = { ok: missing.length === 0, missing };
 
   return (
     <ProductDetails
@@ -90,6 +96,7 @@ export default async function BuyProductPage({ params }) {
       sessionEmail={sessionEmail}
       initialIsFav={initialIsFav}
       isOwner={isOwner}
+      guard={buyGuard}
     />
   );
 }

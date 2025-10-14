@@ -1,3 +1,4 @@
+// components/DonationDetails.js
 "use client";
 
 import { useState } from "react";
@@ -16,12 +17,14 @@ import Stepper from "@/components/Stepper";
 import { PencilIcon } from "@heroicons/react/24/solid";
 import MaskedUserId from "@/components/MaskedUserId";
 import { fmtBKK } from "@/utils/timeAgo";
+import BuyRequestGuard from "@/components/BuyRequestGuard";
 
 export default function DonationDetails({
   product,
   sessionEmail,
   initialIsFav,
   isOwner,
+  guard,
 }) {
   const router = useRouter();
   const [busyId, setBusyId] = useState(null);
@@ -31,11 +34,17 @@ export default function DonationDetails({
   const isInstant = product.donationMode === "instant";
   const hasPendingMyRequest = Boolean(product.viewerHasPendingRequest);
 
+  const deadlinePassed =
+    product?.donationMode === "selective" &&
+    product?.requestDeadline &&
+    new Date(product.requestDeadline) <= new Date();
+
   // Only non-owners of available item can interact — and for selective,
   // they must NOT already have a pending request.
   const canReceiverRequest =
     !isOwner &&
     isAvailable &&
+    !deadlinePassed &&
     ((isInstant && true) || (isSelective && !hasPendingMyRequest));
 
   const canDonatorManage = isOwner && isAvailable;
@@ -306,33 +315,39 @@ export default function DonationDetails({
             {/* Receiver Buttons / State */}
             {!isOwner && (
               <div className="flex flex-wrap justify-center gap-2 w-full">
-                {isSelective && hasPendingMyRequest && (
+                {isSelective && hasPendingMyRequest && !deadlinePassed && (
                   <div className="w-full text-center text-xs sm:text-sm px-3 py-2 rounded bg-yellow-50 border border-yellow-200 text-yellow-800">
                     You&apos;ve already requested this item. Please wait for the
                     donor&apos;s decision.
                   </div>
                 )}
 
+                {/* After deadline hits, disable interactions and show info */}
+                {deadlinePassed && (
+                  <div className="w-full text-center text-xs sm:text-sm px-3 py-2 rounded bg-red-50 border border-red-200 text-red-700">
+                    ⏰ You cannot request this item anymore — the request
+                    deadline has passed.
+                  </div>
+                )}
+
                 {canReceiverRequest && (
                   <>
-                    <Link
-                      href={`/donation/${product._id}/request`}
-                      className="flex-5 sm:flex-9"
-                    >
-                      <ActionButton
+                    <div className="flex-5 sm:flex-9">
+                      <BuyRequestGuard
+                        href={`/donation/${product._id}/request`}
+                        guard={guard}
                         text={
                           isInstant
                             ? "🎁 Get this Item"
                             : "✍️ Request this Item"
                         }
-                        variant="buyPrimaryClick"
                         className="w-full"
                       />
-                    </Link>
+                    </div>
                     <div className="flex-1">
                       <FavoriteButton
                         productId={product._id?.toString()}
-                        initialIsFav={Boolean(initialIsFav)}
+                        initialIsFav={Boolean(product.isFav ?? initialIsFav)}
                         className="w-full h-full"
                       />
                     </div>
@@ -348,7 +363,7 @@ export default function DonationDetails({
               Condition: {product.condition || "-"}
             </div>
             <div className="bg-[#e2e2e2] p-3 rounded-md">
-              Meetup Location: {product.owner?.location || "-"}
+              Meetup Location: {product.location || "-"}
             </div>
 
             <div className="flex items-center gap-4 mt-3 p-3 rounded-md bg-[#f0f0f0] border border-[#ccc]">

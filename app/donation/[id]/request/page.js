@@ -6,6 +6,8 @@ import NavBar from "@/components/NavBar";
 import BackButton from "@/components/BackButton";
 import Stepper from "@/components/Stepper";
 import ConfirmDonationRequestButton from "./ConfirmDonationRequestButton";
+import { connectDB } from "@/lib/db"; // ← add
+import User from "@/models/User";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +37,18 @@ export default async function DonationRequestPage({ params }) {
     new Date(product.requestDeadline) < new Date()
   ) {
     return redirect(`/donation/${id}`);
+  }
+
+  // ✅ Require Phone + Location if user is logged in
+  if (sessionEmail) {
+    await connectDB();
+    const me = await User.findOne({ email: sessionEmail })
+      .select("phone location")
+      .lean();
+
+    if (!me?.phone || !me?.location) {
+      return redirect(`/donation/${id}`); // product page button will trigger the modal
+    }
   }
 
   return (

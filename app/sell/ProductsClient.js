@@ -206,14 +206,20 @@ export default function ProductsClient({ initial }) {
       <ConfirmModal
         isOpen={guardOpen}
         message={
-          `Before posting a product, please add the following in your profile:\n\n` +
-          (missing.length ? "• " + missing.join("\n• ") : "—") +
+          `Before continuing, please add the following in your profile:\n\n` +
+          (missing.length ? "• " + missing.join(",\n• ") + "." : "—") +
           `\n\nYou'll be redirected to update them.`
         }
         onCancel={() => setGuardOpen(false)}
         onConfirm={() => {
           setGuardOpen(false);
-          window.location.href = "/profile/edit";
+          const next =
+            window.location.pathname +
+            window.location.search +
+            window.location.hash;
+          window.location.href = `/profile/edit?next=${encodeURIComponent(
+            next
+          )}`;
         }}
         variant="default"
       />
