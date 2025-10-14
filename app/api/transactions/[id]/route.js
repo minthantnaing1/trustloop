@@ -119,30 +119,63 @@ export async function GET(_req, { params }) {
     txn.autoConfirmAt &&
     txn.autoConfirmAt.getTime() <= Date.now()
   ) {
-    txn.status = "BUYER_CONFIRMED";
-    txn.updatedAt = new Date();
-    txn.autoConfirmAt = null;
-    txn.timeline.push({
-      at: new Date(),
-      by: me._id, // or a system user id if you have one
-      action: "AUTO_CONFIRMED_AFTER_3_DAYS",
-      meta: { source: "get_auto_confirm" },
-    });
+    const now = new Date();
 
-    // 👇 ADD THIS: mirror buyer_confirm expenses update
-    const spendAmount = Number(txn.total || 0);
-    await User.updateOne(
-      { _id: txn.buyer },
-      { $inc: { expenses: spendAmount } }
+    // Atomic: only one request will succeed
+    const upd = await Transaction.updateOne(
+      {
+        _id: txn._id,
+        status: { $in: ["SELLER_DELIVERED", "MEETUP_COMPLETED"] },
+        autoConfirmAt: { $lte: now },
+      },
+      {
+        $set: {
+          status: "BUYER_CONFIRMED",
+          updatedAt: now,
+          autoConfirmAt: null,
+        },
+        $push: {
+          timeline: {
+            at: now,
+            by: me._id, // or a system user id
+            action: "AUTO_CONFIRMED_AFTER_3_DAYS",
+            meta: { source: "get_auto_confirm" },
+          },
+        },
+      }
     );
 
-    await txn.save();
-    // RIGHT AFTER await txn.save();
-    await notifyTxnEvent({
-      txn,
-      actorId: me._id,
-      type: "AUTO_CONFIRMED_AFTER_3_DAYS",
-    });
+    if (upd.modifiedCount > 0) {
+      // mirror buyer_confirm expenses update once
+      await User.updateOne(
+        { _id: txn.buyer },
+        { $inc: { expenses: Number(txn.total || 0) } }
+      );
+
+      // re-fetch for response/notifications
+      txn = await Transaction.findById(id)
+        .populate({
+          path: "product",
+          select:
+            "title images defaultImage price category condition description",
+        })
+        .populate({
+          path: "seller",
+          select:
+            "name email phone defaultScanCode bankAccountName bankAccountNumber",
+        })
+        .populate({
+          path: "buyer",
+          select:
+            "name email phone defaultScanCode bankAccountName bankAccountNumber",
+        });
+
+      await notifyTxnEvent({
+        txn,
+        actorId: me._id,
+        type: "AUTO_CONFIRMED_AFTER_3_DAYS",
+      });
+    }
   }
 
   // normalize phone into one field
