@@ -320,12 +320,12 @@ export default function DonationPostClient({ initialLocation = "" }) {
           </div>
 
           {/* Donation mode + deadline */}
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <select
               name="donationMode"
               value={form.donationMode}
               onChange={handleChange}
-              className="bg-[#f1f1f1] p-3 max-sm:px-1 rounded-[8px] outline-none w-1/2"
+              className="bg-[#f1f1f1] p-3 rounded-[8px] outline-none w-full sm:w-1/2"
             >
               <option value="instant">Instant (first-come)</option>
               <option value="selective">
@@ -333,19 +333,30 @@ export default function DonationPostClient({ initialLocation = "" }) {
               </option>
             </select>
 
-            <input
-              type="datetime-local"
-              name="requestDeadlineLocal"
-              value={form.requestDeadlineLocal || ""} // always controlled
-              onChange={handleChange}
-              min={minDeadlineLocal}
-              max={maxDeadlineLocal} // 14-day cap
-              disabled={form.donationMode !== "selective"}
-              className={`bg-[#f1f1f1] p-3 rounded-[8px] outline-none w-1/2 ${
-                form.donationMode !== "selective" ? "opacity-60" : ""
-              }`}
-              placeholder="Request deadline"
-            />
+            {/* Deadline (stacks under on mobile) */}
+            <div className="w-full sm:w-1/2">
+              {form.donationMode === "selective" ? (
+                <input
+                  type="datetime-local"
+                  name="requestDeadlineLocal"
+                  value={form.requestDeadlineLocal || ""}
+                  onChange={handleChange}
+                  min={minDeadlineLocal}
+                  max={maxDeadlineLocal}
+                  className="bg-[#f1f1f1] p-3 rounded-[8px] outline-none w-full"
+                  placeholder="Request deadline"
+                />
+              ) : (
+                <input
+                  type="text"
+                  value=""
+                  readOnly
+                  aria-disabled="true"
+                  placeholder="Request deadline (selective only)"
+                  className="bg-[#f1f1f1] p-3 rounded-[8px] outline-none w-full text-gray-500 cursor-not-allowed"
+                />
+              )}
+            </div>
           </div>
 
           <textarea

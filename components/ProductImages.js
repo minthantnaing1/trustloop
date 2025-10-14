@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -24,6 +24,21 @@ export default function ProductImages({ images = [], defaultImage }) {
 
   // Lightbox state
   const [open, setOpen] = useState(false);
+
+  // 🚫 Prevent background scrolling when lightbox is open
+  useEffect(() => {
+    if (open) {
+      const prevOverflow = document.body.style.overflow;
+      const prevHtmlOverflow = document.documentElement.style.overflow;
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = prevOverflow;
+        document.documentElement.style.overflow = prevHtmlOverflow;
+      };
+    }
+  }, [open]);
+
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const dragRef = useRef({
@@ -223,12 +238,12 @@ export default function ProductImages({ images = [], defaultImage }) {
       {/* LIGHTBOX */}
       {open && (
         <div
-          className="fixed inset-0 z-[30000] bg-black/60 backdrop-blur-sm flex items-center justify-center select-none"
+          className="fixed inset-0 z-[30000] bg-black/60 backdrop-blur-sm flex items-center justify-center select-none overscroll-contain"
           onMouseUp={onMouseUp}
           onMouseMove={onMouseMove}
           onTouchEnd={onTouchEnd}
-          onTouchMove={onTouchMove}
-          onWheel={onWheel}
+          onTouchMove={(e) => e.preventDefault()} // disable touch-scroll
+          onWheel={onWheel} // keep zoom working
         >
           {/* Close */}
           <button

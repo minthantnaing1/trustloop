@@ -66,7 +66,10 @@ export default function ProductDetails({
             <h2 className="text-xl font-bold text-[#325082]">
               {product.title}
             </h2>
-            <p className="text-m text-gray-700">Category: {product.category}</p>
+            <div className="text-gray-700">
+              Category:{" "}
+              <span className="font-semibold">{product.category || "-"}</span>
+            </div>
             <p className="text-lg font-semibold">
               {Number(product.price).toLocaleString()} ฿
             </p>
@@ -102,13 +105,20 @@ export default function ProductDetails({
             )} */}
 
             <div className="bg-[#e2e2e2] p-3 rounded-md">
-              Description: {product.description || "-"}
+              Description:{" "}
+              <span className="font-semibold">
+                {product.description || "-"}
+              </span>
             </div>
+
             <div className="bg-[#e2e2e2] p-3 rounded-md">
-              Condition: {product.condition || "-"}
+              Condition:{" "}
+              <span className="font-semibold">{product.condition || "-"}</span>
             </div>
+
             <div className="bg-[#e2e2e2] p-3 rounded-md">
-              Product Location: {product.location || "-"}
+              Product Location:{" "}
+              <span className="font-semibold">{product.location || "-"}</span>
             </div>
 
             <div className="flex items-center gap-4 mt-3 p-3 rounded-md bg-[#f0f0f0] border border-[#ccc]">
@@ -123,11 +133,13 @@ export default function ProductDetails({
                 />
               </Link>
               <div className="flex flex-col">
-                <h3 className="font-normal">Seller:</h3>
+                <h3 className="font-semibold">
+                  {isOwner ? "Seller (Me):" : "Seller:"}
+                </h3>
                 <p className="font-semibold text-[#222]">
                   {product.owner?.name}
                 </p>
-                <p className="text-[14px] text-[#555]">
+                <p className="text-[14px] text-[#222]">
                   <MaskedUserId email={product.owner?.email} reveal={isOwner} />
                 </p>
               </div>

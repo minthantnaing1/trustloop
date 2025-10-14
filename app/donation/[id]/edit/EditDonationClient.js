@@ -320,12 +320,13 @@ export default function EditDonationClient({ initialProduct }) {
               </select>
             </div>
 
-            <div className="flex gap-3 items-start">
+            {/* Donation mode + deadline */}
+            <div className="flex flex-col sm:flex-row gap-3">
               <select
                 name="donationMode"
                 value={form.donationMode}
                 onChange={handleChange}
-                className="bg-[#f1f1f1] p-3 rounded-[8px] outline-none w-1/2"
+                className="bg-[#f1f1f1] p-3 rounded-[8px] outline-none w-full sm:w-1/2"
               >
                 <option value="instant">Instant (first-come)</option>
                 <option value="selective">
@@ -333,33 +334,45 @@ export default function EditDonationClient({ initialProduct }) {
                 </option>
               </select>
 
-              <div className="flex items-start w-1/2 justify-between">
-                <input
-                  type="datetime-local"
-                  name="requestDeadlineLocal"
-                  value={form.requestDeadlineLocal || ""}
-                  onChange={handleChange}
-                  min={minDeadlineLocal}
-                  max={maxDeadlineLocal}
-                  disabled={form.donationMode !== "selective"}
-                  className={`bg-[#f1f1f1] p-3 rounded-[8px] outline-none flex-1 ${
-                    form.donationMode !== "selective" ? "opacity-60" : ""
-                  }`}
-                  placeholder="Request deadline"
-                />
-                {form.donationMode === "selective" && (
-                  <p className="ml-2 text-xs text-gray-500 text-right leading-tight whitespace-nowrap">
-                    Max allowed:
-                    <br />
-                    {maxDeadlineLocal.split("T")[0]}
-                    <br />
-                    {new Date(maxDeadlineLocal).toLocaleTimeString("en-US", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: true,
-                    })}
-                  </p>
-                )}
+              {/* Deadline Section - moves below dropdown on mobile */}
+              <div className="flex flex-col w-full sm:w-1/2">
+                <div className="flex items-start justify-between gap-2">
+                  {form.donationMode === "selective" ? (
+                    <input
+                      type="datetime-local"
+                      name="requestDeadlineLocal"
+                      value={form.requestDeadlineLocal || ""}
+                      onChange={handleChange}
+                      min={minDeadlineLocal}
+                      max={maxDeadlineLocal}
+                      className="bg-[#f1f1f1] p-3 rounded-[8px] outline-none flex-1"
+                      placeholder="Request deadline"
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      value=""
+                      readOnly
+                      aria-disabled="true"
+                      placeholder="Request deadline (selective only)"
+                      className="bg-[#f1f1f1] p-3 rounded-[8px] outline-none flex-1 text-gray-500 cursor-not-allowed"
+                    />
+                  )}
+
+                  {form.donationMode === "selective" && (
+                    <p className="text-xs text-gray-500 text-right leading-tight whitespace-nowrap mt-1 sm:mt-0">
+                      Max allowed:
+                      <br />
+                      {maxDeadlineLocal.split("T")[0]}
+                      <br />
+                      {new Date(maxDeadlineLocal).toLocaleTimeString("en-US", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true,
+                      })}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 
