@@ -15,6 +15,7 @@ export default function TxnToolbar({
   className = "",
   showFilter = true, // toggle status filter (transactions)
   showEdit = true, // toggle Edit button
+  showDelete = true, // toggle Delete button
   leftSlot = null, // NEW: custom JSX on the left (e.g., search bar)
 }) {
   return (
@@ -75,12 +76,14 @@ export default function TxnToolbar({
               className="h-[32px] min-w-[70px] text-sm"
             />
           )}
-          <ActionButton
-            text="Delete"
-            variant={deleteMode ? "dangerPrimaryClick" : "dangerOutlineHover"}
-            onClick={onToggleDelete}
-            className="h-[32px] min-w-[70px] text-sm"
-          />
+          {showDelete && ( // 🔴 only show if allowed
+            <ActionButton
+              text="Delete"
+              variant={deleteMode ? "dangerPrimaryClick" : "dangerOutlineHover"}
+              onClick={onToggleDelete}
+              className="h-[32px] min-w-[70px] text-sm"
+            />
+          )}
         </div>
       </div>
 
@@ -96,12 +99,14 @@ export default function TxnToolbar({
               className="h-[32px] min-w-[70px] text-sm"
             />
           )}
-          <ActionButton
-            text="Delete"
-            variant={deleteMode ? "dangerPrimaryClick" : "dangerOutlineHover"}
-            onClick={onToggleDelete}
-            className="h-[32px] min-w-[70px] text-sm"
-          />
+          {showDelete && ( // 🔴 only show if allowed
+            <ActionButton
+              text="Delete"
+              variant={deleteMode ? "dangerPrimaryClick" : "dangerOutlineHover"}
+              onClick={onToggleDelete}
+              className="h-[32px] min-w-[70px] text-sm"
+            />
+          )}
         </div>
 
         {/* Below that, the left area (search/filter) */}

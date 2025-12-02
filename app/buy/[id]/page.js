@@ -74,7 +74,7 @@ export default async function BuyProductPage({ params }) {
   let me = null;
   if (sessionEmail) {
     me = await User.findOne({ email: sessionEmail })
-      .select("favorites phone location")
+      .select("favorites phone location defaultScanCode")
       .lean();
   }
 
@@ -84,10 +84,11 @@ export default async function BuyProductPage({ params }) {
   );
   const isOwner = sessionEmail === product.owner?.email;
 
-  // ✅ Buy guard (Phone + Location only; no QR needed)
+  // ✅ Buy guard (Phone + Location + QR needed)
   const missing = [];
   if (!me?.phone) missing.push("Phone");
   if (!me?.location) missing.push("Location");
+  if (!me?.defaultScanCode) missing.push("Default QR Scan");
   const buyGuard = { ok: missing.length === 0, missing };
 
   return (

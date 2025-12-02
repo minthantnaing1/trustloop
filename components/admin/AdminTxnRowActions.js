@@ -43,7 +43,7 @@ export default function AdminTxnRowActions({ txnId, onDone }) {
   return (
     <div className="flex items-center gap-2">
       <ActionButton
-        text="Verify"
+        text="Approve"
         variant="primaryClick"
         onClick={() => call("verify")}
         disabled={busy}

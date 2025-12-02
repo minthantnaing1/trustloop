@@ -30,6 +30,7 @@ export default async function CheckoutPage({ params }) {
   // Fetch me (to prefill location from User.location)
   let userLocation = "";
   let userPhone = "";
+  let userDefaultScanCode = "";
   if (session) {
     try {
       const meRes = await fetch(
@@ -40,6 +41,7 @@ export default async function CheckoutPage({ params }) {
         const { user } = await meRes.json();
         userLocation = user?.location || "";
         userPhone = user?.phone || "";
+        userDefaultScanCode = user?.defaultScanCode || "";
       }
     } catch {
       // ignore – show empty input if fetch fails
@@ -47,12 +49,16 @@ export default async function CheckoutPage({ params }) {
   }
 
   // 🚫 Gate: require Phone + Location to reach checkout
-  if (!userPhone || !userLocation) {
-    return redirect(`/buy/${id}`); // product page will pop the modal on Buy Now
+  if (!userPhone || !userLocation || !userDefaultScanCode) {
+    return redirect(`/buy/${id}`); // product page will pop modal to set missing info
   }
 
-  const fee = Number(process.env.PLATFORM_FEE || 10);
   const price = Number(product.price || 0);
+
+  // Platform fee = 5% of product price
+  const feeRate = 0.05;
+  const fee = Math.round(price * feeRate); // round to nearest baht
+
   const total = price + fee;
 
   return (

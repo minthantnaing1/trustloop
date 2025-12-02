@@ -54,7 +54,7 @@ export default function CommentSection({
 
   return (
     <div className="mt-6">
-      <p className="font-semibold mb-2">Public Comments</p>
+      <p className="font-semibold mb-2">Public Chat</p>
 
       <div className="space-y-3 max-h-[250px] overflow-y-auto mb-3 border border-gray-300 rounded-md p-2">
         {comments.map((c, index) => {
