@@ -253,7 +253,30 @@ export default function AdminTransactionsClient({ initialTxns }) {
                         </div>
                       </td>
 
-                      <td className="p-2">{fmtTotal(t)}</td>
+                      <td className="p-2 align-top">
+                        {isDonation ? (
+                          <span className="text-sm font-semibold text-emerald-700">
+                            Free
+                          </span>
+                        ) : (
+                          <div className="text-sm">
+                            {/* Buyer total */}
+                            <div className="font-medium text-[#1f2f4c]">
+                              ฿{Number(t.total || 0).toLocaleString()}
+                            </div>
+
+                            {/* Assigned admin (round-robin) */}
+                            {t.payAdmin && (
+                              <div className="text-[11px] text-gray-500 mt-0.5">
+                                Pay to Admin:{" "}
+                                <span className="font-medium">
+                                  {t.payAdmin.name || t.payAdmin.email || "—"}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </td>
 
                       <td className="p-2">
                         {new Date(t.updatedAt || t.createdAt).toLocaleString()}

@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import ActionButton from "@/components/ActionButton";
 
-export default function PayPanel({ txn }) {
+export default function PayPanel({ txn, payAdmin }) {
   const router = useRouter();
 
   useEffect(() => {
@@ -150,15 +150,25 @@ export default function PayPanel({ txn }) {
     }).finally(() => router.replace("/my-orders"));
   }
 
+  // 🔹 Selected admin scan (fallback to old image if something is wrong)
+  const scanSrc = payAdmin?.defaultScanCode || "/AbelScan1.jpg";
+  const adminLabel = payAdmin?.name || payAdmin?.email || "TrustLoop admin";
+
   return (
     <div className="bg-white rounded-[5px] border border-gray-300 shadow-xl p-6">
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Left: QR + timer */}
         <div className="flex-1">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-[#1f2f4c]">
-              Scan to pay (Admin)
-            </h3>
+            <div>
+              <h3 className="text-lg font-semibold text-[#1f2f4c]">
+                Scan to pay (Admin)
+              </h3>
+              <p className="text-xs text-gray-500">
+                Paying to:{" "}
+                <span className="font-medium text-[#1f2f4c]">{adminLabel}</span>
+              </p>
+            </div>
             <span className="px-3 py-1 rounded-full text-sm font-semibold bg-[#f5eaea] text-[#b42222] border">
               ⏱ {mmss}
             </span>
@@ -167,9 +177,9 @@ export default function PayPanel({ txn }) {
           <div className="mt-3 flex items-center justify-center">
             <div className="p-1 rounded-[5px] border border-gray-300 shadow-md">
               <img
-                src="/AbelScan1.jpg"
+                src={scanSrc}
                 alt="PromptPay QR"
-                className="w-[320px] h-[320px] object-contain" // ⬅️ slightly bigger than before
+                className="w-[320px] h-[320px] object-contain"
               />
             </div>
           </div>
@@ -184,8 +194,8 @@ export default function PayPanel({ txn }) {
           </p>
 
           <div className="mt-3 bg-yellow-50 border border-yellow-300 text-yellow-800 text-[12px] rounded-[5px] px-3 py-2 text-center">
-            Please upload your payment slip with 5 minutes — if time runs out or
-            you leave, the order will be auto-cancelled (you can still return
+            Please upload your payment slip within 5 minutes — if time runs out
+            or you leave, the order will be auto-cancelled (you can still return
             via My Orders within that time).
           </div>
         </div>
@@ -213,15 +223,23 @@ export default function PayPanel({ txn }) {
                   <div className="font-medium text-[#1f2f4c]">
                     {txn.product?.title}
                   </div>
-                  <div className="text-sm text-gray-600">
-                    {Number(txn.price).toLocaleString()} ฿ + fee{" "}
-                    {Number(txn.fee).toLocaleString()} ฿
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    Total:{" "}
-                    <span className="font-semibold text-[#1f2f4c]">
-                      {Number(txn.total).toLocaleString()} ฿
-                    </span>
+                  <div className="mt-3 space-y-1 text-sm">
+                    {/* Price */}
+                    <div className="flex justify-between text-gray-600">
+                      <span>Price</span>
+                      <span className="font-medium">
+                        ฿{Number(txn?.price || 0).toLocaleString()}
+                      </span>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="border-t border-gray-300 my-1" />
+
+                    {/* Total */}
+                    <div className="flex justify-between text-[#1f2f4c] font-semibold">
+                      <span>Total</span>
+                      <span>฿{Number(txn?.total || 0).toLocaleString()}</span>
+                    </div>
                   </div>
                 </div>
               </div>

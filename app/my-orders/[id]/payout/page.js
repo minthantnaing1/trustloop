@@ -504,16 +504,22 @@ export default async function SellerPayoutPage({ params }) {
                           {fmtTHB(price)}
                         </td>
                       </tr>
+
                       <tr>
-                        <td className="px-4 py-2 text-gray-600">Fee</td>
-                        <td className="px-4 py-2 text-right">{fmtTHB(fee)}</td>
+                        <td className="px-4 py-2 text-gray-600">
+                          Platform Fee (5%)
+                        </td>
+                        <td className="px-4 py-2 text-right text-red-600 font-medium">
+                          -{fmtTHB(fee)}
+                        </td>
                       </tr>
+
                       <tr className="bg-[#f9fbff]">
                         <td className="px-4 py-2 text-[#1f2f4c] font-semibold">
-                          Total Paid (Buyer)
+                          Total Amount
                         </td>
                         <td className="px-4 py-2 text-right font-semibold text-[#1f2f4c]">
-                          {fmtTHB(total)}
+                          {fmtTHB(sellerNet)}
                         </td>
                       </tr>
                     </tbody>

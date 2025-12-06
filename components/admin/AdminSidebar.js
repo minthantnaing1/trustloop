@@ -109,7 +109,7 @@ export default function AdminSidebar({ collapsed, setCollapsed }) {
       {/* Bottom Buttons */}
       <div className="mt-auto mb-5 flex flex-col gap-2 px-2">
         {/* Back to User Home */}
-        <Link href="/home">
+        <Link href="/buy">
           <div className="flex items-center justify-start px-2 py-2 rounded text-sm cursor-pointer hover:bg-[#2d3a50] transition-colors duration-500">
             <div className="w-[30px] min-w-[30px] h-[28px] flex items-center justify-center">
               <ArrowUturnLeftIcon className="w-4.5 h-4.5 text-blue-300" />

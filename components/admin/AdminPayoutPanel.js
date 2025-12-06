@@ -177,8 +177,27 @@ export default function AdminPayoutPanel({ txn }) {
             <div className="font-semibold text-[#1f2f4c] truncate">
               {product?.title || "-"}
             </div>
-            <div className="text-sm text-gray-600 mt-1">
-              Total: ฿{Number(txn?.total || 0).toLocaleString()}
+            <div className="mt-3 space-y-1 text-sm">
+              <div className="flex justify-between text-gray-600">
+                <span>Price</span>
+                <span className="font-medium">
+                  ฿{Number(txn?.price || 0).toLocaleString()}
+                </span>
+              </div>
+
+              <div className="flex justify-between text-gray-600">
+                <span>Fee (5%)</span>
+                <span className="font-medium">
+                  -฿{Number(txn?.fee || 0).toLocaleString()}
+                </span>
+              </div>
+
+              <div className="border-t border-gray-300 my-1" />
+
+              <div className="flex justify-between text-[#1f2f4c] font-semibold">
+                <span>Total</span>
+                <span>฿{Number(txn?.sellerNet || 0).toLocaleString()}</span>
+              </div>
             </div>
           </Card>
 

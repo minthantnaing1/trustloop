@@ -55,11 +55,7 @@ export default async function CheckoutPage({ params }) {
 
   const price = Number(product.price || 0);
 
-  // Platform fee = 5% of product price
-  const feeRate = 0.05;
-  const fee = Math.round(price * feeRate); // round to nearest baht
-
-  const total = price + fee;
+  const total = price; // buyer pays only item price
 
   return (
     <>
@@ -233,10 +229,6 @@ export default async function CheckoutPage({ params }) {
                     <div className="flex justify-between text-[15px]">
                       <span>Item Price</span>
                       <span>{price.toLocaleString()} ฿</span>
-                    </div>
-                    <div className="flex justify-between text-[15px] mt-1">
-                      <span>Platform Fee</span>
-                      <span>{fee.toLocaleString()} ฿</span>
                     </div>
                     <div className="my-3 border-t border-gray-300" />
                     <div className="flex justify-between font-bold text-[#1f2f4c]">

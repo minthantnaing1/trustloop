@@ -12,11 +12,11 @@
     "@heroicons/react": "^2.2.0",
     "cloudinary": "^2.7.0",
     "mongoose": "^8.15.1",
-    "next": "15.3.3",
+    "next": "16.0.7",
     "next-auth": "5.0.0-beta.28",
     "pdf-lib": "^1.17.1",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
     "recharts": "^3.5.0"
   },
   "devDependencies": {

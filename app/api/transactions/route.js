@@ -73,9 +73,16 @@ export async function POST(req) {
   }
 
   // fees/totals
-  const fee = Number(process.env.PLATFORM_FEE || 10);
   const price = Number(product.price || 0);
-  const total = price + fee;
+
+  // 5% seller fee
+  const fee = Math.round(price * 0.05);
+
+  // buyer pays only price
+  const total = price;
+
+  // seller receives price − fee
+  const sellerNet = price - fee;
 
   // fulfillment from buyer choice
   const fulfillment =
@@ -100,7 +107,7 @@ export async function POST(req) {
       price,
       fee,
       total,
-      sellerNet: price,
+      sellerNet,
       // expiresAt: undefined      // ← do NOT set here
       fulfillment,
       timeline: [
