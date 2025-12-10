@@ -1,15 +1,15 @@
-import { headers } from "next/headers";
+// app/api/webhooks/stripe/route.js
 import { stripe } from "@/lib/stripe";
 import { connectDB } from "@/lib/db";
-import Transaction from "@/models/Transaction";
-import Product from "@/models/Product";
 import User from "@/models/User";
+import Product from "@/models/Product";
+import Transaction from "@/models/Transaction";
 
 export const runtime = "nodejs";
 
 export async function POST(req) {
   const body = await req.text();
-  const sig = headers().get("stripe-signature");
+  const sig = req.headers.get("stripe-signature");
 
   let event;
   try {
@@ -20,66 +20,65 @@ export async function POST(req) {
     );
   } catch (err) {
     console.error("❌ Webhook signature error:", err.message);
-    return new Response(`Webhook Error: ${err.message}`, { status: 400 });
+    return new Response("Invalid signature", { status: 400 });
   }
 
   await connectDB();
 
-  // --------------------------
-  // ✅ PAYMENT SUCCESS
-  // --------------------------
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object;
-    const transactionId = session.metadata?.transactionId;
+  try {
+    // ✅ PAYMENT SUCCESS
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object;
+      const transactionId = session.metadata?.transactionId;
 
-    const txn = await Transaction.findById(transactionId);
-    if (!txn || txn.status !== "PENDING_PAYMENT") {
-      return new Response("Ignored", { status: 200 });
+      const txn = await Transaction.findById(transactionId);
+      if (!txn || txn.status !== "PENDING_PAYMENT") {
+        return new Response("Ignored", { status: 200 });
+      }
+
+      txn.status = "ESCROW_FUNDED";
+      txn.expiresAt = null;
+
+      txn.timeline.push({
+        at: new Date(),
+        action: "STRIPE_PAYMENT_CONFIRMED",
+        meta: { sessionId: session.id },
+      });
+
+      await txn.save();
     }
 
-    txn.status = "ESCROW_FUNDED";
-    txn.expiresAt = null;
+    // ❌ PAYMENT FAILED
+    if (event.type === "payment_intent.payment_failed") {
+      const pi = event.data.object;
+      const transactionId = pi.metadata?.transactionId;
 
-    txn.timeline.push({
-      at: new Date(),
-      action: "STRIPE_PAYMENT_CONFIRMED",
-      meta: { sessionId: session.id },
-    });
+      const txn = await Transaction.findById(transactionId);
+      if (!txn || txn.status !== "PENDING_PAYMENT") {
+        return new Response("Ignored", { status: 200 });
+      }
 
-    await txn.save();
-  }
+      txn.status = "CANCELLED_BY_BUYER";
+      txn.cancelReason = "stripe_payment_failed";
 
-  // --------------------------
-  // ✅ PAYMENT FAILED
-  // --------------------------
-  if (event.type === "payment_intent.payment_failed") {
-    const pi = event.data.object;
-    const transactionId = pi.metadata?.transactionId;
+      txn.timeline.push({
+        at: new Date(),
+        action: "PAYMENT_FAILED",
+        meta: { reason: pi.last_payment_error?.message },
+      });
 
-    if (!transactionId) return new Response("OK", { status: 200 });
+      await txn.save();
 
-    const txn = await Transaction.findById(transactionId);
-    if (!txn || txn.status !== "PENDING_PAYMENT") {
-      return new Response("Ignored", { status: 200 });
+      if (txn.product) {
+        await Product.updateOne(
+          { _id: txn.product },
+          { $set: { isAvailable: true } }
+        );
+      }
     }
-
-    txn.status = "CANCELLED_BY_BUYER";
-    txn.cancelReason = "stripe_payment_failed";
-
-    txn.timeline.push({
-      at: new Date(),
-      action: "PAYMENT_FAILED",
-      meta: { reason: pi.last_payment_error?.message },
-    });
-
-    await txn.save();
-
-    if (txn.product) {
-      await Product.updateOne(
-        { _id: txn.product },
-        { $set: { isAvailable: true } }
-      );
-    }
+  } catch (err) {
+    console.error("❌ Webhook handler error:", err);
+    return new Response("Webhook failed", { status: 500 });
   }
 
   return new Response("OK", { status: 200 });

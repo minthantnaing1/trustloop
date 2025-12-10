@@ -2,9 +2,9 @@
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
-import Transaction from "@/models/Transaction";
 import User from "@/models/User";
 import Product from "@/models/Product";
+import Transaction from "@/models/Transaction";
 
 export async function POST(req) {
   const session = await auth();
@@ -19,29 +19,27 @@ export async function POST(req) {
 
   await connectDB();
 
-  const txn = await Transaction.findById(transactionId)
-    .populate("product")
-    .populate("buyer");
+  const txn = await Transaction.findById(transactionId).populate(
+    "product buyer"
+  );
 
   if (!txn) return new Response("Transaction not found", { status: 404 });
-
-  // ✅ Guard
   if (txn.status !== "PENDING_PAYMENT") {
     return new Response("Invalid transaction state", { status: 400 });
   }
 
   const BASE_URL = process.env.NEXT_PUBLIC_APP_URL;
 
-  const checkoutSession = await stripe.checkout.sessions.create({
+  const sessionStripe = await stripe.checkout.sessions.create({
     mode: "payment",
     payment_method_types: ["card", "promptpay"],
     customer_email: txn.buyer.email,
 
     payment_intent_data: {
-      metadata: {
-        transactionId: txn._id.toString(),
-      },
+      metadata: { transactionId: txn._id.toString() },
     },
+
+    metadata: { transactionId: txn._id.toString() },
 
     line_items: [
       {
@@ -57,13 +55,9 @@ export async function POST(req) {
       },
     ],
 
-    metadata: {
-      transactionId: txn._id.toString(),
-    },
-
-    success_url: `${BASE_URL}/pay/success?txn=${txn._id}`,
-    cancel_url: `${BASE_URL}/pay/cancel?txn=${txn._id}`,
+    success_url: `${BASE_URL}/pay/success`,
+    cancel_url: `${BASE_URL}/pay/cancel`,
   });
 
-  return Response.json({ url: checkoutSession.url });
+  return Response.json({ url: sessionStripe.url });
 }
