@@ -1,36 +1,38 @@
 "use client";
-import Link from "next/link";
+
+import { useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 
 export default function PaySuccess() {
+  const params = useSearchParams();
+  const router = useRouter();
+  const txnId = params.get("txn");
+
+  useEffect(() => {
+    async function confirm() {
+      if (!txnId) return router.replace("/my-orders");
+
+      await fetch(`/api/transactions/${txnId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "confirm_success",
+        }),
+      });
+
+      router.replace("/my-orders");
+    }
+
+    confirm();
+  }, [txnId, router]);
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 px-4">
-      <div className="bg-white rounded-2xl shadow-xl p-8 max-w-lg w-full text-center">
-        <h1 className="text-3xl font-bold mt-4 text-gray-800">
-          Payment Successful 🎉
-        </h1>
-        <p className="text-gray-600 mt-3">
-          Your payment is secured in TrustLoop escrow. The seller will proceed
-          with delivery or meetup shortly.
-        </p>
-
-        <div className="mt-8 space-y-3">
-          <Link href="/my-orders">
-            <button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-semibold">
-              Go to My Orders
-            </button>
-          </Link>
-
-          <Link href="/">
-            <button className="w-full border border-gray-300 py-3 rounded-xl text-gray-700">
-              Return Home
-            </button>
-          </Link>
-        </div>
-
-        <p className="text-xs text-gray-400 mt-6">
-          Payment confirmation is processed securely via Stripe.
-        </p>
-      </div>
+    <div className="min-h-screen flex flex-col items-center justify-center gap-6">
+      <h1 className="text-3xl font-bold text-green-600">
+        🎉 Payment Successful
+      </h1>
+      <p>Your payment is secured in escrow.</p>
+      <p className="text-sm opacity-70">Finalizing your order…</p>
     </div>
   );
 }

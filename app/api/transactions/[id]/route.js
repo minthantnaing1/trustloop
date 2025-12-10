@@ -280,6 +280,26 @@ export async function PATCH(req, { params }) {
     });
   }
 
+  // ---- Confirm payment success (UI sync) ----
+  if (action === "confirm_success") {
+    if (txn.status !== "PENDING_PAYMENT") {
+      return Response.json({ success: true, status: txn.status });
+    }
+
+    txn.status = "ESCROW_FUNDED";
+    txn.expiresAt = null;
+
+    txn.timeline.push({
+      at: new Date(),
+      action: "PAYMENT_CONFIRMED_BY_UI",
+      meta: { source: "pay_success_page" },
+    });
+
+    await txn.save();
+
+    return Response.json({ success: true, status: txn.status });
+  }
+
   // ---- Buyer uploads receipt (Cloudinary URL only) ----
   if (action === "upload_receipt") {
     const { buyerReceiptUrl, buyerReceiptPublicId = "" } = body || {};

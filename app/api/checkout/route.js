@@ -3,6 +3,8 @@ import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
 import Transaction from "@/models/Transaction";
+import User from "@/models/User";
+import Product from "@/models/Product";
 
 export async function POST(req) {
   const session = await auth();
@@ -28,7 +30,7 @@ export async function POST(req) {
     return new Response("Invalid transaction state", { status: 400 });
   }
 
-  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
+  const BASE_URL = process.env.NEXT_PUBLIC_APP_URL;
 
   const checkoutSession = await stripe.checkout.sessions.create({
     mode: "payment",
@@ -59,8 +61,8 @@ export async function POST(req) {
       transactionId: txn._id.toString(),
     },
 
-    success_url: `${BASE_URL}/pay/success`,
-    cancel_url: `${BASE_URL}/pay/cancel`,
+    success_url: `${BASE_URL}/pay/success?txn=${txn._id}`,
+    cancel_url: `${BASE_URL}/pay/cancel?txn=${txn._id}`,
   });
 
   return Response.json({ url: checkoutSession.url });

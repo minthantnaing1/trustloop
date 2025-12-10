@@ -3,6 +3,7 @@ import { stripe } from "@/lib/stripe";
 import { connectDB } from "@/lib/db";
 import Transaction from "@/models/Transaction";
 import Product from "@/models/Product";
+import User from "@/models/User";
 
 export const runtime = "nodejs";
 
@@ -46,38 +47,6 @@ export async function POST(req) {
     });
 
     await txn.save();
-  }
-
-  // --------------------------
-  // ✅ PAYMENT EXPIRED (5 mins)
-  // --------------------------
-  if (event.type === "checkout.session.expired") {
-    const session = event.data.object;
-    const transactionId = session.metadata?.transactionId;
-
-    const txn = await Transaction.findById(transactionId);
-    if (!txn || txn.status !== "PENDING_PAYMENT") {
-      return new Response("Ignored", { status: 200 });
-    }
-
-    txn.status = "CANCELLED_BY_BUYER";
-    txn.cancelReason = "stripe_session_expired";
-
-    txn.timeline.push({
-      at: new Date(),
-      action: "AUTO_CANCELLED_EXPIRED",
-      meta: { source: "stripe_webhook" },
-    });
-
-    await txn.save();
-
-    // release product
-    if (txn.product) {
-      await Product.updateOne(
-        { _id: txn.product },
-        { $set: { isAvailable: true } }
-      );
-    }
   }
 
   // --------------------------
