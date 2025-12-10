@@ -1,11 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import ActionButton from "@/components/ActionButton";
 
 export default function ConfirmOrderButton({ productId, formId }) {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
@@ -19,11 +17,13 @@ export default function ConfirmOrderButton({ productId, formId }) {
         throw new Error("Missing productId");
       }
 
-      // Read method + location from the form if provided
+      // ✅ Read method + location from form
       let payload = { productId };
+
       if (formId) {
         const form = document.getElementById(formId);
         if (!form) throw new Error("Checkout form not found");
+
         const fd = new FormData(form);
         const method = (fd.get("method") || "MEETUP").toString();
         const location = (fd.get("location") || "").toString().trim();
@@ -44,6 +44,7 @@ export default function ConfirmOrderButton({ productId, formId }) {
         };
       }
 
+      // 1️⃣ Create transaction (UNCHANGED logic)
       const res = await fetch("/api/transactions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -55,8 +56,25 @@ export default function ConfirmOrderButton({ productId, formId }) {
         throw new Error(t || "Failed to create transaction");
       }
 
-      const data = await res.json();
-      router.replace(`/buy/pay/${data.transactionId}`); // ← replace, not push
+      const { transactionId } = await res.json();
+
+      // 2️⃣ Create Stripe Checkout session
+      const checkoutRes = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transactionId }),
+      });
+
+      if (!checkoutRes.ok) {
+        const t = await checkoutRes.text();
+        throw new Error(t || "Failed to start payment");
+      }
+
+      const { url } = await checkoutRes.json();
+      if (!url) throw new Error("Missing payment URL");
+
+      // 3️⃣ Redirect to Stripe
+      window.location.href = url;
     } catch (e) {
       setErr(e.message || "Something went wrong");
       setLoading(false);
@@ -66,7 +84,7 @@ export default function ConfirmOrderButton({ productId, formId }) {
   return (
     <div className="flex flex-col gap-2">
       <ActionButton
-        text={loading ? "Creating order..." : "Confirm Order"}
+        text={loading ? "Redirecting to payment..." : "Confirm Order & Pay"}
         variant="confirmPrimaryHover"
         onClick={handleConfirm}
         disabled={loading}

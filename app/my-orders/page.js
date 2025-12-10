@@ -11,8 +11,8 @@ import Stepper from "@/components/Stepper";
 import Timeline from "@/components/Timeline";
 import MyOrdersStatusFilter from "@/components/MyOrdersStatusFilter";
 
-function isPendingUploadActive(txn) {
-  if (txn?.status !== "PENDING_UPLOAD") return false;
+function isPendingPaymentActive(txn) {
+  if (txn?.status !== "PENDING_PAYMENT") return false;
   const exp = txn?.expiresAt ? new Date(txn.expiresAt).getTime() : 0;
   return exp > Date.now();
 }
@@ -211,14 +211,14 @@ function MyOrdersClient() {
     refreshTimersRef.current = [];
   }
 
-  // schedule an automatic refresh right when any PENDING_UPLOAD expires
+  // schedule an automatic refresh right when any PENDING_PAYMENT expires
   function scheduleExpiryRefresh(items, whichRole) {
     clearExpiryTimers();
     if (!Array.isArray(items)) return;
 
     const now = Date.now();
     for (const t of items) {
-      if (t?.status !== "PENDING_UPLOAD" || !t?.expiresAt) continue;
+      if (t?.status !== "PENDING_PAYMENT" || !t?.expiresAt) continue;
       const ms = new Date(t.expiresAt).getTime() - now;
       if (Number.isFinite(ms) && ms > 0) {
         const handle = setTimeout(() => {
@@ -734,7 +734,7 @@ function MyOrdersClient() {
                         {/* 👇 Replace this single Link with a small group */}
                         <div className="flex items-center gap-2">
                           {/* NEW: Buyer can go back to pay page while still within 5 mins */}
-                          {role === "buyer" && isPendingUploadActive(t) && (
+                          {role === "buyer" && isPendingPaymentActive(t) && (
                             <Link href={`/buy/pay/${id}`}>
                               <ActionButton
                                 text="Pay & Upload"
@@ -753,7 +753,7 @@ function MyOrdersClient() {
                       </div>
                       {/* ⚠️ Warning note — same visibility logic as the Pay button */}
                       {role === "buyer" &&
-                        isPendingUploadActive(t) &&
+                        isPendingPaymentActive(t) &&
                         t.expiresAt && (
                           <div className="text-center mb-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900 text-sm">
                             Payment pending — please click{" "}

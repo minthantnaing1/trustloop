@@ -2,15 +2,10 @@
 
 // Base UI map (kind-agnostic styles)
 const STATUS_META = {
-  PENDING_UPLOAD: {
-    label: "Pending Upload",
+  PENDING_PAYMENT: {
+    label: "Pending Payment",
     bg: "bg-orange-100",
     fg: "text-orange-700",
-  },
-  AWAITING_ADMIN_REVIEW: {
-    label: "Awaiting Admin Review",
-    bg: "bg-yellow-100",
-    fg: "text-yellow-700",
   },
   ESCROW_FUNDED: {
     label: "Escrow Funded",

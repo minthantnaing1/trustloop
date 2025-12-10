@@ -33,8 +33,7 @@ export async function POST(req) {
 
   // 1) Reuse existing *active* txn for this buyer+product if not expired
   const ACTIVE = [
-    "PENDING_UPLOAD",
-    "AWAITING_ADMIN_REVIEW",
+    "PENDING_PAYMENT",
     "ESCROW_FUNDED",
     "SELLER_ACCEPTED",
     "DELIVERY_IN_PROGRESS",
@@ -103,7 +102,7 @@ export async function POST(req) {
       product: product._id,
       seller: product.owner._id,
       buyer: buyerUser._id,
-      status: "PENDING_UPLOAD", // unpaid state
+      status: "PENDING_PAYMENT", // unpaid state
       price,
       fee,
       total,

@@ -57,8 +57,7 @@ const TransactionSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: [
-      "PENDING_UPLOAD",
-      "AWAITING_ADMIN_REVIEW",
+      "PENDING_PAYMENT",
       "ESCROW_FUNDED",
       "AWAITING_DONOR", // added for donation flow
       "SELLER_ACCEPTED",
@@ -71,7 +70,7 @@ const TransactionSchema = new mongoose.Schema({
       "CANCELLED_BY_SELLER",
       "REJECTED_BY_ADMIN",
     ],
-    default: "PENDING_UPLOAD",
+    default: "PENDING_PAYMENT",
     index: true,
   },
 

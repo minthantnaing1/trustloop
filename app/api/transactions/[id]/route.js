@@ -55,14 +55,14 @@ export async function GET(_req, { params }) {
 
   // --- Auto-cancel expired unpaid orders (atomic) & release product
   if (
-    txn.status === "PENDING_UPLOAD" &&
+    txn.status === "PENDING_PAYMENT" &&
     txn.expiresAt &&
     txn.expiresAt.getTime() <= Date.now()
   ) {
     const now = new Date();
 
     const upd = await Transaction.updateOne(
-      { _id: txn._id, status: "PENDING_UPLOAD" }, // guard against races
+      { _id: txn._id, status: "PENDING_PAYMENT" }, // guard against races
       {
         $set: {
           status: "CANCELLED_BY_BUYER",
@@ -215,13 +215,13 @@ export async function PATCH(req, { params }) {
 
   // ⛔ Expiry guard: flip & exit if already expired
   if (
-    txn.status === "PENDING_UPLOAD" &&
+    txn.status === "PENDING_PAYMENT" &&
     txn.expiresAt &&
     txn.expiresAt.getTime() <= Date.now()
   ) {
     const now = new Date();
     const upd = await Transaction.updateOne(
-      { _id: txn._id, status: "PENDING_UPLOAD" },
+      { _id: txn._id, status: "PENDING_PAYMENT" },
       {
         $set: {
           status: "CANCELLED_BY_BUYER",
@@ -252,7 +252,7 @@ export async function PATCH(req, { params }) {
   const { action } = body || {};
 
   if (action === "start_payment_window") {
-    if (txn.status !== "PENDING_UPLOAD") {
+    if (txn.status !== "PENDING_PAYMENT") {
       return new Response("Invalid state", { status: 400 });
     }
     if (!txn.expiresAt) {
