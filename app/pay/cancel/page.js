@@ -1,21 +1,18 @@
-"use client";
+import { Suspense } from "react";
+import PayCancelClient from "./PayCancelClient";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+export default function PayCancelPage() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <PayCancelClient />
+    </Suspense>
+  );
+}
 
-export default function PayCancel() {
-  const router = useRouter();
-
-  useEffect(() => {
-    const t = setTimeout(() => {
-      router.replace("/my-orders");
-    }, 800);
-    return () => clearTimeout(t);
-  }, [router]);
-
+function Loading() {
   return (
     <div className="min-h-screen flex items-center justify-center">
-      Payment cancelled. Redirecting…
+      Cancelling payment…
     </div>
   );
 }

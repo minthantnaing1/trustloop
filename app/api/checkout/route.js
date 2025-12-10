@@ -28,7 +28,7 @@ export async function POST(req) {
     return new Response("Invalid transaction state", { status: 400 });
   }
 
-  const BASE_URL = process.env.NEXT_PUBLIC_APP_URL;
+  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
   const sessionStripe = await stripe.checkout.sessions.create({
     mode: "payment",
@@ -56,7 +56,7 @@ export async function POST(req) {
     ],
 
     success_url: `${BASE_URL}/pay/success`,
-    cancel_url: `${BASE_URL}/pay/cancel`,
+    cancel_url: `${BASE_URL}/pay/cancel?txn=${txn._id}`,
   });
 
   return Response.json({ url: sessionStripe.url });
