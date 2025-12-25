@@ -36,7 +36,7 @@ export async function POST(req) {
         return new Response("Ignored", { status: 200 });
       }
 
-      txn.status = "ESCROW_FUNDED";
+      txn.status = "PAYMENT_SUCCESSFUL";
       txn.expiresAt = null;
 
       txn.timeline.push({

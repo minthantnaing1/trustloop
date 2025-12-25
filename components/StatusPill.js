@@ -7,8 +7,8 @@ const STATUS_META = {
     bg: "bg-orange-100",
     fg: "text-orange-700",
   },
-  ESCROW_FUNDED: {
-    label: "Escrow Funded",
+  PAYMENT_SUCCESSFUL: {
+    label: "Payment Successful",
     bg: "bg-green-100",
     fg: "text-green-700",
   },

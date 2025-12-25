@@ -32,7 +32,7 @@ export async function POST(req) {
 
   const sessionStripe = await stripe.checkout.sessions.create({
     mode: "payment",
-    payment_method_types: ["card", "promptpay"],
+    payment_method_types: ["promptpay"],
     customer_email: txn.buyer.email,
 
     payment_intent_data: {

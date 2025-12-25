@@ -34,8 +34,7 @@ export async function POST(req) {
   // 1) Reuse existing *active* txn for this buyer+product if not expired
   const ACTIVE = [
     "PENDING_PAYMENT",
-    "ESCROW_FUNDED",
-    "SELLER_ACCEPTED",
+    "PAYMENT_SUCCESSFUL",
     "DELIVERY_IN_PROGRESS",
     "BUYER_CONFIRMED",
   ];

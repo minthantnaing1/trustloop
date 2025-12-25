@@ -58,7 +58,7 @@ const TransactionSchema = new mongoose.Schema({
     type: String,
     enum: [
       "PENDING_PAYMENT",
-      "ESCROW_FUNDED",
+      "PAYMENT_SUCCESSFUL",
       "AWAITING_DONOR", // added for donation flow
       "SELLER_ACCEPTED",
       "DELIVERY_IN_PROGRESS",
@@ -118,9 +118,8 @@ TransactionSchema.index(
     partialFilterExpression: {
       status: {
         $in: [
-          "PENDING_UPLOAD",
-          "AWAITING_ADMIN_REVIEW",
-          "ESCROW_FUNDED",
+          "PENDING_PAYMENT",
+          "PAYMENT_SUCCESSFUL",
           "AWAITING_DONOR", // include donation’s active state
           "SELLER_ACCEPTED",
           "DELIVERY_IN_PROGRESS",

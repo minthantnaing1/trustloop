@@ -300,11 +300,7 @@ function MyOrdersClient() {
           if ((t._id?.toString?.() || t._id) !== id) return t;
 
           const nextStatus =
-            action === "seller_accept"
-              ? "SELLER_ACCEPTED"
-              : action === "seller_cancel"
-              ? "CANCELLED_BY_SELLER"
-              : t.status;
+            action === "seller_cancel" ? "CANCELLED_BY_SELLER" : t.status;
 
           const nextCancelReason =
             action === "seller_cancel"
@@ -538,8 +534,12 @@ function MyOrdersClient() {
               const id = t._id?.toString?.() || t._id;
               const isSeller = role === "seller";
               const isAwaitingDonor = t.status === "AWAITING_DONOR";
-              const canAcceptOrCancel =
-                isSeller && (t.status === "ESCROW_FUNDED" || isAwaitingDonor);
+              const canCancelOnly =
+                isSeller &&
+                ((t.kind === "BUY_SELL" && t.status === "PAYMENT_SUCCESSFUL") ||
+                  (t.kind === "DONATION" &&
+                    (t.status === "AWAITING_DONOR" ||
+                      t.status === "SELLER_ACCEPTED")));
 
               const counterparty = isSeller ? t.buyer : t.seller;
               const method = t.fulfillment?.method;
@@ -683,38 +683,28 @@ function MyOrdersClient() {
 
                       {/* Actions */}
                       <div className="mt-3 flex gap-2 flex-wrap justify-end">
-                        {isSeller && canAcceptOrCancel && (
-                          <>
-                            <ActionButton
-                              text={
-                                isAwaitingDonor
-                                  ? "Accept the request"
-                                  : "Accept the Order"
+                        {isSeller && canCancelOnly && (
+                          <ActionButton
+                            text={
+                              t.kind === "DONATION"
+                                ? "Reject"
+                                : "Cancel the Order"
+                            }
+                            variant="dangerOutlineHover"
+                            disabled={pendingActionId === id}
+                            onClick={() => {
+                              const reason = prompt(
+                                t.kind === "DONATION"
+                                  ? "Please enter a reason for rejection:"
+                                  : "Please enter a reason for cancellation:"
+                              );
+                              if (reason?.trim()) {
+                                actOnTxn(id, "seller_cancel", {
+                                  cancelReason: reason.trim(),
+                                });
                               }
-                              variant="primaryClick"
-                              disabled={pendingActionId === id}
-                              onClick={() => actOnTxn(id, "seller_accept")}
-                            />
-                            <ActionButton
-                              text={
-                                isAwaitingDonor ? "Reject" : "Cancel the Order"
-                              }
-                              variant="dangerOutlineHover"
-                              disabled={pendingActionId === id}
-                              onClick={() => {
-                                const reason = prompt(
-                                  isAwaitingDonor
-                                    ? "Please enter a reason for rejection:"
-                                    : "Please enter a reason for cancellation:"
-                                );
-                                if (reason && reason.trim()) {
-                                  actOnTxn(id, "seller_cancel", {
-                                    cancelReason: reason.trim(),
-                                  });
-                                }
-                              }}
-                            />
-                          </>
+                            }}
+                          />
                         )}
                       </div>
                     </div>

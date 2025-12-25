@@ -280,40 +280,6 @@ export async function PATCH(req, { params }) {
     });
   }
 
-  // ---- Buyer uploads receipt (Cloudinary URL only) ----
-  if (action === "upload_receipt") {
-    const { buyerReceiptUrl, buyerReceiptPublicId = "" } = body || {};
-    if (!buyerReceiptUrl)
-      return new Response("buyerReceiptUrl required", { status: 400 });
-
-    const canUpload =
-      String(txn.buyer) === String(me._id) || me.role === "admin";
-    if (!canUpload) return new Response("Forbidden", { status: 403 });
-
-    if (txn.expiresAt && txn.expiresAt.getTime() < Date.now()) {
-      return new Response("Order expired", { status: 410 });
-    }
-
-    txn.buyerReceiptUrl = buyerReceiptUrl;
-    if (buyerReceiptPublicId) txn.buyerReceiptPublicId = buyerReceiptPublicId;
-
-    txn.status = "AWAITING_ADMIN_REVIEW";
-    txn.timeline.push({
-      by: me._id,
-      action: "BUYER_UPLOADED_RECEIPT",
-      meta: { url: buyerReceiptUrl },
-    });
-
-    await txn.save();
-    await notifyTxnEvent({
-      txn,
-      actorId: me._id,
-      type: "BUYER_UPLOADED_RECEIPT",
-    });
-
-    return Response.json({ success: true, status: txn.status });
-  }
-
   // ---- Cancel (buyer or admin) -> release the product ----
   if (action === "cancel") {
     const { reason = "cancelled" } = body || {};
@@ -382,7 +348,7 @@ export async function PATCH(req, { params }) {
     const isSeller = String(txn.seller) === String(me._id);
     if (!isSeller) return new Response("Forbidden", { status: 403 });
 
-    if (!["ESCROW_FUNDED", "AWAITING_DONOR"].includes(txn.status)) {
+    if (!["PAYMENT_SUCCESSFUL", "AWAITING_DONOR"].includes(txn.status)) {
       return new Response("Not allowed in current state", { status: 409 });
     }
 
@@ -406,7 +372,7 @@ export async function PATCH(req, { params }) {
     if (
       ![
         "AWAITING_DONOR",
-        "ESCROW_FUNDED",
+        "PAYMENT_SUCCESSFUL",
         "SELLER_ACCEPTED",
         "DELIVERY_IN_PROGRESS",
       ].includes(txn.status)
@@ -455,7 +421,7 @@ export async function PATCH(req, { params }) {
     const isSeller = String(txn.seller) === String(me._id);
     if (!isSeller) return new Response("Forbidden", { status: 403 });
 
-    if (!["ESCROW_FUNDED", "SELLER_ACCEPTED"].includes(txn.status)) {
+    if (!["PAYMENT_SUCCESSFUL", "SELLER_ACCEPTED"].includes(txn.status)) {
       return new Response("Not allowed in current state", { status: 409 });
     }
     if (txn.fulfillment?.method !== "DELIVERY") {
@@ -521,7 +487,7 @@ export async function PATCH(req, { params }) {
     const isSeller = String(txn.seller) === String(me._id);
     if (!isSeller) return new Response("Forbidden", { status: 403 });
 
-    if (!["ESCROW_FUNDED", "SELLER_ACCEPTED"].includes(txn.status)) {
+    if (!["PAYMENT_SUCCESSFUL", "SELLER_ACCEPTED"].includes(txn.status)) {
       return new Response("Not allowed in current state", { status: 409 });
     }
     if (txn.fulfillment?.method !== "DELIVERY") {
@@ -551,7 +517,7 @@ export async function PATCH(req, { params }) {
     if (!isParty) return new Response("Forbidden", { status: 403 });
 
     if (
-      !["ESCROW_FUNDED", "AWAITING_DONOR", "SELLER_ACCEPTED"].includes(
+      !["PAYMENT_SUCCESSFUL", "AWAITING_DONOR", "SELLER_ACCEPTED"].includes(
         txn.status
       )
     ) {
@@ -630,7 +596,7 @@ export async function PATCH(req, { params }) {
 
     // ✅ Allow accept only if current status is valid
     if (
-      !["ESCROW_FUNDED", "AWAITING_DONOR", "SELLER_ACCEPTED"].includes(
+      !["PAYMENT_SUCCESSFUL", "AWAITING_DONOR", "SELLER_ACCEPTED"].includes(
         txn.status
       )
     ) {

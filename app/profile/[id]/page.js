@@ -9,9 +9,11 @@ import Image from "next/image";
 export const dynamic = "force-dynamic";
 
 export default async function PublicProfilePage({ params }) {
+  const { id } = await params;
+
   await connectDB();
 
-  const user = await User.findById(params.id)
+  const user = await User.findById(id)
     .select("name email image faculty year rating badges")
     .lean();
 

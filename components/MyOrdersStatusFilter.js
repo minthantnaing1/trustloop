@@ -8,7 +8,9 @@ import { STATUS_CODES, getStatusLabel } from "@/components/StatusPill";
  * DONATION: meetup-only flow + donor/recipient wording; no admin/buyer cancel; no payment steps.
  */
 const STATUSES_BY_KIND = {
-  BUY_SELL: STATUS_CODES.filter((s) => s !== "AWAITING_DONOR"),
+  BUY_SELL: STATUS_CODES.filter(
+    (s) => !["AWAITING_DONOR", "SELLER_ACCEPTED"].includes(s)
+  ),
   DONATION: [
     "AWAITING_DONOR",
     "SELLER_ACCEPTED",
