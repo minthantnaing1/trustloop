@@ -26,16 +26,31 @@ export async function POST(req) {
   await connectDB();
 
   try {
-    // ✅ PAYMENT SUCCESS
+    /* ================= PAYMENT SUCCESS ================= */
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
       const transactionId = session.metadata?.transactionId;
 
       const txn = await Transaction.findById(transactionId);
-      if (!txn || txn.status !== "PENDING_PAYMENT") {
-        return new Response("Ignored", { status: 200 });
+
+      // ⛔ EXPIRED OR INVALID → AUTO REFUND
+      if (
+        !txn ||
+        txn.status !== "PENDING_PAYMENT" ||
+        (txn.expiresAt && txn.expiresAt.getTime() <= Date.now())
+      ) {
+        // 🔁 Refund safely (idempotent on Stripe side)
+        if (session.payment_intent) {
+          await stripe.refunds.create({
+            payment_intent: session.payment_intent,
+            reason: "requested_by_customer",
+          });
+        }
+
+        return new Response("Expired payment refunded", { status: 200 });
       }
 
+      // ✅ VALID PAYMENT
       txn.status = "PAYMENT_SUCCESSFUL";
       txn.expiresAt = null;
 
@@ -48,13 +63,17 @@ export async function POST(req) {
       await txn.save();
     }
 
-    // ❌ PAYMENT FAILED
+    /* ================= PAYMENT FAILED ================= */
     if (event.type === "payment_intent.payment_failed") {
       const pi = event.data.object;
       const transactionId = pi.metadata?.transactionId;
 
       const txn = await Transaction.findById(transactionId);
-      if (!txn || txn.status !== "PENDING_PAYMENT") {
+      if (
+        !txn ||
+        txn.status !== "PENDING_PAYMENT" ||
+        (txn.expiresAt && txn.expiresAt.getTime() <= Date.now())
+      ) {
         return new Response("Ignored", { status: 200 });
       }
 

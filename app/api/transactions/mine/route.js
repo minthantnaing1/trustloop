@@ -30,7 +30,7 @@ export async function GET(req) {
   // 1) Flip status + add timeline (atomic, guarded by current status)
   await Transaction.updateMany(
     {
-      status: "PENDING_UPLOAD",
+      status: "PENDING_PAYMENT",
       expiresAt: { $lte: now },
       $or: [{ buyer: me._id }, { seller: me._id }],
     },

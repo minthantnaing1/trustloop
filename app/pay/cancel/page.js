@@ -1,18 +1,20 @@
-import { Suspense } from "react";
-import PayCancelClient from "./PayCancelClient";
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function PayCancelPage() {
-  return (
-    <Suspense fallback={<Loading />}>
-      <PayCancelClient />
-    </Suspense>
-  );
-}
+  const router = useRouter();
 
-function Loading() {
+  useEffect(() => {
+    // ⛔ Do NOT cancel transaction
+    // ⏳ Let auto-expiry + webhook logic handle everything
+    router.replace("/my-orders");
+  }, [router]);
+
   return (
     <div className="min-h-screen flex items-center justify-center">
-      Cancelling payment…
+      Redirecting to your orders…
     </div>
   );
 }

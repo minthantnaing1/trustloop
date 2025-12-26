@@ -28,6 +28,10 @@ export async function POST(req) {
     return new Response("Invalid transaction state", { status: 400 });
   }
 
+  if (!txn.expiresAt || txn.expiresAt.getTime() <= Date.now()) {
+    return new Response("Payment window expired", { status: 410 });
+  }
+
   const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
   const sessionStripe = await stripe.checkout.sessions.create({

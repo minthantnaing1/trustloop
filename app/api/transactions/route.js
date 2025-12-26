@@ -106,7 +106,7 @@ export async function POST(req) {
       fee,
       total,
       sellerNet,
-      // expiresAt: undefined      // ← do NOT set here
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
       fulfillment,
       timeline: [
         {

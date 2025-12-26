@@ -298,6 +298,31 @@ export default function OrderDetail({ id }) {
     return chosen >= min && chosen <= max;
   }
 
+  function ChatInput({ onSend, disabled }) {
+    const [text, setText] = useState("");
+
+    return (
+      <div className="flex items-center gap-2 px-3 py-2 border-t border-[#e7ecf8] bg-white">
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Type a message..."
+          disabled={disabled}
+          className="flex-1 rounded-[3px] border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#325082]"
+        />
+        <ActionButton
+          text="Send"
+          variant="primaryClick"
+          disabled={disabled}
+          onClick={() => {
+            onSend(text);
+            setText("");
+          }}
+        />
+      </div>
+    );
+  }
+
   // Count seller delivery edits from timeline (client guard)
   const deliveryEdits = useMemo(() => {
     if (!txn || !me) return 0;
@@ -365,7 +390,7 @@ export default function OrderDetail({ id }) {
       {me && txn && (
         <Stepper
           className="px-1"
-          current={3} // always step 3 here
+          current={2} // always step 3 here
           variant={
             kind === "DONATION"
               ? isSeller
@@ -407,6 +432,7 @@ export default function OrderDetail({ id }) {
             {(() => {
               // show contact only after seller has accepted (or later states)
               const CONTACT_OK_STATUSES = new Set([
+                "PAYMENT_SUCCESSFUL",
                 "SELLER_ACCEPTED",
                 "DELIVERY_IN_PROGRESS",
                 "SELLER_DELIVERED",
@@ -511,6 +537,16 @@ export default function OrderDetail({ id }) {
                 : "Product Details"}
             </Link>
 
+            {/* Buyer: Confirm Received */}
+            {isBuyer && txn.status === "DELIVERY_IN_PROGRESS" && (
+              <ActionButton
+                text="Confirm Received"
+                variant="primaryClick"
+                disabled={busy}
+                onClick={() => doPatch({ action: "buyer_confirm" })}
+              />
+            )}
+
             {/* Buyer/Recipient: Order Summary & Review */}
             {isBuyer &&
               (txn.status === "BUYER_CONFIRMED" ||
@@ -554,441 +590,60 @@ export default function OrderDetail({ id }) {
       <div className={`${card} p-6`}>
         <div className={sectionTitle}>
           <TruckIcon className="w-5 h-5" />
-          {method === "DELIVERY"
-            ? "Delivery"
-            : method === "MEETUP"
-            ? "Meetup"
-            : "Fulfillment"}
+          Fulfillment (Chat)
         </div>
 
-        {/* Read-only */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
-          <Field label="Method" value={method} icon={TruckIcon} />
-          <Field
-            label={method === "DELIVERY" ? "Ship/ETA" : "Meetup Time"}
-            value={
-              method === "DELIVERY"
-                ? fmtBKK(txn.fulfillment?.scheduledAt)
-                : fmtBKK(
-                    txn.fulfillment?.meetupScheduledAt ||
-                      txn.fulfillment?.meetupProposedAt
-                  )
-            }
-            icon={ClockIcon}
-          />
-          <Field
-            label={
-              method === "DELIVERY"
-                ? isBuyer
-                  ? "My Address"
-                  : "Buyer Address"
-                : "Meetup Location"
-            }
-            value={
-              method === "DELIVERY"
-                ? txn.fulfillment?.address || "—"
-                : txn.fulfillment?.meetupLocation || "—"
-            }
-            icon={MapPinIcon}
-          />
+        {/* Chat Section */}
+        <div className="mt-4 rounded-[3px] border border-[#e7ecf8] bg-[#f9fbff] flex flex-col h-[360px]">
+          {/* Chat Header */}
+          <div className="px-4 py-2 border-b border-[#e7ecf8] text-sm font-semibold text-[#325082]">
+            Chat with {otherRoleLabel}
+          </div>
 
-          {method === "DELIVERY" && (
-            <>
-              <Field
-                label="Carrier"
-                value={txn.fulfillment?.carrier || "—"}
-                icon={TruckIcon}
-              />
-              <Field
-                label="Tracking"
-                value={txn.fulfillment?.tracking || "—"}
-                icon={ClipboardDocumentListIcon}
-              />
-              <Field
-                label="Notes"
-                value={txn.fulfillment?.notes || "—"}
-                icon={ClipboardDocumentListIcon}
-              />
-            </>
-          )}
-        </div>
-
-        {/* Role-aware controls */}
-        <div className="mt-6 border-t pt-4 border-[#e7ecf8]">
-          {method === "DELIVERY" &&
-            isSeller &&
-            ["SELLER_ACCEPTED", "DELIVERY_IN_PROGRESS"].includes(
-              txn.status
-            ) && (
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-[#325082] mb-1">
-                      Ship/ETA (within {DELIVERY_MAX_DAYS} days)
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={scheduledAt}
-                      onChange={(e) => {
-                        setScheduledAt(e.target.value);
-                        setDeliveryMsg("");
-                      }}
-                      min={deliveryMin}
-                      max={deliveryMax}
-                      disabled={busy || txn.status === "DELIVERY_IN_PROGRESS"}
-                      className="w-full rounded-[3px] border border-gray-300 shadow-sm px-3 py-2 text-sm disabled:bg-gray-100"
-                    />
-                    <p className="text-[12px] text-gray-500 mt-1">
-                      Choose a time from now up to {DELIVERY_MAX_DAYS} days
-                      ahead.
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-[#325082] mb-1">
-                      Carrier
-                    </label>
-                    <input
-                      type="text"
-                      value={carrier}
-                      onChange={(e) => {
-                        setCarrier(e.target.value);
-                        setDeliveryMsg("");
-                      }}
-                      disabled={busy || txn.status === "DELIVERY_IN_PROGRESS"}
-                      className="w-full rounded-[3px] border border-gray-300 shadow-sm px-3 py-2 text-sm disabled:bg-gray-100"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-[#325082] mb-1">
-                      Tracking
-                    </label>
-                    <input
-                      type="text"
-                      value={tracking}
-                      onChange={(e) => {
-                        setTracking(e.target.value);
-                        setDeliveryMsg("");
-                      }}
-                      disabled={busy || txn.status === "DELIVERY_IN_PROGRESS"}
-                      className="w-full rounded-[3px] border border-gray-300 shadow-sm px-3 py-2 text-sm disabled:bg-gray-100"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-[#325082] mb-1">
-                      Notes
-                    </label>
-                    <input
-                      type="text"
-                      value={notes}
-                      onChange={(e) => {
-                        setNotes(e.target.value);
-                        setDeliveryMsg("");
-                      }}
-                      disabled={busy || txn.status === "DELIVERY_IN_PROGRESS"}
-                      className="w-full rounded-[3px] border border-gray-300 shadow-sm px-3 py-2 text-sm disabled:bg-gray-100"
-                    />
-                  </div>
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 text-sm">
+            {txn.chat?.length ? (
+              txn.chat.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`max-w-[75%] px-3 py-2 rounded-md ${
+                    msg.by === me?._id
+                      ? "ml-auto bg-[#325082] text-white"
+                      : "bg-white border border-gray-200"
+                  }`}
+                >
+                  {msg.text}
                 </div>
-
-                <div className="flex flex-col gap-1">
-                  <div className="flex flex-wrap items-center gap-3 mt-2">
-                    {txn.status === "SELLER_ACCEPTED" && (
-                      <>
-                        <ActionButton
-                          text="Set Delivery Details"
-                          variant="outlineClick"
-                          disabled={busy || !canEditDelivery}
-                          onClick={() => {
-                            setDeliveryMsg("");
-
-                            // must set Ship/ETA
-                            if (!scheduledAt) {
-                              setDeliveryMsg(
-                                "Set a Ship/ETA time before setting delivery details."
-                              );
-                              return;
-                            }
-                            if (!validateDeliveryWindow(scheduledAt)) {
-                              setDeliveryMsg(
-                                `Ship/ETA must be from now to ${DELIVERY_MAX_DAYS} days ahead.`
-                              );
-                              return;
-                            }
-
-                            // block if nothing changed
-                            if (isDeliveryUnchanged) {
-                              setDeliveryMsg(
-                                "Nothing has changed to be updated."
-                              );
-                              return;
-                            }
-
-                            doPatch({
-                              action: "seller_set_delivery",
-                              scheduledAt: new Date(scheduledAt).toISOString(),
-                              carrier,
-                              tracking,
-                              notes,
-                            });
-                          }}
-                        />
-
-                        <ActionButton
-                          text="Start Delivery"
-                          variant="primaryClick"
-                          disabled={busy}
-                          onClick={() => {
-                            setDeliveryMsg("");
-                            if (!scheduledAt) {
-                              setDeliveryMsg(
-                                "Set a Ship/ETA time before starting delivery."
-                              );
-                              return;
-                            }
-                            if (!validateDeliveryWindow(scheduledAt)) {
-                              setDeliveryMsg(
-                                `Ship/ETA must be from now to ${DELIVERY_MAX_DAYS} days ahead.`
-                              );
-                              return;
-                            }
-                            doPatch({ action: "mark_delivery_in_progress" });
-                          }}
-                        />
-
-                        {deliveryMsg && (
-                          <span className="text-[12px] text-amber-700">
-                            {deliveryMsg}
-                          </span>
-                        )}
-                      </>
-                    )}
-
-                    {txn.status === "DELIVERY_IN_PROGRESS" && (
-                      <div className="flex flex-col gap-1">
-                        <ActionButton
-                          text="Mark Delivered"
-                          variant="primaryClick"
-                          disabled={
-                            busy /* keep clickable even if blocked by time */
-                          }
-                          onClick={() => {
-                            if (!canMarkDeliveredNow) {
-                              setDeliveredWarn(
-                                `You can only mark as delivered after the scheduled time: ${fmtBKK(
-                                  txn.fulfillment?.scheduledAt
-                                )}.`
-                              );
-                              return;
-                            }
-                            setDeliveredWarn("");
-                            doPatch({ action: "seller_mark_delivered" });
-                          }}
-                        />
-
-                        {deliveredWarn && (
-                          <span className="text-[12px] text-amber-700">
-                            {deliveredWarn}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {txn.status === "SELLER_ACCEPTED" && (
-                    <div className="text-[12px] text-gray-500">
-                      {canEditDelivery
-                        ? `${
-                            3 - deliveryEdits
-                          } edits left before starting delivery.`
-                        : "Edit limit reached (3/3)."}
-                    </div>
-                  )}
-                </div>
+              ))
+            ) : (
+              <div className="text-gray-500 text-center mt-10">
+                No messages yet. Start the conversation to discuss delivery or
+                meetup.
               </div>
             )}
+          </div>
 
-          {/* MEETUP: propose/accept/complete */}
-          {method === "MEETUP" &&
-            ["SELLER_ACCEPTED", "DELIVERY_IN_PROGRESS"].includes(
-              txn.status
-            ) && (
-              <div className="space-y-3">
-                {/* Inputs + propose/accept only AFTER seller has accepted */}
-                {txn.status === "SELLER_ACCEPTED" && (
-                  <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs font-semibold text-[#325082] mb-1">
-                          Meetup Location
-                        </label>
-                        <input
-                          type="text"
-                          value={meetLoc}
-                          onChange={(e) => {
-                            setMeetLoc(e.target.value);
-                            setMeetWarn("");
-                            setSameWarn("");
-                          }}
-                          className="w-full rounded-[3px] border border-gray-300 px-3 py-2 text-sm"
-                          placeholder="ABAC Hua Mak Gate 2"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-[#325082] mb-1">
-                          Proposed Time
-                        </label>
-                        <input
-                          type="datetime-local"
-                          value={meetTime}
-                          onChange={(e) => {
-                            setMeetTime(e.target.value);
-                            setMeetWarn("");
-                            setSameWarn("");
-                          }}
-                          min={meetMin}
-                          max={meetMax}
-                          className="w-full rounded-[3px] border border-gray-300 px-3 py-2 text-sm"
-                        />
-                        <p className="text-[12px] text-gray-500 mt-1">
-                          Choose a time from now up to {MEETUP_MAX_DAYS} days
-                          ahead.
-                        </p>
-                      </div>
-                    </div>
+          {/* Input */}
+          <ChatInput
+            disabled={busy}
+            onSend={async (text) => {
+              if (!text.trim()) return;
 
-                    {/* Propose / Accept */}
-                    <div className="flex flex-wrap gap-3">
-                      {(!hasProposal || !proposedByMe) && (
-                        <ActionButton
-                          text="Propose Meetup"
-                          variant="primaryClick"
-                          disabled={busy}
-                          onClick={() => {
-                            setMeetWarn("");
-                            setSameWarn("");
+              // 🔁 First chat → update status (BUY & SELL only)
+              if (kind === "BUY_SELL" && txn.status === "PAYMENT_SUCCESSFUL") {
+                await doPatch({ action: "start_chat" });
+              }
 
-                            if (!meetLoc || !meetTime) {
-                              setMeetWarn(
-                                "Please set both Location and Proposed Time before pressing Propose Meetup Button."
-                              );
-                              return;
-                            }
-                            if (!validateMeetupWindow(meetTime)) {
-                              setMeetWarn(
-                                `Please pick a meetup time from now to ${MEETUP_MAX_DAYS} days ahead.`
-                              );
-                              return;
-                            }
-                            if (isSameProposal) {
-                              setSameWarn(
-                                "You're proposing the same location and time as the current proposal. Change something to propose again."
-                              );
-                              return;
-                            }
-
-                            doPatch({
-                              action: "propose_meetup",
-                              meetupLocation: meetLoc,
-                              meetupProposedAt: new Date(
-                                meetTime
-                              ).toISOString(),
-                            });
-                          }}
-                        />
-                      )}
-
-                      {hasProposal && me && !proposedByMe && (
-                        <ActionButton
-                          text="Accept Proposal"
-                          variant="outlineClick"
-                          disabled={busy}
-                          onClick={() => doPatch({ action: "accept_meetup" })}
-                        />
-                      )}
-                    </div>
-
-                    {/* Warnings under the buttons */}
-                    {meetWarn && (
-                      <div className="text-[12px] text-amber-700">
-                        {meetWarn}
-                      </div>
-                    )}
-                    {sameWarn && (
-                      <div className="text-[12px] text-amber-700">
-                        {sameWarn}
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {/* After delivery started, only “mark completed” remains */}
-                {isSeller && txn.status === "DELIVERY_IN_PROGRESS" && (
-                  <div className="flex flex-col gap-1">
-                    <ActionButton
-                      text="Mark Meetup Completed"
-                      variant="primaryClick"
-                      disabled={busy}
-                      onClick={() => {
-                        if (!canMarkMeetupNow) {
-                          setMeetupWarnClick(
-                            `You can only complete the meetup after ${fmtBKK(
-                              txn.fulfillment?.meetupScheduledAt ||
-                                txn.fulfillment?.meetupProposedAt
-                            )}.`
-                          );
-                          return;
-                        }
-                        setMeetupWarnClick("");
-                        doPatch({ action: "mark_meetup_completed" });
-                      }}
-                    />
-
-                    {meetupWarnClick && (
-                      <span className="text-[12px] text-amber-700">
-                        {meetupWarnClick}
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {txn.fulfillment?.meetupProposedAt && (
-                  <div className="text-sm text-gray-700">
-                    Current proposal: <b>{txn.fulfillment.meetupLocation}</b> at{" "}
-                    <b>{fmtBKK(txn.fulfillment.meetupProposedAt)}</b>
-                  </div>
-                )}
-              </div>
-            )}
-
-          {/* Buyer confirm */}
-          {isBuyer &&
-            (txn.status === "SELLER_DELIVERED" ||
-              txn.status === "MEETUP_COMPLETED") && (
-              <div className="mt-4 space-y-2">
-                {/* Countdown banner */}
-                {txn.autoConfirmAt && (
-                  <div
-                    className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-amber-900 text-sm"
-                    aria-live="polite"
-                  >
-                    {kind === "DONATION"
-                      ? "Please confirm you have received the donation item. Otherwise this order will be auto-confirmed in "
-                      : "Please confirm you have received the item. Otherwise this order will be auto-confirmed in "}
-                    <b className="font-mono tabular-nums">
-                      {formatRemaining(remainMs)}
-                    </b>
-                    .
-                  </div>
-                )}
-
-                <ActionButton
-                  text="Confirm Received"
-                  variant="primaryClick"
-                  disabled={busy}
-                  onClick={() => doPatch({ action: "buyer_confirm" })}
-                />
-              </div>
-            )}
+              // Local optimistic UI (safe placeholder)
+              setTxn((prev) => ({
+                ...prev,
+                chat: [
+                  ...(prev.chat || []),
+                  { text, by: me._id, at: new Date().toISOString() },
+                ],
+              }));
+            }}
+          />
         </div>
       </div>
 

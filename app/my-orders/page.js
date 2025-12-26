@@ -24,18 +24,25 @@ function formatMMSS(ms) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-function Countdown({ expiresAt }) {
+function Countdown({ expiresAt, onExpire }) {
   const [remainMs, setRemainMs] = useState(() =>
     Math.max(0, new Date(expiresAt).getTime() - Date.now())
   );
 
   useEffect(() => {
-    const tick = () =>
-      setRemainMs(Math.max(0, new Date(expiresAt).getTime() - Date.now()));
+    const tick = () => {
+      const ms = Math.max(0, new Date(expiresAt).getTime() - Date.now());
+      setRemainMs(ms);
+
+      if (ms === 0 && onExpire) {
+        onExpire(); // 🔥 trigger refresh
+      }
+    };
+
     tick();
     const t = setInterval(tick, 1000);
     return () => clearInterval(t);
-  }, [expiresAt]);
+  }, [expiresAt, onExpire]);
 
   return <b className="font-mono tabular-nums">{formatMMSS(remainMs)}</b>;
 }
@@ -498,7 +505,7 @@ function MyOrdersClient() {
             className="mb-4"
             style={{ animation: "fadeSlide 800ms ease-out" }}
           >
-            <Stepper current={2} variant="recipient" className="px-1" />
+            {/* <Stepper current={2} variant="recipient" className="px-1" /> */}
           </div>
         )}
 
@@ -509,11 +516,11 @@ function MyOrdersClient() {
             className="mb-4"
             style={{ animation: "fadeSlide 800ms ease-out" }}
           >
-            <Stepper
+            {/* <Stepper
               current={2}
               variant={kindFilter === "DONATION" ? "donor" : "seller"}
               className="px-1"
-            />
+            /> */}
           </div>
         )}
 
@@ -680,33 +687,6 @@ function MyOrdersClient() {
                           </div>
                         </div>
                       </div>
-
-                      {/* Actions */}
-                      <div className="mt-3 flex gap-2 flex-wrap justify-end">
-                        {isSeller && canCancelOnly && (
-                          <ActionButton
-                            text={
-                              t.kind === "DONATION"
-                                ? "Reject"
-                                : "Cancel the Order"
-                            }
-                            variant="dangerOutlineHover"
-                            disabled={pendingActionId === id}
-                            onClick={() => {
-                              const reason = prompt(
-                                t.kind === "DONATION"
-                                  ? "Please enter a reason for rejection:"
-                                  : "Please enter a reason for cancellation:"
-                              );
-                              if (reason?.trim()) {
-                                actOnTxn(id, "seller_cancel", {
-                                  cancelReason: reason.trim(),
-                                });
-                              }
-                            }}
-                          />
-                        )}
-                      </div>
                     </div>
                   </div>
 
@@ -723,14 +703,48 @@ function MyOrdersClient() {
 
                         {/* 👇 Replace this single Link with a small group */}
                         <div className="flex items-center gap-2">
-                          {/* NEW: Buyer can go back to pay page while still within 5 mins */}
                           {role === "buyer" && isPendingPaymentActive(t) && (
-                            <Link href={`/buy/pay/${id}`}>
-                              <ActionButton
-                                text="Pay & Upload"
-                                variant="outlineClick"
-                              />
-                            </Link>
+                            <ActionButton
+                              text="Continue Payment"
+                              variant="outlineClick"
+                              onClick={async () => {
+                                const res = await fetch("/api/checkout", {
+                                  method: "POST",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                  },
+                                  body: JSON.stringify({ transactionId: id }),
+                                });
+
+                                if (!res.ok) {
+                                  alert(await res.text());
+                                  return;
+                                }
+
+                                const { url } = await res.json();
+                                window.location.href = url;
+                              }}
+                            />
+                          )}
+
+                          {isSeller && canCancelOnly && (
+                            <ActionButton
+                              text={t.kind === "DONATION" ? "Reject" : "Cancel"}
+                              variant="orderCancel"
+                              disabled={pendingActionId === id}
+                              onClick={() => {
+                                const reason = prompt(
+                                  t.kind === "DONATION"
+                                    ? "Please enter a reason for rejection:"
+                                    : "Please enter a reason for cancellation:"
+                                );
+                                if (reason?.trim()) {
+                                  actOnTxn(id, "seller_cancel", {
+                                    cancelReason: reason.trim(),
+                                  });
+                                }
+                              }}
+                            />
                           )}
 
                           <Link href={`/my-orders/${id}`}>
@@ -748,11 +762,14 @@ function MyOrdersClient() {
                           <div className="text-center mb-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900 text-sm">
                             Payment pending — please click{" "}
                             <span className="font-semibold">
-                              “Pay &amp; Upload”
+                              “Continue Payment”
                             </span>{" "}
                             and complete your payment within{" "}
-                            <Countdown expiresAt={t.expiresAt} /> or this order
-                            will be automatically cancelled.
+                            <Countdown
+                              expiresAt={t.expiresAt}
+                              onExpire={() => refreshRoleLists(role)}
+                            />{" "}
+                            or this order will be automatically cancelled.
                           </div>
                         )}
                     </summary>

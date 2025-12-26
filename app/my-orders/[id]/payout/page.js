@@ -55,7 +55,7 @@ export default async function SellerPayoutPage({ params }) {
 
           {/* Progress Stepper (seller, step 4) */}
           <div className="mb-5">
-            <Stepper current={4} variant="seller" className="px-1" />
+            <Stepper current={3} variant="seller" className="px-1" />
           </div>
 
           <div className="rounded-[5px] bg-white p-6 border border-[#325082] text-[#325082] text-center">
@@ -82,7 +82,7 @@ export default async function SellerPayoutPage({ params }) {
 
           {/* Progress Stepper (seller, step 4) */}
           <div className="mb-5">
-            <Stepper current={4} variant="seller" className="px-1" />
+            <Stepper current={3} variant="seller" className="px-1" />
           </div>
 
           <div className="rounded-[5px] bg-white p-6 border border-[#325082] text-[#325082] text-center">

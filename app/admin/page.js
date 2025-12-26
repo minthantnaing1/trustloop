@@ -39,8 +39,8 @@ export default async function AdminPage() {
   const totalRecentTxns = recentTxns.length;
   const tByStatus = (s) => recentTxns.filter((t) => t.status === s).length;
 
-  const awaitingReview = tByStatus("AWAITING_ADMIN_REVIEW");
-  const escrowFunded = tByStatus("ESCROW_FUNDED");
+  const paymentSuccessful = tByStatus("PAYMENT_SUCCESSFUL");
+  const delivery = tByStatus("DELIVERY_IN_PROGRESS");
   const buyerConfirmed = tByStatus("BUYER_CONFIRMED");
   const paidOut = tByStatus("PAID_OUT");
 
@@ -176,12 +176,12 @@ export default async function AdminPage() {
           <p className="text-3xl font-bold">{totalRecentTxns}</p>
         </div>
         <div className="bg-white p-5 rounded-xl shadow-md text-center">
-          <p className="text-sm text-gray-500">Awaiting Review</p>
-          <p className="text-3xl font-bold">{awaitingReview}</p>
+          <p className="text-sm text-gray-500">Payment Successful</p>
+          <p className="text-3xl font-bold">{paymentSuccessful}</p>
         </div>
         <div className="bg-white p-5 rounded-xl shadow-md text-center">
-          <p className="text-sm text-gray-500">Escrow Funded</p>
-          <p className="text-3xl font-bold">{escrowFunded}</p>
+          <p className="text-sm text-gray-500">Delivery in Progress</p>
+          <p className="text-3xl font-bold">{delivery}</p>
         </div>
         <div className="bg-white p-5 rounded-xl shadow-md text-center">
           <p className="text-sm text-gray-500">Buyer Confirmed</p>

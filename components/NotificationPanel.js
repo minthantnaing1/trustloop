@@ -122,139 +122,89 @@ export default function NotificationPanel({ open, onClose, onUnreadChange }) {
               No new notifications.
             </div>
           )}
-          <ul className="space-y-3 mb-3">
+          <ul className="space-y-1">
             {items.map((n) => {
-              const product = n?.meta?.productTitle || n?.product?.title || "-";
-              const buyer =
-                n?.meta?.buyerName ||
-                n?.transaction?.buyer?.name ||
-                n?.transaction?.buyer?.email ||
-                "-";
-              const seller =
-                n?.meta?.sellerName ||
-                n?.transaction?.seller?.name ||
-                n?.transaction?.seller?.email ||
-                "-";
-
               const isUnread = n?.isRead === false;
-              const evs = Array.isArray(n?.events) ? n.events : [];
-              const open = !!expanded[n._id];
-
-              const meId = n?.recipient?._id || n?.recipient; // the user receiving this noti
-              const buyerIsMe =
-                meId &&
-                String(n?.transaction?.buyer?._id || n?.transaction?.buyer) ===
-                  String(meId);
-              const sellerIsMe =
-                meId &&
-                String(
-                  n?.transaction?.seller?._id || n?.transaction?.seller
-                ) === String(meId);
 
               return (
                 <li
                   key={n._id}
-                  className="bg-white border border-gray-300 rounded-[5px] shadow-sm p-4"
+                  className={`group flex gap-3 px-3 py-3 rounded-lg cursor-pointer
+    border border-gray-200 bg-white hover:bg-[#f5f8ff]
+    ${isUnread ? "ring-1 ring-[#325082]/20" : ""}`}
+                  onClick={() => {
+                    if (n.link) {
+                      markOneRead(n._id);
+                      onClose?.();
+                    }
+                  }}
                 >
-                  {/* Product/Buyer/Seller row */}
-                  <div className="mb-2">
-                    <div className="flex justify-between text-[11px] font-semibold uppercase tracking-wide text-[#325082]">
-                      <span className="w-1/3">Product</span>
-                      <span className="w-1/3 text-center">
-                        Buyer{buyerIsMe ? " (Me)" : ""}
-                      </span>
-                      <span className="w-1/3 text-right">
-                        Seller{sellerIsMe ? " (Me)" : ""}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-sm font-medium text-slate-800">
-                      <span className="w-1/3 pr-2 whitespace-normal break-words">
-                        {product}
-                      </span>
-                      <span className="w-1/3 px-2 text-center whitespace-normal break-words">
-                        {buyer}
-                      </span>
-                      <span className="w-1/3 pl-2 text-right whitespace-normal break-words">
-                        {seller}
-                      </span>
-                    </div>
+                  {/* Unread dot */}
+                  <div className="pt-1">
+                    {isUnread && (
+                      <span className="block w-2.5 h-2.5 rounded-full bg-[#325082]" />
+                    )}
                   </div>
 
-                  {/* Latest snapshot */}
-                  <div className="text-sm">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="font-semibold text-[#325082]">
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm text-[#1f3b66] truncate">
                           {n.title}
-                        </div>
+                        </p>
+
                         {n.message && (
-                          <div className="text-gray-700 mt-1">{n.message}</div>
+                          <p className="text-sm text-gray-600 line-clamp-2 mt-0.5">
+                            {n.message}
+                          </p>
                         )}
-                        <div className="text-xs text-gray-500 mt-1">
-                          {new Date(
-                            n.updatedAt || n.createdAt
-                          ).toLocaleString()}
-                        </div>
                       </div>
+
+                      {/* Time */}
+                      <span className="text-[11px] text-gray-400 shrink-0">
+                        {new Date(
+                          n.updatedAt || n.createdAt
+                        ).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="mt-1 flex items-center gap-3">
+                      {n.link && (
+                        <Link
+                          href={n.link}
+                          data-suppress-overlay="true"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markOneRead(n._id);
+                            onClose?.();
+                          }}
+                          className="text-xs text-[#325082] hover:underline"
+                        >
+                          View details →
+                        </Link>
+                      )}
+
                       {isUnread && (
-                        <span className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded-full">
-                          Unread
-                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            markOneRead(n._id);
+                          }}
+                          className="
+            text-xs text-gray-400 hover:text-[#325082]
+            opacity-0 group-hover:opacity-100
+            transition-opacity
+          "
+                        >
+                          Mark read
+                        </button>
                       )}
                     </div>
-
-                    {/* Toggle history + actions */}
-                    <div className="flex justify-between">
-                      {/* Left: toggle only when there are multiple events */}
-                      <button
-                        className={`mt-2 text-[12.5px] text-[#325082] underline ${
-                          evs.length > 1 ? "" : "invisible"
-                        }`}
-                        onClick={() => toggleExpanded(n._id)}
-                      >
-                        {open ? "Hide history" : `Show history (${evs.length})`}
-                      </button>
-
-                      {/* Right: action buttons (always visible if applicable) */}
-                      <div className="flex items-center justify-end gap-2 mt-3">
-                        {n.link && (
-                          <Link
-                            href={n.link}
-                            data-suppress-overlay="true"
-                            onClick={() => markOneRead(n._id)}
-                          >
-                            <ActionButton text="View" variant="primaryClick" />
-                          </Link>
-                        )}
-                        <ActionButton
-                          text="Mark read"
-                          variant="outlineClick"
-                          onClick={() => markOneRead(n._id)}
-                        />
-                      </div>
-                    </div>
-
-                    {open && (
-                      <div className="mt-3 border-t border-gray-300 pt-2">
-                        <ul className="divide-y divide-gray-200">
-                          {evs
-                            .slice()
-                            .sort((a, b) => new Date(b.at) - new Date(a.at))
-                            .map((e, idx) => (
-                              <li
-                                key={idx}
-                                className="py-2 first:pt-0 text-sm text-gray-700"
-                              >
-                                <span className="font-medium">{e.title}</span>
-                                {e.message ? ` — ${e.message}` : ""}
-                                <span className="block text-xs text-gray-500">
-                                  {new Date(e.at).toLocaleString()}
-                                </span>
-                              </li>
-                            ))}
-                        </ul>
-                      </div>
-                    )}
                   </div>
                 </li>
               );

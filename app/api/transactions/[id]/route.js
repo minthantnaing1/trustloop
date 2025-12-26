@@ -343,6 +343,15 @@ export async function PATCH(req, { params }) {
     return Response.json({ success: true, status: txn.status });
   }
 
+  if (action === "start_chat") {
+    if (txn.kind === "BUY_SELL" && txn.status === "PAYMENT_SUCCESSFUL") {
+      txn.status = "DELIVERY_IN_PROGRESS";
+      txn.timeline.push({ by: me._id, action: "CHAT_STARTED" });
+      await txn.save();
+    }
+    return Response.json({ success: true });
+  }
+
   // ---- Seller accepts after admin approved (ESCROW_FUNDED -> SELLER_ACCEPTED) ----
   if (action === "seller_accept") {
     const isSeller = String(txn.seller) === String(me._id);
@@ -741,19 +750,21 @@ export async function PATCH(req, { params }) {
     const isBuyer = String(txn.buyer) === String(me._id);
     if (!isBuyer) return new Response("Forbidden", { status: 403 });
 
-    if (!["SELLER_DELIVERED", "MEETUP_COMPLETED"].includes(txn.status)) {
+    // ✅ NEW: confirm directly from DELIVERY_IN_PROGRESS
+    if (txn.status !== "DELIVERY_IN_PROGRESS") {
       return new Response("Not allowed in current state", { status: 409 });
     }
 
     txn.status = "BUYER_CONFIRMED";
-    txn.autoConfirmAt = null; // clear the timer
+    txn.autoConfirmAt = null;
+
     txn.timeline.push({
       at: new Date(),
       by: me._id,
       action: "BUYER_CONFIRMED",
     });
 
-    // ⬇️ ADD: add what the buyer paid to their expenses
+    // record buyer expense
     const spendAmount = Number(txn.total || 0);
     await User.updateOne(
       { _id: txn.buyer },

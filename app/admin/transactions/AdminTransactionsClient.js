@@ -160,7 +160,6 @@ export default function AdminTransactionsClient({ initialTxns }) {
                   <th className="p-2 border-b font-medium">Seller</th>
                   <th className="p-2 border-b font-medium">Total</th>
                   <th className="p-2 border-b font-medium">Updated</th>
-                  <th className="p-2 border-b font-medium">Buyer Slip</th>
                   <th className="p-2 border-b font-medium">Type / Method</th>
                   <th className="p-2 border-b font-medium">Order Status</th>
                   <th className="p-2 border-b font-medium">Actions</th>
@@ -169,12 +168,8 @@ export default function AdminTransactionsClient({ initialTxns }) {
               <tbody>
                 {filtered.map((t, idx) => {
                   const txnId = t._id?.toString?.() || t._id;
-                  const awaiting = t.status === "AWAITING_ADMIN_REVIEW";
-                  const editable =
-                    editMode &&
-                    (t.status === "ESCROW_FUNDED" ||
-                      t.status === "REJECTED_BY_ADMIN");
-                  const showActions = awaiting || editable;
+                  const showActions = editMode;
+
                   const kindUp = String(t?.kind || t?.type || "").toUpperCase();
                   const isDonation = kindUp === "DONATION";
 
@@ -283,23 +278,6 @@ export default function AdminTransactionsClient({ initialTxns }) {
                       </td>
 
                       <td className="p-2">
-                        {t.buyerReceiptUrl ? (
-                          deleteMode ? (
-                            <span className="text-[#325082]/40">View Slip</span>
-                          ) : (
-                            <SlipLink
-                              url={t.buyerReceiptUrl}
-                              title="Buyer Payment Slip"
-                            >
-                              View Slip
-                            </SlipLink>
-                          )
-                        ) : (
-                          <span className="text-gray-400">—</span>
-                        )}
-                      </td>
-
-                      <td className="p-2">
                         <TypeAndMethod
                           kind={t.kind || t.type}
                           method={t.fulfillment?.method}
@@ -307,7 +285,10 @@ export default function AdminTransactionsClient({ initialTxns }) {
                       </td>
 
                       <td className="p-2">
-                        <StatusPill status={t.status} />
+                        <StatusPill
+                          status={t.status}
+                          kind={String(t.kind || t.type).toUpperCase()}
+                        />
                       </td>
 
                       <td className="p-2">
@@ -350,6 +331,10 @@ export default function AdminTransactionsClient({ initialTxns }) {
                         ) : showActions ? (
                           <AdminTxnRowActions
                             txnId={txnId}
+                            currentStatus={t.status}
+                            kind={
+                              kindUp === "DONATION" ? "DONATION" : "BUY_SELL"
+                            }
                             onDone={({ id, newStatus }) => {
                               setTxns((prev) =>
                                 prev.map((row) =>
@@ -376,7 +361,7 @@ export default function AdminTransactionsClient({ initialTxns }) {
                 {filtered.length === 0 && (
                   <tr>
                     {/* updated colspan: 12 columns total */}
-                    <td colSpan={12} className="p-4 text-center text-gray-500">
+                    <td colSpan={11} className="p-4 text-center text-gray-500">
                       No transactions found.
                     </td>
                   </tr>
