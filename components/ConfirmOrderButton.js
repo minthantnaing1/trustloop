@@ -8,16 +8,13 @@ export default function ConfirmOrderButton({ productId, formId }) {
   const [err, setErr] = useState("");
 
   async function handleConfirm() {
-    if (loading) return; // guard double clicks
+    if (loading) return;
     try {
       setLoading(true);
       setErr("");
 
-      if (!productId) {
-        throw new Error("Missing productId");
-      }
+      if (!productId) throw new Error("Missing productId");
 
-      // ✅ Read method + location from form
       let payload = { productId };
 
       if (formId) {
@@ -25,26 +22,16 @@ export default function ConfirmOrderButton({ productId, formId }) {
         if (!form) throw new Error("Checkout form not found");
 
         const fd = new FormData(form);
-        const method = (fd.get("method") || "MEETUP").toString();
         const location = (fd.get("location") || "").toString().trim();
 
-        if (!["MEETUP", "DELIVERY"].includes(method)) {
-          throw new Error("Please select a valid fulfillment method.");
-        }
         if (!location) {
-          throw new Error("Please provide a location/address for this order.");
+          throw new Error("Please provide a location for this order.");
         }
 
-        payload = {
-          ...payload,
-          method,
-          ...(method === "DELIVERY"
-            ? { address: location }
-            : { meetupLocation: location }),
-        };
+        payload = { ...payload, buyerLocation: location };
       }
 
-      // 1️⃣ Create transaction (UNCHANGED logic)
+      // 1️⃣ Create transaction
       const res = await fetch("/api/transactions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

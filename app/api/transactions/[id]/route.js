@@ -23,7 +23,7 @@ export async function GET(_req, { params }) {
     return new Response("Invalid id", { status: 400 });
 
   const me = await User.findOne({ email: session.user.email }).select(
-    "_id role"
+    "_id role",
   );
   if (!me) return new Response("User not found", { status: 404 });
 
@@ -77,13 +77,13 @@ export async function GET(_req, { params }) {
             meta: { source: "pay_get" },
           },
         },
-      }
+      },
     );
 
     if (upd.modifiedCount > 0 && txn.product?._id) {
       await Product.updateOne(
         { _id: txn.product._id },
-        { $set: { isAvailable: true } }
+        { $set: { isAvailable: true } },
       );
 
       // Re-fetch to return the updated doc
@@ -113,9 +113,9 @@ export async function GET(_req, { params }) {
     }
   }
 
-  // --- Auto-confirm after seller delivered / meetup completed (3 days)
+  // ✅ Auto-confirm after seller uploaded proof (3 days)
   if (
-    ["SELLER_DELIVERED", "MEETUP_COMPLETED"].includes(txn.status) &&
+    txn.status === "SELLER_PROOF_UPLOADED" &&
     txn.autoConfirmAt &&
     txn.autoConfirmAt.getTime() <= Date.now()
   ) {
@@ -125,7 +125,7 @@ export async function GET(_req, { params }) {
     const upd = await Transaction.updateOne(
       {
         _id: txn._id,
-        status: { $in: ["SELLER_DELIVERED", "MEETUP_COMPLETED"] },
+        status: "SELLER_PROOF_UPLOADED",
         autoConfirmAt: { $lte: now },
       },
       {
@@ -142,14 +142,14 @@ export async function GET(_req, { params }) {
             meta: { source: "get_auto_confirm" },
           },
         },
-      }
+      },
     );
 
     if (upd.modifiedCount > 0) {
       // mirror buyer_confirm expenses update once
       await User.updateOne(
         { _id: txn.buyer },
-        { $inc: { expenses: Number(txn.total || 0) } }
+        { $inc: { expenses: Number(txn.total || 0) } },
       );
 
       // re-fetch for response/notifications
@@ -206,7 +206,7 @@ export async function PATCH(req, { params }) {
     return new Response("Invalid id", { status: 400 });
 
   const me = await User.findOne({ email: session.user.email }).select(
-    "_id role"
+    "_id role",
   );
   if (!me) return new Response("User not found", { status: 404 });
 
@@ -236,13 +236,13 @@ export async function PATCH(req, { params }) {
             meta: { source: "txn_patch" },
           },
         },
-      }
+      },
     );
 
     if (upd.modifiedCount > 0 && txn.product) {
       await Product.updateOne(
         { _id: txn.product },
-        { $set: { isAvailable: true } }
+        { $set: { isAvailable: true } },
       );
     }
     return new Response("Order expired", { status: 410 });
@@ -336,23 +336,24 @@ export async function PATCH(req, { params }) {
     if (txn.product) {
       await Product.updateOne(
         { _id: txn.product },
-        { $set: { isAvailable: true } }
+        { $set: { isAvailable: true } },
       );
     }
 
     return Response.json({ success: true, status: txn.status });
   }
 
-  if (action === "start_chat") {
-    if (txn.kind === "BUY_SELL" && txn.status === "PAYMENT_SUCCESSFUL") {
-      txn.status = "DELIVERY_IN_PROGRESS";
-      txn.timeline.push({ by: me._id, action: "CHAT_STARTED" });
-      await txn.save();
-    }
-    return Response.json({ success: true });
-  }
+  // ✅ Start chat can move to DELIVERY_IN_PROGRESS (same as your idea)
+  // if (action === "start_chat") {
+  //   if (txn.kind === "BUY_SELL" && txn.status === "PAYMENT_SUCCESSFUL") {
+  //     txn.status = "DELIVERY_IN_PROGRESS";
+  //     txn.timeline.push({ by: me._id, action: "CHAT_STARTED" });
+  //     await txn.save();
+  //   }
+  //   return Response.json({ success: true });
+  // }
 
-  // ---- Seller accepts after admin approved (ESCROW_FUNDED -> SELLER_ACCEPTED) ----
+  // ---- Seller accepts (unchanged) ----
   if (action === "seller_accept") {
     const isSeller = String(txn.seller) === String(me._id);
     if (!isSeller) return new Response("Forbidden", { status: 403 });
@@ -364,6 +365,7 @@ export async function PATCH(req, { params }) {
     txn.status = "SELLER_ACCEPTED";
     txn.timeline.push({ by: me._id, action: "SELLER_ACCEPTED" });
     await txn.save();
+
     await notifyTxnEvent({
       txn,
       actorId: me._id,
@@ -418,340 +420,78 @@ export async function PATCH(req, { params }) {
     if (txn.product) {
       await Product.updateOne(
         { _id: txn.product },
-        { $set: { isAvailable: true } }
+        { $set: { isAvailable: true } },
       );
     }
 
     return Response.json({ success: true, status: txn.status });
   }
 
-  // ---- Seller sets delivery details (DELIVERY method) ----
-  if (action === "seller_set_delivery") {
+  // ✅ NEW: Seller uploads proof -> start auto-confirm countdown
+  if (action === "seller_upload_proof") {
     const isSeller = String(txn.seller) === String(me._id);
     if (!isSeller) return new Response("Forbidden", { status: 403 });
 
-    if (!["PAYMENT_SUCCESSFUL", "SELLER_ACCEPTED"].includes(txn.status)) {
+    if (!["DELIVERY_IN_PROGRESS", "SELLER_ACCEPTED"].includes(txn.status)) {
       return new Response("Not allowed in current state", { status: 409 });
     }
-    if (txn.fulfillment?.method !== "DELIVERY") {
-      return new Response("Not a delivery order", { status: 409 });
+
+    const { proofUrls } = body || {};
+    const urls = Array.isArray(proofUrls)
+      ? proofUrls.map((s) => String(s || "").trim()).filter(Boolean)
+      : [];
+
+    if (urls.length === 0) {
+      return new Response("proofUrls is required", { status: 400 });
     }
 
-    const { scheduledAt, carrier = "", tracking = "", notes = "" } = body || {};
-    if (!scheduledAt)
-      return new Response("scheduledAt required", { status: 400 });
-
-    const sched = new Date(scheduledAt);
-    if (isNaN(sched.getTime()))
-      return new Response("Invalid scheduledAt", { status: 400 });
-
-    // Window: from now up to 10 days
     const now = new Date();
-    const max = new Date(now);
-    max.setDate(max.getDate() + 10);
-    if (sched < now)
-      return new Response("Schedule cannot be in the past", { status: 400 });
-    if (sched > max)
-      return new Response("Schedule must be within 10 days", { status: 400 });
 
-    // Optional but recommended: enforce max 3 edits on server (mirrors UI)
-    const editCount =
-      (txn.timeline || []).filter(
-        (e) =>
-          String(e?.by || "") === String(me._id) &&
-          String(e?.action || "").toUpperCase() === "SELLER_SET_DELIVERY"
-      ).length || 0;
-    if (editCount >= 3)
-      return new Response("Edit limit reached (3)", { status: 409 });
+    // ✅ Change countdown duration here
+    const AUTO_CONFIRM_DAYS = 3;
+    const autoConfirmAt = new Date(
+      now.getTime() + AUTO_CONFIRM_DAYS * 24 * 60 * 60 * 1000,
+    );
 
-    txn.fulfillment = {
-      ...(txn.fulfillment?.toObject?.() || txn.fulfillment || {}),
-      scheduledAt: sched,
-      carrier,
-      tracking,
-      notes,
-    };
+    // (If you want testing: 90 seconds)
+    // const autoConfirmAt = new Date(now.getTime() + 90 * 1000);
+
+    txn.status = "SELLER_PROOF_UPLOADED";
+    txn.sellerProofUrls = urls;
+    txn.sellerProofUploadedAt = now;
+    txn.autoConfirmAt = autoConfirmAt;
 
     txn.timeline.push({
+      at: now,
       by: me._id,
-      action: "SELLER_SET_DELIVERY",
-      meta: { scheduledAt: sched, carrier, tracking },
+      action: "SELLER_PROOF_UPLOADED",
+      meta: { count: urls.length, autoConfirmAt },
     });
+
     await txn.save();
+
     await notifyTxnEvent({
       txn,
       actorId: me._id,
-      type: "SELLER_SET_DELIVERY",
+      type: "SELLER_PROOF_UPLOADED",
     });
 
     return Response.json({
       success: true,
       status: txn.status,
-      fulfillment: txn.fulfillment,
+      sellerProofUrls: txn.sellerProofUrls,
+      autoConfirmAt: txn.autoConfirmAt,
     });
   }
 
-  // ---- Seller starts delivery (moves to DELIVERY_IN_PROGRESS) ----
-  if (action === "mark_delivery_in_progress") {
-    const isSeller = String(txn.seller) === String(me._id);
-    if (!isSeller) return new Response("Forbidden", { status: 403 });
-
-    if (!["PAYMENT_SUCCESSFUL", "SELLER_ACCEPTED"].includes(txn.status)) {
-      return new Response("Not allowed in current state", { status: 409 });
-    }
-    if (txn.fulfillment?.method !== "DELIVERY") {
-      return new Response("Not a delivery order", { status: 409 });
-    }
-    if (!txn.fulfillment?.scheduledAt) {
-      return new Response("Set scheduledAt first", { status: 409 });
-    }
-
-    txn.status = "DELIVERY_IN_PROGRESS";
-    txn.timeline.push({ by: me._id, action: "DELIVERY_STARTED" });
-    await txn.save();
-    await notifyTxnEvent({
-      txn,
-      actorId: me._id,
-      type: "DELIVERY_STARTED",
-    });
-
-    return Response.json({ success: true, status: txn.status });
-  }
-
-  // ---- Propose meetup (either side) ----
-  if (action === "propose_meetup") {
-    const isParty =
-      String(txn.buyer) === String(me._id) ||
-      String(txn.seller) === String(me._id);
-    if (!isParty) return new Response("Forbidden", { status: 403 });
-
-    if (
-      !["PAYMENT_SUCCESSFUL", "AWAITING_DONOR", "SELLER_ACCEPTED"].includes(
-        txn.status
-      )
-    ) {
-      return new Response("Not allowed in current state", { status: 409 });
-    }
-
-    if (txn.fulfillment?.method !== "MEETUP") {
-      return new Response("Not a meetup order", { status: 409 });
-    }
-
-    // Prevent same person from proposing again while there's an open proposal
-    if (
-      txn.fulfillment?.meetupProposedAt &&
-      String(txn.fulfillment?.meetupProposedBy || "") === String(me._id)
-    ) {
-      return new Response("Other party must accept or counter", {
-        status: 409,
-      });
-    }
-
-    const { meetupLocation = "", meetupProposedAt } = body || {};
-    if (!meetupLocation)
-      return new Response("meetupLocation required", { status: 400 });
-
-    const proposed = new Date(meetupProposedAt);
-    if (isNaN(proposed.getTime()))
-      return new Response("Invalid meetupProposedAt", { status: 400 });
-
-    // Window: from now up to 10 days
-    const now = new Date();
-    const max = new Date(now);
-    max.setDate(max.getDate() + 10);
-    if (proposed < now)
-      return new Response("Proposed time cannot be in the past", {
-        status: 400,
-      });
-    if (proposed > max)
-      return new Response("Proposed time must be within 10 days", {
-        status: 400,
-      });
-
-    txn.fulfillment = {
-      ...(txn.fulfillment?.toObject?.() || txn.fulfillment || {}),
-      meetupLocation,
-      meetupProposedAt: proposed,
-      meetupProposedBy: me._id,
-      meetupAgreedAt: undefined,
-      meetupScheduledAt: undefined,
-    };
-
-    txn.timeline.push({
-      by: me._id,
-      action: "MEETUP_PROPOSED",
-      meta: { meetupLocation, meetupProposedAt: proposed },
-    });
-    await txn.save();
-    await notifyTxnEvent({
-      txn,
-      actorId: me._id,
-      type: "MEETUP_PROPOSED",
-    });
-
-    return Response.json({ success: true, fulfillment: txn.fulfillment });
-  }
-
-  // ---- Accept meetup (other side confirms) -> move to DELIVERY_IN_PROGRESS ----
-  if (action === "accept_meetup") {
-    const isBuyer = String(txn.buyer) === String(me._id);
-    const isSeller = String(txn.seller) === String(me._id);
-    if (!isBuyer && !isSeller)
-      return new Response("Forbidden", { status: 403 });
-
-    if (txn.fulfillment?.method !== "MEETUP") {
-      return new Response("Not a meetup order", { status: 409 });
-    }
-
-    // ✅ Allow accept only if current status is valid
-    if (
-      !["PAYMENT_SUCCESSFUL", "AWAITING_DONOR", "SELLER_ACCEPTED"].includes(
-        txn.status
-      )
-    ) {
-      return new Response("Not allowed in current state", { status: 409 });
-    }
-
-    if (
-      !txn.fulfillment?.meetupProposedAt ||
-      !txn.fulfillment?.meetupLocation
-    ) {
-      return new Response("No meetup proposal to accept", { status: 409 });
-    }
-
-    // Optional: ensure the accepter is not the same as the proposer
-    if (String(txn.fulfillment?.meetupProposedBy) === String(me._id)) {
-      return new Response("Other party must accept", { status: 409 });
-    }
-
-    const agreed = new Date();
-    txn.fulfillment.meetupAgreedAt = agreed;
-    txn.fulfillment.meetupScheduledAt = txn.fulfillment.meetupProposedAt;
-    txn.status = "DELIVERY_IN_PROGRESS";
-
-    txn.timeline.push({ by: me._id, action: "MEETUP_ACCEPTED" });
-    await txn.save();
-    await notifyTxnEvent({
-      txn,
-      actorId: me._id,
-      type: "MEETUP_ACCEPTED",
-    });
-
-    return Response.json({
-      success: true,
-      status: txn.status,
-      fulfillment: txn.fulfillment,
-    });
-  }
-
-  // ---- Optional: update common notes (either side) ----
-  if (action === "update_notes") {
-    const isParty =
-      String(txn.buyer) === String(me._id) ||
-      String(txn.seller) === String(me._id);
-    if (!isParty) return new Response("Forbidden", { status: 403 });
-
-    const { notes = "" } = body || {};
-    txn.fulfillment = {
-      ...(txn.fulfillment?.toObject?.() || txn.fulfillment || {}),
-      notes,
-    };
-    txn.timeline.push({ by: me._id, action: "FULFILLMENT_NOTES_UPDATED" });
-    await txn.save();
-    return Response.json({ success: true, fulfillment: txn.fulfillment });
-  }
-
-  // ---- Seller marks "delivered" (DELIVERY flow) -> SELLER_DELIVERED ----
-  if (action === "seller_mark_delivered") {
-    const isSeller = String(txn.seller) === String(me._id);
-    if (!isSeller) return new Response("Forbidden", { status: 403 });
-
-    if (txn.fulfillment?.method !== "DELIVERY") {
-      return new Response("Not a delivery order", { status: 409 });
-    }
-    if (!["DELIVERY_IN_PROGRESS"].includes(txn.status)) {
-      return new Response("Not allowed in current state", { status: 409 });
-    }
-
-    // ⛔ new: must not be before scheduledAt
-    const sched = txn.fulfillment?.scheduledAt
-      ? new Date(txn.fulfillment.scheduledAt).getTime()
-      : NaN;
-    if (!Number.isFinite(sched)) {
-      return new Response("scheduledAt is missing", { status: 409 });
-    }
-    if (Date.now() < sched) {
-      return new Response("Too early to mark delivered", { status: 409 });
-    }
-
-    txn.status = "SELLER_DELIVERED";
-    //txn.autoConfirmAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // +3 days
-    txn.autoConfirmAt = new Date(Date.now() + 1.5 * 60 * 1000); // +90 seconds
-    txn.timeline.push({
-      at: new Date(),
-      by: me._id,
-      action: "SELLER_DELIVERED",
-      meta: { autoConfirmAt: txn.autoConfirmAt },
-    });
-    await txn.save();
-    await notifyTxnEvent({
-      txn,
-      actorId: me._id,
-      type: "SELLER_DELIVERED",
-    });
-
-    return Response.json({ success: true, status: txn.status });
-  }
-
-  // ---- Seller marks "meetup completed" (MEETUP flow) -> MEETUP_COMPLETED ----
-  if (action === "mark_meetup_completed") {
-    const isSeller = String(txn.seller) === String(me._id);
-    if (!isSeller) return new Response("Forbidden", { status: 403 });
-
-    if (txn.fulfillment?.method !== "MEETUP") {
-      return new Response("Not a meetup order", { status: 409 });
-    }
-    if (!["DELIVERY_IN_PROGRESS"].includes(txn.status)) {
-      return new Response("Not allowed in current state", { status: 409 });
-    }
-
-    // ⛔ new: must not be before agreed/scheduled meetup time
-    const scheduled =
-      txn.fulfillment?.meetupScheduledAt || txn.fulfillment?.meetupProposedAt;
-    const meetTs = scheduled ? new Date(scheduled).getTime() : NaN;
-    if (!Number.isFinite(meetTs)) {
-      return new Response("Meetup time is missing", { status: 409 });
-    }
-    if (Date.now() < meetTs) {
-      return new Response("Too early to complete meetup", { status: 409 });
-    }
-
-    txn.status = "MEETUP_COMPLETED";
-    //txn.autoConfirmAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // +3 days
-    txn.autoConfirmAt = new Date(Date.now() + 1.5 * 60 * 1000); // +90 seconds
-    txn.timeline.push({
-      at: new Date(),
-      by: me._id,
-      action: "MEETUP_COMPLETED",
-      meta: { autoConfirmAt: txn.autoConfirmAt },
-    });
-    await txn.save();
-    await notifyTxnEvent({
-      txn,
-      actorId: me._id,
-      type: "MEETUP_COMPLETED",
-    });
-
-    return Response.json({ success: true, status: txn.status });
-  }
-
-  // ---- Buyer confirms receipt -> BUYER_CONFIRMED ----
   if (action === "buyer_confirm") {
     const isBuyer = String(txn.buyer) === String(me._id);
     if (!isBuyer) return new Response("Forbidden", { status: 403 });
 
-    // ✅ NEW: confirm directly from DELIVERY_IN_PROGRESS
-    if (txn.status !== "DELIVERY_IN_PROGRESS") {
+    // allow confirm from in-progress OR after proof uploaded
+    if (
+      !["DELIVERY_IN_PROGRESS", "SELLER_PROOF_UPLOADED"].includes(txn.status)
+    ) {
       return new Response("Not allowed in current state", { status: 409 });
     }
 
@@ -764,14 +504,14 @@ export async function PATCH(req, { params }) {
       action: "BUYER_CONFIRMED",
     });
 
-    // record buyer expense
     const spendAmount = Number(txn.total || 0);
     await User.updateOne(
       { _id: txn.buyer },
-      { $inc: { expenses: spendAmount } }
+      { $inc: { expenses: spendAmount } },
     );
 
     await txn.save();
+
     await notifyTxnEvent({
       txn,
       actorId: me._id,
@@ -780,4 +520,6 @@ export async function PATCH(req, { params }) {
 
     return Response.json({ success: true, status: txn.status });
   }
+
+  return new Response("Unknown action", { status: 400 });
 }

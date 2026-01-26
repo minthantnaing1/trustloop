@@ -1,4 +1,3 @@
-// app/api/transactions/route.js
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
@@ -11,20 +10,12 @@ export async function POST(req) {
   if (!session?.user?.email)
     return new Response("Unauthorized", { status: 401 });
 
-  const {
-    productId,
-    // NEW: buyer selection at checkout
-    method, // "DELIVERY" | "MEETUP"
-    address = "", // if DELIVERY
-    meetupLocation = "", // if MEETUP
-  } = await req.json();
+  const { productId, buyerLocation = "" } = await req.json();
 
   if (!productId) return new Response("productId required", { status: 400 });
-  if (!method || !["DELIVERY", "MEETUP"].includes(method)) {
-    return new Response("valid method required (DELIVERY or MEETUP)", {
-      status: 400,
-    });
-  }
+
+  const loc = String(buyerLocation || "").trim();
+  if (!loc) return new Response("buyerLocation required", { status: 400 });
 
   await connectDB();
 
@@ -36,8 +27,10 @@ export async function POST(req) {
     "PENDING_PAYMENT",
     "PAYMENT_SUCCESSFUL",
     "DELIVERY_IN_PROGRESS",
+    "SELLER_PROOF_UPLOADED",
     "BUYER_CONFIRMED",
   ];
+
   const existing = await Transaction.findOne({
     product: productId,
     buyer: buyerUser._id,
@@ -47,6 +40,7 @@ export async function POST(req) {
       { expiresAt: { $gt: new Date() } },
     ],
   });
+
   if (existing) {
     return Response.json({ transactionId: existing._id, reused: true });
   }
@@ -55,17 +49,16 @@ export async function POST(req) {
   const product = await Product.findOneAndUpdate(
     { _id: productId, isAvailable: true },
     { $set: { isAvailable: false } },
-    { new: true }
+    { new: true },
   ).populate("owner");
 
   if (!product) {
     return new Response("Product not available", { status: 400 });
   }
   if (String(product.owner?._id) === String(buyerUser._id)) {
-    // Roll back the reservation if it’s the owner
     await Product.updateOne(
       { _id: productId },
-      { $set: { isAvailable: true } }
+      { $set: { isAvailable: true } },
     );
     return new Response("Cannot buy your own product", { status: 400 });
   }
@@ -82,37 +75,23 @@ export async function POST(req) {
   // seller receives price − fee
   const sellerNet = price - fee;
 
-  // fulfillment from buyer choice
-  const fulfillment =
-    method === "DELIVERY"
-      ? {
-          method,
-          address: address || buyerUser.defaultLocation || "",
-          notes: "",
-        }
-      : {
-          method,
-          meetupLocation: meetupLocation || buyerUser.defaultLocation || "",
-          notes: "",
-        };
-
   try {
     const txn = await Transaction.create({
       product: product._id,
       seller: product.owner._id,
       buyer: buyerUser._id,
-      status: "PENDING_PAYMENT", // unpaid state
+      status: "PENDING_PAYMENT",
       price,
       fee,
       total,
       sellerNet,
       expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-      fulfillment,
+      buyerLocation: loc,
       timeline: [
         {
           by: buyerUser._id,
           action: "ORDER_CREATED",
-          meta: { method, address, meetupLocation, price, fee, total },
+          meta: { buyerLocation: loc, price, fee, total },
         },
       ],
     });
@@ -127,7 +106,7 @@ export async function POST(req) {
   } catch (e) {
     await Product.updateOne(
       { _id: productId },
-      { $set: { isAvailable: true } }
+      { $set: { isAvailable: true } },
     );
     console.error("Create transaction failed; reservation released:", e);
     return new Response("Server Error", { status: 500 });

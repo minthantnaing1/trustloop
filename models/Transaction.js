@@ -2,51 +2,23 @@ import mongoose from "mongoose";
 
 const { ObjectId } = mongoose.Schema.Types;
 
-const DeliverySchema = new mongoose.Schema(
-  {
-    // Buyer selects at checkout (we log changes in timeline)
-    method: {
-      type: String,
-      enum: ["DELIVERY", "MEETUP"],
-      required: true,
-      index: true,
-    },
-
-    // ---- DELIVERY FIELDS ----
-    address: { type: String, default: "" }, // buyer's entered address
-    carrier: { type: String, default: "" }, // seller sets after accept
-    tracking: { type: String, default: "" }, // seller sets after ship
-    scheduledAt: { type: Date }, // ETA / ship time
-
-    // ---- MEETUP FIELDS ----
-    meetupLocation: { type: String, default: "" },
-    meetupProposedAt: { type: Date },
-    meetupProposedBy: { type: ObjectId, ref: "User" },
-    meetupAgreedAt: { type: Date },
-    meetupScheduledAt: { type: Date },
-
-    // Common notes
-    notes: { type: String, default: "" },
-  },
-  { _id: false }
-);
-
 const TimelineEventSchema = new mongoose.Schema(
   {
     at: { type: Date, default: Date.now },
     by: { type: ObjectId, ref: "User" },
-    action: String, // e.g., "BUYER_CREATED_TXN", "SELLER_SET_DELIVERY", "MEETUP_PROPOSED", "MEETUP_ACCEPTED"
-    meta: Object,
+    action: { type: String, default: "" },
+    meta: { type: Object, default: {} },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const TransactionSchema = new mongoose.Schema({
-  product: { type: ObjectId, ref: "Product", required: true },
-  seller: { type: ObjectId, ref: "User", required: true },
-  buyer: { type: ObjectId, ref: "User", required: true },
+  // Relations
+  product: { type: ObjectId, ref: "Product", required: true, index: true },
+  seller: { type: ObjectId, ref: "User", required: true, index: true },
+  buyer: { type: ObjectId, ref: "User", required: true, index: true },
 
-  // Distinguish donation vs buy/sell without relying on product later
+  // Type
   kind: {
     type: String,
     enum: ["BUY_SELL", "DONATION", "AUCTION"],
@@ -59,11 +31,13 @@ const TransactionSchema = new mongoose.Schema({
     enum: [
       "PENDING_PAYMENT",
       "PAYMENT_SUCCESSFUL",
-      "AWAITING_DONOR", // added for donation flow
+      "AWAITING_DONOR",
       "SELLER_ACCEPTED",
       "DELIVERY_IN_PROGRESS",
-      "SELLER_DELIVERED",
-      "MEETUP_COMPLETED",
+
+      // ✅ NEW: seller uploaded proof, countdown starts
+      "SELLER_PROOF_UPLOADED",
+
       "BUYER_CONFIRMED",
       "PAID_OUT",
       "CANCELLED_BY_BUYER",
@@ -74,34 +48,45 @@ const TransactionSchema = new mongoose.Schema({
     index: true,
   },
 
-  // Money (for donation, all zero)
-  price: { type: Number, required: true },
-  fee: { type: Number, required: true },
-  total: { type: Number, required: true },
-  sellerNet: { type: Number, required: true },
+  // Money (donation can be zeros)
+  price: { type: Number, required: true, default: 0 },
+  fee: { type: Number, required: true, default: 0 },
+  total: { type: Number, required: true, default: 0 },
+  sellerNet: { type: Number, required: true, default: 0 },
+
+  // ✅ Buyer-provided location (since no fulfillment)
+  buyerLocation: { type: String, default: "" },
 
   // Deadlines / proofs
-  expiresAt: { type: Date }, // e.g., upload deadline
-  buyerReceiptUrl: { type: String, default: "" }, // Cloudinary URL
-  adminPayoutReceiptUrl: { type: String, default: "" },
+  expiresAt: { type: Date },
+  buyerReceiptUrl: { type: String, default: "" }, // payment slip
+  adminPayoutReceiptUrl: { type: String, default: "" }, // admin payout proof (if any)
 
-  // Unified fulfillment object
-  fulfillment: { type: DeliverySchema, required: true },
+  // ✅ Seller proof (image URLs) + auto confirm
+  sellerProofUrls: { type: [String], default: [] },
+  sellerProofUploadedAt: { type: Date },
+  autoConfirmAt: { type: Date },
 
-  // Optional cancellations / rejections
+  // Admin / routing fields (keep if you already use these)
+  payAdmin: { type: ObjectId, ref: "User" }, // round-robin admin
+
+  // Cancellation / rejection notes
   cancelledBy: { type: ObjectId, ref: "User" },
   cancelReason: { type: String, default: "" },
   adminRejectReason: { type: String, default: "" },
   requestReason: { type: String, default: "" },
 
   // Audit
-  timeline: [TimelineEventSchema],
+  timeline: { type: [TimelineEventSchema], default: [] },
+
+  // Chat summary (fast UI)
+  lastMessageAt: { type: Date },
+  lastMessageText: { type: String, default: "" },
+
+  reviewed: { type: Boolean, default: false },
 
   createdAt: { type: Date, default: Date.now, index: true },
   updatedAt: { type: Date, default: Date.now },
-
-  autoConfirmAt: { type: Date },
-  reviewed: { type: Boolean, default: false },
 });
 
 // keep updatedAt fresh
@@ -120,16 +105,15 @@ TransactionSchema.index(
         $in: [
           "PENDING_PAYMENT",
           "PAYMENT_SUCCESSFUL",
-          "AWAITING_DONOR", // include donation’s active state
+          "AWAITING_DONOR",
           "SELLER_ACCEPTED",
           "DELIVERY_IN_PROGRESS",
-          "SELLER_DELIVERED",
-          "MEETUP_COMPLETED",
+          "SELLER_PROOF_UPLOADED",
           "BUYER_CONFIRMED",
         ],
       },
     },
-  }
+  },
 );
 
 export default mongoose.models.Transaction ||

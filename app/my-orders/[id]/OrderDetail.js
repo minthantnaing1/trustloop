@@ -1,76 +1,21 @@
-// app/my-orders/[id]/OrderDetail.js
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import StatusPill from "@/components/StatusPill";
 import {
   TruckIcon,
-  MapPinIcon,
-  ClockIcon,
   UserCircleIcon,
   ClipboardDocumentListIcon,
   PhoneIcon,
 } from "@heroicons/react/24/outline";
-import { fmtBKK, toLocalInputValue } from "@/utils/timeAgo";
+import { fmtBKK } from "@/utils/timeAgo";
 import Stepper from "@/components/Stepper";
 import ActionButton from "@/components/ActionButton";
 import SlipLink from "@/components/SlipLink";
 import Timeline from "@/components/Timeline";
-
-// tiny presentational element
-function Field({ icon: Icon, label, value }) {
-  return (
-    <div className="flex items-start gap-2">
-      {Icon && <Icon className="w-5 h-5 mt-0.5 text-[#325082]/70" />}
-      <div>
-        <div className="text-xs uppercase tracking-wide text-[#325082]/70 font-semibold">
-          {label}
-        </div>
-        <div className="text-[15px] text-gray-800">{value ?? "—"}</div>
-      </div>
-    </div>
-  );
-}
-
-// ---- Config
-const MEETUP_MAX_DAYS = 10;
-const DELIVERY_MAX_DAYS = 10;
-
-// Helpers for datetime-local min/max (local time)
-function addDaysLocalInput(days) {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  d.setSeconds(0, 0);
-  return toLocalInputValue(d);
-}
-function nowLocalInput() {
-  const d = new Date();
-  d.setSeconds(0, 0);
-  return toLocalInputValue(d);
-}
-function formatRemaining(ms) {
-  if (ms == null) return "";
-  const total = Math.max(0, Math.floor(ms / 1000));
-  const d = Math.floor(total / 86400);
-  const h = Math.floor((total % 86400) / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-
-  // Show seconds always, with zero-padded units after the largest non-zero
-  if (d > 0)
-    return `${d}d ${String(h).padStart(2, "0")}:${String(m).padStart(
-      2,
-      "0"
-    )}:${String(s).padStart(2, "0")}`;
-  if (h > 0)
-    return `${h}h ${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  return `${m}m ${String(s).padStart(2, "0")}s`;
-}
-
-const deliveryMinLocalInput = () => nowLocalInput();
-const deliveryMaxLocalInput = () => addDaysLocalInput(DELIVERY_MAX_DAYS);
+import TxnChat from "@/components/TxnChat";
 
 function labelParty(kind, isSellerView) {
   if (kind === "DONATION") return isSellerView ? "Recipient" : "Donor";
@@ -94,7 +39,6 @@ export default function OrderDetail({ id }) {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [remainMs, setRemainMs] = useState(null);
-  const [nowMs, setNowMs] = useState(Date.now());
   const router = useRouter();
 
   // refresh once when the timer hits zero (server GET will flip to BUYER_CONFIRMED)
@@ -102,68 +46,45 @@ export default function OrderDetail({ id }) {
   useEffect(() => {
     if (remainMs === 0 && !didRefreshRef.current) {
       didRefreshRef.current = true;
-      // small delay lets server-side auto-confirm persist
       setTimeout(() => {
         load().finally(() => {
-          // allow future refreshes if state changes again
           didRefreshRef.current = false;
         });
       }, 800);
     }
   }, [remainMs]);
 
-  // delivery inputs
-  const [scheduledAt, setScheduledAt] = useState("");
-  const [carrier, setCarrier] = useState("");
-  const [tracking, setTracking] = useState("");
-  const [notes, setNotes] = useState("");
-  const [deliveryMsg, setDeliveryMsg] = useState("");
+  const kind = txn?.kind || "BUY_SELL";
+  const isBuyer = me && txn && String(txn.buyer?._id) === String(me._id);
+  const isSeller = me && txn && String(txn.seller?._id) === String(me._id);
 
-  // meetup inputs
-  const [meetLoc, setMeetLoc] = useState("");
-  const [meetTime, setMeetTime] = useState("");
-  const [meetWarn, setMeetWarn] = useState("");
-  const [sameWarn, setSameWarn] = useState("");
-
-  // min/max windows
-  const meetMin = useMemo(() => nowLocalInput(), []);
-  const meetMax = useMemo(() => addDaysLocalInput(MEETUP_MAX_DAYS), []);
-  const deliveryMin = useMemo(() => deliveryMinLocalInput(), []);
-  const deliveryMax = useMemo(() => deliveryMaxLocalInput(), []);
-
-  // deliver/meetup
-  const [deliveredWarn, setDeliveredWarn] = useState("");
-  const [meetupWarnClick, setMeetupWarnClick] = useState("");
+  const otherParty = isSeller ? txn?.buyer : txn?.seller;
+  const otherRoleLabel = labelParty(kind, isSeller);
+  const otherPhone = otherParty?.phone || "";
 
   async function load() {
     const [txnRes, meRes] = await Promise.all([
       fetch(`/api/transactions/${id}`, { cache: "no-store" }),
       fetch(`/api/users/me`, { cache: "no-store" }).catch(() => null),
     ]);
+
     if (!txnRes.ok) throw new Error(await txnRes.text());
     const data = await txnRes.json();
     setTxn(data);
 
-    const f = data.fulfillment || {};
-    setCarrier(f.carrier || "");
-    setTracking(f.tracking || "");
-    setNotes(f.notes || "");
-    setMeetLoc(f.meetupLocation || "");
-    setScheduledAt(toLocalInputValue(f.scheduledAt));
-    setMeetTime(toLocalInputValue(f.meetupProposedAt));
-
-    // inside load()
     if (meRes?.ok) {
       const m = await meRes.json();
-      setMe(m?.user || m); // <- store the real user document
+      setMe(m?.user || m);
     }
   }
 
+  // initial load
   useEffect(() => {
     load().catch((e) => setErr(e.message || "Failed to load order"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  // auto-confirm timer
   useEffect(() => {
     if (!txn) return;
 
@@ -183,15 +104,6 @@ export default function OrderDetail({ id }) {
     return () => clearInterval(t);
   }, [txn?.status, txn?.autoConfirmAt]);
 
-  const isBuyer = me && txn && String(txn.buyer?._id) === String(me._id);
-  const isSeller = me && txn && String(txn.seller?._id) === String(me._id);
-  const kind = txn?.kind || "BUY_SELL";
-  const method = txn?.fulfillment?.method || "—";
-
-  const otherParty = isSeller ? txn?.buyer : txn?.seller;
-  const otherRoleLabel = labelParty(kind, isSeller);
-  const otherPhone = otherParty?.phone || "";
-
   async function doPatch(payload) {
     try {
       setBusy(true);
@@ -202,33 +114,12 @@ export default function OrderDetail({ id }) {
       });
       if (!res.ok) throw new Error(await res.text());
 
-      // Seller/Donor → Delivered/Meetup completed
-      if (
-        isSeller &&
-        (payload?.action === "seller_mark_delivered" ||
-          payload?.action === "mark_meetup_completed")
-      ) {
-        if (kind !== "DONATION") {
-          // Buy & Sell: go to payout
-          window.dispatchEvent(new CustomEvent("overlay:show"));
-          router.push(`/my-orders/${id}/payout`);
-          return;
-        } else {
-          // Donation (donor): also go to the (repurposed) payout page
-          window.dispatchEvent(new CustomEvent("overlay:show"));
-          router.push(`/my-orders/${id}/payout`);
-          return;
-        }
-      }
-
-      // Buyer/Recipient → Confirm (both kinds go to review page)
       if (isBuyer && payload?.action === "buyer_confirm") {
         window.dispatchEvent(new CustomEvent("overlay:show"));
         router.push(`/review/${id}`);
         return;
       }
 
-      // Other mutations: refresh current page state
       await load();
     } catch (e) {
       alert(e.message || "Failed");
@@ -236,112 +127,6 @@ export default function OrderDetail({ id }) {
       setBusy(false);
     }
   }
-
-  // times as numbers (ms) for comparisons
-  const schedAtMs = txn?.fulfillment?.scheduledAt
-    ? new Date(txn.fulfillment.scheduledAt).getTime()
-    : null;
-
-  const meetupAtMs =
-    txn?.fulfillment?.meetupScheduledAt || txn?.fulfillment?.meetupProposedAt
-      ? new Date(
-          txn.fulfillment.meetupScheduledAt || txn.fulfillment.meetupProposedAt
-        ).getTime()
-      : null;
-
-  // Keep "now" fresh while delivery/meetup completion buttons might unlock
-  useEffect(() => {
-    const active =
-      txn &&
-      txn.status === "DELIVERY_IN_PROGRESS" &&
-      (txn.fulfillment?.method === "MEETUP" ||
-        txn.fulfillment?.method === "DELIVERY");
-
-    if (!active) return;
-    const t = setInterval(() => setNowMs(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, [txn?.status, txn?.fulfillment?.method]);
-
-  const canMarkDeliveredNow =
-    method === "DELIVERY" &&
-    txn.status === "DELIVERY_IN_PROGRESS" &&
-    Number.isFinite(schedAtMs) &&
-    nowMs >= schedAtMs;
-
-  const canMarkMeetupNow =
-    method === "MEETUP" &&
-    txn.status === "DELIVERY_IN_PROGRESS" &&
-    Number.isFinite(meetupAtMs) &&
-    nowMs >= meetupAtMs;
-
-  useEffect(() => {
-    if (canMarkDeliveredNow && deliveredWarn) setDeliveredWarn("");
-  }, [canMarkDeliveredNow, deliveredWarn]);
-
-  useEffect(() => {
-    if (canMarkMeetupNow && meetupWarnClick) setMeetupWarnClick("");
-  }, [canMarkMeetupNow, meetupWarnClick]);
-
-  // Validation helpers
-  function validateMeetupWindow(dtStr) {
-    if (!dtStr) return false;
-    const chosen = new Date(dtStr).getTime();
-    const min = new Date(meetMin).getTime();
-    const max = new Date(meetMax).getTime();
-    return chosen >= min && chosen <= max;
-  }
-  function validateDeliveryWindow(dtStr) {
-    if (!dtStr) return true; // allow empty until set
-    const chosen = new Date(dtStr).getTime();
-    const min = new Date(deliveryMin).getTime();
-    const max = new Date(deliveryMax).getTime();
-    return chosen >= min && chosen <= max;
-  }
-
-  function ChatInput({ onSend, disabled }) {
-    const [text, setText] = useState("");
-
-    return (
-      <div className="flex items-center gap-2 px-3 py-2 border-t border-[#e7ecf8] bg-white">
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Type a message..."
-          disabled={disabled}
-          className="flex-1 rounded-[3px] border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#325082]"
-        />
-        <ActionButton
-          text="Send"
-          variant="primaryClick"
-          disabled={disabled}
-          onClick={() => {
-            onSend(text);
-            setText("");
-          }}
-        />
-      </div>
-    );
-  }
-
-  // Count seller delivery edits from timeline (client guard)
-  const deliveryEdits = useMemo(() => {
-    if (!txn || !me) return 0;
-    const items = Array.isArray(txn.timeline) ? txn.timeline : [];
-    return items.filter((e) => {
-      const byMe = String(e?.by || "") === String(me._id || "");
-      const act = String(e?.action || "").toLowerCase();
-      return (
-        byMe &&
-        (act.includes("seller_set_delivery") || act.includes("set_delivery"))
-      );
-    }).length;
-  }, [txn, me]);
-  const canEditDelivery = useMemo(() => {
-    return (
-      deliveryEdits < 3 &&
-      ["ESCROW_FUNDED", "SELLER_ACCEPTED"].includes(txn?.status)
-    );
-  }, [deliveryEdits, txn]);
 
   const card =
     "rounded-[3px] bg-white/95 shadow-md ring-1 ring-[#e6eeff] backdrop-blur";
@@ -351,54 +136,21 @@ export default function OrderDetail({ id }) {
   if (err) return <p className="text-red-600 mb-3">{err}</p>;
   if (!txn) return <p className="text-gray-500">Loading…</p>;
 
-  // Meetup proposal state (who proposed last)
-  const hasProposal =
-    Boolean(txn.fulfillment?.meetupProposedAt) &&
-    Boolean(txn.fulfillment?.meetupLocation);
-  const proposedByMe =
-    hasProposal &&
-    me &&
-    String(txn.fulfillment?.meetupProposedBy || "") === String(me._id || "");
-
-  // current proposal vs your inputs (to prevent re-submitting identical proposal)
-  const currentLoc = txn.fulfillment?.meetupLocation || "";
-  const currentTimeIso = txn.fulfillment?.meetupProposedAt
-    ? new Date(txn.fulfillment.meetupProposedAt).toISOString()
-    : "";
-  const inputTimeIso = meetTime ? new Date(meetTime).toISOString() : "";
-  const isSameProposal =
-    currentLoc.trim() === (meetLoc || "").trim() &&
-    currentTimeIso === inputTimeIso;
-
-  // compare form inputs vs saved fulfillment (normalize date to ISO)
-  const savedScheduledIso = txn?.fulfillment?.scheduledAt
-    ? new Date(txn.fulfillment.scheduledAt).toISOString()
-    : "";
-  const inputScheduledIso = scheduledAt
-    ? new Date(scheduledAt).toISOString()
-    : "";
-
-  const isDeliveryUnchanged =
-    savedScheduledIso === inputScheduledIso &&
-    (carrier || "") === (txn?.fulfillment?.carrier || "") &&
-    (tracking || "") === (txn?.fulfillment?.tracking || "") &&
-    (notes || "") === (txn?.fulfillment?.notes || "");
-
   return (
     <div className="space-y-6">
       {/* Progress (UI-only stepper) */}
       {me && txn && (
         <Stepper
           className="px-1"
-          current={2} // always step 3 here
+          current={2}
           variant={
             kind === "DONATION"
               ? isSeller
                 ? "donor"
                 : "recipient"
               : isBuyer
-              ? "buyer"
-              : "seller"
+                ? "buyer"
+                : "seller"
           }
         />
       )}
@@ -420,9 +172,8 @@ export default function OrderDetail({ id }) {
           </div>
         </div>
 
-        {/* Party info (left) + Product info (right) */}
+        {/* Party info + Product info */}
         <div className="mt-6 flex flex-col md:flex-row gap-6">
-          {/* Left: Other party */}
           <div className="rounded-[3px] bg-[#f6f9ff] p-4 ring-1 ring-[#e6eeff] md:flex-1">
             <div className={sectionTitle}>
               <UserCircleIcon className="w-5 h-5" />
@@ -430,13 +181,11 @@ export default function OrderDetail({ id }) {
             </div>
 
             {(() => {
-              // show contact only after seller has accepted (or later states)
               const CONTACT_OK_STATUSES = new Set([
                 "PAYMENT_SUCCESSFUL",
                 "SELLER_ACCEPTED",
                 "DELIVERY_IN_PROGRESS",
-                "SELLER_DELIVERED",
-                "MEETUP_COMPLETED",
+                "SELLER_PROOF_UPLOADED",
                 "BUYER_CONFIRMED",
                 "PAID_OUT",
               ]);
@@ -448,12 +197,10 @@ export default function OrderDetail({ id }) {
                     {otherParty?.name || otherParty?.email || "-"}
                   </div>
 
-                  {/* Email */}
                   <div className="text-sm text-gray-600">
                     {canShowContact ? otherParty?.email || "—" : ""}
                   </div>
 
-                  {/* Phone */}
                   {canShowContact && otherPhone && (
                     <a
                       href={`tel:${otherPhone}`}
@@ -468,7 +215,6 @@ export default function OrderDetail({ id }) {
             })()}
           </div>
 
-          {/* Right: Product info */}
           <div className="rounded-[3px] bg-[#f6f9ff] p-4 ring-1 ring-[#e6eeff] md:flex-1">
             <div className="text-lg font-bold text-[#325082] mb-2">
               {kind === "DONATION"
@@ -476,8 +222,8 @@ export default function OrderDetail({ id }) {
                   ? "My Donation:"
                   : "Donation Item:"
                 : isSeller
-                ? "My Product:"
-                : "Product:"}
+                  ? "My Product:"
+                  : "Product:"}
             </div>
             <h3 className="text-lg font-semibold text-[#325082]">
               {txn.product?.title || "-"}
@@ -512,7 +258,7 @@ export default function OrderDetail({ id }) {
           <div className="text-sm text-gray-600">
             Updated {fmtBKK(txn.updatedAt || txn.createdAt)}
           </div>
-          {/* Buttons on the right */}
+
           <div className="flex items-center gap-6 text-sm">
             {txn.buyerReceiptUrl && (
               <SlipLink url={txn.buyerReceiptUrl} title="Buyer Payment Slip">
@@ -533,8 +279,8 @@ export default function OrderDetail({ id }) {
                   ? "My Donation Details"
                   : "Donation Details"
                 : isSeller
-                ? "My Product Details"
-                : "Product Details"}
+                  ? "My Product Details"
+                  : "Product Details"}
             </Link>
 
             {/* Buyer: Confirm Received */}
@@ -547,7 +293,7 @@ export default function OrderDetail({ id }) {
               />
             )}
 
-            {/* Buyer/Recipient: Order Summary & Review */}
+            {/* Buyer: Review */}
             {isBuyer &&
               (txn.status === "BUYER_CONFIRMED" ||
                 txn.status === "PAID_OUT") && (
@@ -559,19 +305,21 @@ export default function OrderDetail({ id }) {
                 </Link>
               )}
 
-            {/* Seller (Buy & Sell): View Payout */}
+            {/* Seller: payout link */}
             {kind !== "DONATION" &&
               isSeller &&
-              (txn.status === "SELLER_DELIVERED" ||
-                txn.status === "MEETUP_COMPLETED" ||
-                txn.status === "BUYER_CONFIRMED" ||
-                txn.status === "PAID_OUT") && (
+              [
+                "SELLER_DELIVERED",
+                "MEETUP_COMPLETED",
+                "BUYER_CONFIRMED",
+                "PAID_OUT",
+              ].includes(txn.status) && (
                 <Link href={`/my-orders/${id}/payout`}>
                   <ActionButton text="View Payout" variant="primaryClick" />
                 </Link>
               )}
 
-            {/* Donor (Donation): Donation Summary & Review */}
+            {/* Donor (Donation): complete */}
             {kind === "DONATION" &&
               isSeller &&
               txn.status === "BUYER_CONFIRMED" && (
@@ -586,65 +334,19 @@ export default function OrderDetail({ id }) {
         </div>
       </div>
 
-      {/* Fulfillment */}
+      {/* ✅ Fulfillment (Chat) */}
       <div className={`${card} p-6`}>
         <div className={sectionTitle}>
           <TruckIcon className="w-5 h-5" />
           Fulfillment (Chat)
         </div>
 
-        {/* Chat Section */}
-        <div className="mt-4 rounded-[3px] border border-[#e7ecf8] bg-[#f9fbff] flex flex-col h-[360px]">
-          {/* Chat Header */}
-          <div className="px-4 py-2 border-b border-[#e7ecf8] text-sm font-semibold text-[#325082]">
-            Chat with {otherRoleLabel}
-          </div>
-
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 text-sm">
-            {txn.chat?.length ? (
-              txn.chat.map((msg, i) => (
-                <div
-                  key={i}
-                  className={`max-w-[75%] px-3 py-2 rounded-md ${
-                    msg.by === me?._id
-                      ? "ml-auto bg-[#325082] text-white"
-                      : "bg-white border border-gray-200"
-                  }`}
-                >
-                  {msg.text}
-                </div>
-              ))
-            ) : (
-              <div className="text-gray-500 text-center mt-10">
-                No messages yet. Start the conversation to discuss delivery or
-                meetup.
-              </div>
-            )}
-          </div>
-
-          {/* Input */}
-          <ChatInput
-            disabled={busy}
-            onSend={async (text) => {
-              if (!text.trim()) return;
-
-              // 🔁 First chat → update status (BUY & SELL only)
-              if (kind === "BUY_SELL" && txn.status === "PAYMENT_SUCCESSFUL") {
-                await doPatch({ action: "start_chat" });
-              }
-
-              // Local optimistic UI (safe placeholder)
-              setTxn((prev) => ({
-                ...prev,
-                chat: [
-                  ...(prev.chat || []),
-                  { text, by: me._id, at: new Date().toISOString() },
-                ],
-              }));
-            }}
-          />
-        </div>
+        <TxnChat
+          txnId={id}
+          meId={me?._id}
+          title={`Chat with ${otherRoleLabel}`}
+          onStatusChange={() => load()} // refresh txn if first message flips status
+        />
       </div>
 
       {/* Timeline */}

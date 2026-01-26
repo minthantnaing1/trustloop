@@ -16,7 +16,7 @@ export default async function CheckoutPage({ params }) {
   // Fetch product
   const prodRes = await fetch(
     `${process.env.NEXT_PUBLIC_BASE_URL}/api/products/${id}`,
-    { headers: { Cookie: cookieStore.toString() }, cache: "no-store" }
+    { headers: { Cookie: cookieStore.toString() }, cache: "no-store" },
   );
   if (!prodRes.ok) return <div>Product not found.</div>;
   const product = await prodRes.json();
@@ -35,7 +35,7 @@ export default async function CheckoutPage({ params }) {
     try {
       const meRes = await fetch(
         `${process.env.NEXT_PUBLIC_BASE_URL}/api/users/me`,
-        { headers: { Cookie: cookieStore.toString() }, cache: "no-store" }
+        { headers: { Cookie: cookieStore.toString() }, cache: "no-store" },
       );
       if (meRes.ok) {
         const { user } = await meRes.json();
@@ -134,10 +134,7 @@ export default async function CheckoutPage({ params }) {
                   Steps on this page
                 </h3>
                 <ul className="text-sm text-gray-700 space-y-1 list-disc pl-5">
-                  <li>
-                    Select your preferred delivery method (meetup or delivery).
-                  </li>
-                  <li>Fill or choose your meetup / delivery location.</li>
+                  <li>Fill or confirm your location for this order.</li>
                   <li>Review the order details and confirm your order.</li>
                 </ul>
               </div>
@@ -173,42 +170,10 @@ export default async function CheckoutPage({ params }) {
                 </div>
 
                 <form id="checkoutForm" className="p-4 space-y-4">
-                  {/* Method */}
-                  <fieldset className="rounded-[5px] border border-gray-300 p-3">
-                    <legend className="text-xs font-semibold text-[#325082] px-1">
-                      Fulfillment Method
-                    </legend>
-                    <div className="flex items-center gap-4 mt-1">
-                      <label className="inline-flex items-center gap-2">
-                        <input
-                          type="radio"
-                          name="method"
-                          value="MEETUP"
-                          defaultChecked
-                          className="accent-[#325082]"
-                        />
-                        <span className="text-sm">Meetup</span>
-                      </label>
-                      <label className="inline-flex items-center gap-2">
-                        <input
-                          type="radio"
-                          name="method"
-                          value="DELIVERY"
-                          className="accent-[#325082]"
-                        />
-                        <span className="text-sm">Delivery</span>
-                      </label>
-                    </div>
-                    <p className="text-xs text-gray-600 mt-2 text-center">
-                      Meetup time can be discussed after seller accepts the
-                      order in order details
-                    </p>
-                  </fieldset>
-
                   {/* Location / Address */}
                   <div>
                     <label className="block text-xs font-semibold text-[#325082] mb-1">
-                      Fill or choose your Location / Address for this order
+                      Confirm your Location for this order
                     </label>
                     <input
                       type="text"
