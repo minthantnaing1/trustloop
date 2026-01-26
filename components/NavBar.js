@@ -545,6 +545,13 @@ function NavBar() {
               All Notifications
             </div>
           </Link>
+          {/* Customer Support (Always Show) */}
+          <Link href="/support" onClick={() => setShowMenu(false)}>
+            <div className="mb-4 hover:underline cursor-pointer">
+              Customer Support
+            </div>
+          </Link>
+
 
           {/* Logout Button */}
           <ActionButton
