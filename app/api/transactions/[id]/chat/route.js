@@ -31,7 +31,7 @@ async function requirePartyAndTxn(txnId) {
   if (!me) return { err: new Response("User not found", { status: 404 }) };
 
   const txn = await Transaction.findById(txnId).select(
-    "buyer seller kind status timeline",
+    "buyer seller kind status timeline sellerProofUrls sellerProofUploadedAt autoConfirmAt",
   );
   if (!txn) return { err: new Response("Not found", { status: 404 }) };
 
@@ -128,17 +128,29 @@ export async function GET(req, { params }) {
   });
 }
 
-// POST /api/transactions/:id/chat { text }
+// POST /api/transactions/:id/chat { text, images }
 export async function POST(req, { params }) {
   const { id } = await params;
 
   const { err, me, txn } = await requirePartyAndTxn(id);
   if (err) return err;
 
+  // ✅ lock chat on completed statuses (server-side safety)
+  if (["BUYER_CONFIRMED", "PAID_OUT"].includes(txn.status)) {
+    return new Response("Chat is closed", { status: 403 });
+  }
+
   const body = await req.json().catch(() => ({}));
   const text = String(body?.text || "").trim();
 
-  if (!text) return new Response("Message is required", { status: 400 });
+  const images = Array.isArray(body?.images)
+    ? body.images.map((s) => String(s || "").trim()).filter(Boolean)
+    : [];
+
+  // ✅ allow text-only OR image-only
+  if (!text && images.length === 0)
+    return new Response("Message or images is required", { status: 400 });
+
   if (text.length > 1500)
     return new Response("Message too long (1500 max)", { status: 400 });
 
@@ -148,27 +160,34 @@ export async function POST(req, { params }) {
     _id: new mongoose.Types.ObjectId(),
     by: me._id,
     text,
+    images, // ✅ NEW
     createdAt: now,
   };
+
+  const previewText = text
+    ? text.slice(0, 140)
+    : images.length
+      ? "[Image]"
+      : "";
 
   // Ensure thread exists + push message (keep last 500)
   const thread = await ChatThread.findOneAndUpdate(
     { txn: txn._id },
     {
       $setOnInsert: { txn: txn._id, buyer: txn.buyer, seller: txn.seller },
-      $set: { lastMessageAt: now, lastMessageText: text.slice(0, 140) },
+      $set: { lastMessageAt: now, lastMessageText: previewText },
       $push: { messages: { $each: [msg], $slice: -MAX_KEEP_MESSAGES } },
     },
     { new: true, upsert: true },
   );
 
-  // Update txn preview fields too (you already have these in Transaction)
+  // Update txn preview fields too
   await Transaction.updateOne(
     { _id: txn._id },
     {
       $set: {
         lastMessageAt: now,
-        lastMessageText: text.slice(0, 140),
+        lastMessageText: previewText,
         updatedAt: now,
       },
     },
@@ -201,6 +220,7 @@ export async function POST(req, { params }) {
     message: {
       _id: msg._id,
       text: msg.text,
+      images: msg.images, // ✅ NEW
       by: populatedBy || me._id,
       createdAt: msg.createdAt,
     },

@@ -14,34 +14,114 @@ function safeIso(d) {
 
 function ChatInput({ onSend, disabled }) {
   const [text, setText] = useState("");
+  const [files, setFiles] = useState([]);
+  const [previews, setPreviews] = useState([]);
+  const fileRef = useRef(null);
+
+  useEffect(() => {
+    const urls = files.map((f) => URL.createObjectURL(f));
+    setPreviews(urls);
+    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+  }, [files]);
+
+  function reset() {
+    setText("");
+    setFiles([]);
+    setPreviews([]);
+    if (fileRef.current) fileRef.current.value = "";
+  }
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 border-t border-[#e7ecf8] bg-white">
-      <input
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Type a message..."
-        disabled={disabled}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            if (!text.trim()) return;
-            onSend(text);
-            setText("");
-          }
-        }}
-        className="flex-1 rounded-[3px] border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#325082]"
-      />
-      <ActionButton
-        text="Send"
-        variant="primaryClick"
-        disabled={disabled || !text.trim()}
-        onClick={() => {
-          if (!text.trim()) return;
-          onSend(text);
-          setText("");
-        }}
-      />
+    <div className="border-t border-[#e7ecf8] bg-white">
+      {previews.length > 0 && (
+        <div className="px-3 pt-3">
+          <div className="grid grid-cols-4 gap-2">
+            {previews.map((src, idx) => (
+              <div
+                key={src}
+                className="relative rounded-md overflow-hidden border border-gray-200"
+              >
+                <img
+                  src={src}
+                  alt="preview"
+                  className="w-full h-16 object-cover"
+                />
+                <button
+                  type="button"
+                  className="absolute top-1 right-1 text-[10px] bg-black/60 text-white rounded px-1.5 py-0.5"
+                  onClick={() =>
+                    setFiles((prev) => prev.filter((_, i) => i !== idx))
+                  }
+                  disabled={disabled}
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 text-[11px] text-gray-500">
+            Selected {previews.length} image(s) (max 3)
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 px-3 py-2">
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Type a message..."
+          disabled={disabled}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              if (!text.trim() && files.length === 0) return;
+              onSend({ text, files });
+              reset();
+            }
+          }}
+          className="flex-1 rounded-[3px] border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#325082]"
+        />
+
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          multiple
+          disabled={disabled}
+          className="hidden"
+          onChange={(e) => {
+            // ✅ FIX: accumulate (append) selections instead of replacing
+            const incoming = Array.from(e.target.files || []);
+            if (!incoming.length) return;
+
+            setFiles((prev) => {
+              const merged = [...prev, ...incoming].slice(0, 3); // ✅ max 3
+              return merged;
+            });
+
+            // allow picking same file again later
+            if (fileRef.current) fileRef.current.value = "";
+          }}
+        />
+
+        <ActionButton
+          text="+ Image"
+          variant="outlineHover"
+          disabled={disabled || files.length >= 3}
+          onClick={() => fileRef.current?.click()}
+        />
+
+        <ActionButton
+          text="Send"
+          variant="primaryClick"
+          disabled={disabled || (!text.trim() && files.length === 0)}
+          onClick={() => {
+            if (!text.trim() && files.length === 0) return;
+            onSend({ text, files });
+            reset();
+          }}
+        />
+      </div>
     </div>
   );
 }
@@ -50,6 +130,7 @@ export default function TxnChat({
   txnId,
   meId,
   title = "Chat",
+  txnStatus,
   onStatusChange,
 }) {
   const [loading, setLoading] = useState(false);
@@ -60,6 +141,9 @@ export default function TxnChat({
   const boxRef = useRef(null);
   const stickRef = useRef(true);
   const pollRef = useRef(null);
+
+  const chatLocked =
+    txnStatus === "BUYER_CONFIRMED" || txnStatus === "PAID_OUT";
 
   const scrollToBottom = useCallback((smooth = true) => {
     const el = boxRef.current;
@@ -101,7 +185,9 @@ export default function TxnChat({
     if (!lastAfter) return;
     try {
       const res = await fetch(
-        `/api/transactions/${txnId}/chat?after=${encodeURIComponent(lastAfter)}&limit=60`,
+        `/api/transactions/${txnId}/chat?after=${encodeURIComponent(
+          lastAfter,
+        )}&limit=60`,
         { cache: "no-store" },
       );
       if (!res.ok) return;
@@ -128,14 +214,37 @@ export default function TxnChat({
     }
   }
 
-  async function send(text) {
-    const trimmed = String(text || "").trim();
-    if (!trimmed || !meId) return;
+  async function uploadOne(file) {
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch("/api/upload", { method: "POST", body: fd });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    return data?.url;
+  }
+
+  async function postMessageDirect({ text, images }) {
+    const res = await fetch(`/api/transactions/${txnId}/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: text || "", images: images || [] }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return await res.json();
+  }
+
+  async function send(payload) {
+    if (chatLocked) return;
+
+    const trimmed = String(payload?.text || "").trim();
+    const files = Array.isArray(payload?.files) ? payload.files : [];
+    if ((!trimmed && files.length === 0) || !meId) return;
 
     const tempId = `tmp_${Date.now()}_${Math.random().toString(16).slice(2)}`;
     const temp = {
       _id: tempId,
       text: trimmed,
+      images: [],
       by: meId,
       createdAt: new Date().toISOString(),
       __temp: true,
@@ -146,14 +255,23 @@ export default function TxnChat({
 
     try {
       setBusy(true);
-      const res = await fetch(`/api/transactions/${txnId}/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: trimmed }),
-      });
-      if (!res.ok) throw new Error(await res.text());
 
-      const data = await res.json();
+      let imageUrls = [];
+      if (files.length) {
+        imageUrls = await Promise.all(files.map(uploadOne));
+        imageUrls = imageUrls.filter(Boolean);
+      }
+
+      if (imageUrls.length) {
+        setItems((prev) =>
+          prev.map((m) => (m._id === tempId ? { ...m, images: imageUrls } : m)),
+        );
+      }
+
+      const data = await postMessageDirect({
+        text: trimmed,
+        images: imageUrls,
+      });
       const serverMsg = data?.message;
 
       setItems((prev) =>
@@ -164,7 +282,6 @@ export default function TxnChat({
 
       if (serverMsg?.createdAt) setLastAfter(safeIso(serverMsg.createdAt));
 
-      // if chat caused txn status change (first message), let parent refresh txn
       if (data?.txnStatus && typeof onStatusChange === "function") {
         onStatusChange(data.txnStatus);
       }
@@ -246,10 +363,31 @@ export default function TxnChat({
               >
                 <div className="whitespace-pre-wrap break-words">
                   {msg.text}
+                  {Array.isArray(msg.images) && msg.images.length > 0 && (
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      {msg.images.map((src, idx) => (
+                        <a
+                          key={src + idx}
+                          href={src}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block"
+                        >
+                          <img
+                            src={src}
+                            alt="chat"
+                            className="w-full h-28 object-cover rounded-md border border-white/20"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 {ts && (
                   <div
-                    className={`mt-1 text-[11px] ${mine ? "text-white/70" : "text-gray-500"}`}
+                    className={`mt-1 text-[11px] ${
+                      mine ? "text-white/70" : "text-gray-500"
+                    }`}
                   >
                     {ts.toLocaleString()}
                   </div>
@@ -260,7 +398,13 @@ export default function TxnChat({
         })}
       </div>
 
-      <ChatInput disabled={busy || !meId} onSend={send} />
+      {chatLocked ? (
+        <div className="border-t border-[#e7ecf8] bg-white px-3 py-3 text-center text-sm text-gray-500">
+          Chat is closed — order completed.
+        </div>
+      ) : (
+        <ChatInput disabled={busy || !meId} onSend={send} />
+      )}
     </div>
   );
 }

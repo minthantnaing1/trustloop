@@ -40,7 +40,7 @@ export default async function SellerPayoutPage({ params }) {
     {
       headers: { Cookie: cookieStore.toString() },
       cache: "no-store",
-    }
+    },
   );
 
   if (!res.ok) {
@@ -99,8 +99,7 @@ export default async function SellerPayoutPage({ params }) {
 
   // Buy & Sell guard (unchanged): allow only in final phases
   const SELL_ALLOWED = new Set([
-    "SELLER_DELIVERED",
-    "MEETUP_COMPLETED",
+    "SELLER_PROOF_UPLOADED",
     "AUTO_CONFIRMED_AFTER_3_DAYS",
     "BUYER_CONFIRMED",
     "PAID_OUT",
@@ -109,7 +108,7 @@ export default async function SellerPayoutPage({ params }) {
   // Donation guard: allow only once donor marks meetup completed or recipient confirms
   const DONATION_ALLOWED = (status) =>
     [
-      "MEETUP_COMPLETED",
+      "SELLER_PROOF_UPLOADED",
       "AUTO_CONFIRMED_AFTER_3_DAYS",
       "BUYER_CONFIRMED",
     ].includes(status);
@@ -172,7 +171,7 @@ export default async function SellerPayoutPage({ params }) {
   const roleParam = isDonation ? "donor" : "seller";
   const revRes = await fetch(
     `${process.env.NEXT_PUBLIC_BASE_URL}/api/transactions/${id}/review?role=${roleParam}`,
-    { headers: { Cookie: cookieStore.toString() }, cache: "no-store" }
+    { headers: { Cookie: cookieStore.toString() }, cache: "no-store" },
   );
   const initialReview = revRes.ok ? await revRes.json() : null;
 
@@ -180,7 +179,7 @@ export default async function SellerPayoutPage({ params }) {
   const counterRole = isDonation ? "recipient" : "buyer";
   const counterRes = await fetch(
     `${process.env.NEXT_PUBLIC_BASE_URL}/api/transactions/${id}/review?role=${counterRole}`,
-    { headers: { Cookie: cookieStore.toString() }, cache: "no-store" }
+    { headers: { Cookie: cookieStore.toString() }, cache: "no-store" },
   );
   const counterpartyReview = counterRes.ok ? await counterRes.json() : null;
 

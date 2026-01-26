@@ -27,13 +27,8 @@ const STATUS_META = {
     bg: "bg-indigo-100",
     fg: "text-indigo-700",
   },
-  SELLER_DELIVERED: {
+  SELLER_PROOF_UPLOADED: {
     label: "Seller Delivered",
-    bg: "bg-purple-100",
-    fg: "text-purple-700",
-  },
-  MEETUP_COMPLETED: {
-    label: "Meetup Completed",
     bg: "bg-cyan-100",
     fg: "text-cyan-700",
   },
@@ -98,13 +93,13 @@ export default function StatusPill({
     size === "sm"
       ? "text-[11px] px-2 py-1"
       : size === "md"
-      ? "text-xs px-3 py-1.5"
-      : "text-sm px-3 py-2";
+        ? "text-xs px-3 py-1.5"
+        : "text-sm px-3 py-2";
 
   return (
     <span
       className={`rounded-full whitespace-nowrap font-medium ${sizeCls} ${getStatusClasses(
-        status
+        status,
       )} ${className}`}
     >
       {getStatusLabel(status, kind)}

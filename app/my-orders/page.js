@@ -26,7 +26,7 @@ function formatMMSS(ms) {
 
 function Countdown({ expiresAt, onExpire }) {
   const [remainMs, setRemainMs] = useState(() =>
-    Math.max(0, new Date(expiresAt).getTime() - Date.now())
+    Math.max(0, new Date(expiresAt).getTime() - Date.now()),
   );
 
   useEffect(() => {
@@ -53,8 +53,8 @@ function MethodTag({ method }) {
     method === "DELIVERY"
       ? "Delivery"
       : method === "MEETUP"
-      ? "Meetup"
-      : method;
+        ? "Meetup"
+        : method;
   const tone =
     method === "DELIVERY"
       ? "ring-indigo-200/70 bg-indigo-50/60 text-indigo-700"
@@ -171,7 +171,7 @@ function MyOrdersClient() {
   const statusParam = searchParams.get("status");
 
   const [role, setRole] = useState(
-    roleParam === "seller" || roleParam === "buyer" ? roleParam : "buyer"
+    roleParam === "seller" || roleParam === "buyer" ? roleParam : "buyer",
   );
   const [buyerTxns, setBuyerTxns] = useState(null);
   const [sellerTxns, setSellerTxns] = useState(null);
@@ -184,7 +184,7 @@ function MyOrdersClient() {
   const [kindFilter, setKindFilter] = useState(
     ["BUY_SELL", "DONATION", "AUCTION"].includes(kindParam)
       ? kindParam
-      : "BUY_SELL"
+      : "BUY_SELL",
   );
 
   // keep track of scheduled refresh timers so we can clean them up
@@ -311,7 +311,7 @@ function MyOrdersClient() {
 
           const nextCancelReason =
             action === "seller_cancel"
-              ? extra?.cancelReason ?? updated?.cancelReason ?? t.cancelReason
+              ? (extra?.cancelReason ?? updated?.cancelReason ?? t.cancelReason)
               : t.cancelReason;
 
           return {
@@ -320,7 +320,7 @@ function MyOrdersClient() {
             cancelReason: nextCancelReason,
             updatedAt: new Date().toISOString(),
           };
-        })
+        }),
       );
 
       // ✅ Redirect and refresh logic unified for all kinds
@@ -339,8 +339,8 @@ function MyOrdersClient() {
         setStatusFilter("CANCELLED_BY_SELLER");
         router.push(
           `/my-orders?role=seller&status=CANCELLED_BY_SELLER&kind=${encodeURIComponent(
-            kind
-          )}`
+            kind,
+          )}`,
         );
       }
 
@@ -363,7 +363,7 @@ function MyOrdersClient() {
 
     if (role === "buyer" && statusFilter === "BUYER_CONFIRMED") {
       return byKind.filter(
-        (t) => t.status === "BUYER_CONFIRMED" || t.status === "PAID_OUT"
+        (t) => t.status === "BUYER_CONFIRMED" || t.status === "PAID_OUT",
       );
     }
 
@@ -390,12 +390,12 @@ function MyOrdersClient() {
         ? "You haven't requested any donations."
         : "No donation requests yet."
       : kindFilter === "AUCTION"
-      ? role === "buyer"
-        ? "You haven't joined any auctions."
-        : "No active auctions."
-      : role === "buyer"
-      ? "You haven't placed any orders."
-      : "You don't have any sales transactions.";
+        ? role === "buyer"
+          ? "You haven't joined any auctions."
+          : "No active auctions."
+        : role === "buyer"
+          ? "You haven't placed any orders."
+          : "You don't have any sales transactions.";
 
   // ✅ choose the right CTA link + text by kind/role
   const { ctaHref, ctaText } = (() => {
@@ -580,17 +580,17 @@ function MyOrdersClient() {
                           t.kind === "DONATION"
                             ? "bg-pink-100 text-pink-700"
                             : t.kind === "AUCTION"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : "bg-blue-100 text-blue-700"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-blue-100 text-blue-700"
                         }`}
                       >
                         {t.kind === "BUY_SELL"
                           ? "Buy/Sell"
                           : t.kind === "DONATION"
-                          ? "Donation"
-                          : t.kind === "AUCTION"
-                          ? "Auction"
-                          : t.kind}
+                            ? "Donation"
+                            : t.kind === "AUCTION"
+                              ? "Auction"
+                              : t.kind}
                       </span>
                     </div>
 
@@ -681,7 +681,7 @@ function MyOrdersClient() {
                             <span className="text-slate-500">Updated:</span>{" "}
                             <time>
                               {new Date(
-                                t.updatedAt || t.createdAt
+                                t.updatedAt || t.createdAt,
                               ).toLocaleString()}
                             </time>
                           </div>
@@ -736,7 +736,7 @@ function MyOrdersClient() {
                                 const reason = prompt(
                                   t.kind === "DONATION"
                                     ? "Please enter a reason for rejection:"
-                                    : "Please enter a reason for cancellation:"
+                                    : "Please enter a reason for cancellation:",
                                 );
                                 if (reason?.trim()) {
                                   actOnTxn(id, "seller_cancel", {
