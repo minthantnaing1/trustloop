@@ -7,6 +7,21 @@ import { headers } from "next/headers";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+// ✅ ADD THIS helper
+function dedupeNotifications(items = []) {
+  const seen = new Set();
+
+  return items.filter((n) => {
+    const key =
+      n._id ||
+      `${n.type || n.kind}|${n.transaction || ""}|${n.createdAt || n.at}`;
+
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 async function fetchNotificationsOnServer() {
   const h = await headers();
   const host = h.get("host") || "";
@@ -24,7 +39,10 @@ async function fetchNotificationsOnServer() {
 
 export default async function NotificationsPage() {
   const data = await fetchNotificationsOnServer();
-  const items = Array.isArray(data?.items) ? data.items : [];
+  const rawItems = Array.isArray(data?.items) ? data.items : [];
+
+  // ✅ ONLY change here
+  const items = dedupeNotifications(rawItems);
 
   return (
     <>

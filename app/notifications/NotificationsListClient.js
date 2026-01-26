@@ -90,6 +90,19 @@ export default function NotificationsListClient({ initialItems = [] }) {
         const evs = Array.isArray(n?.events) ? n.events : [];
         const isOpen = !!expanded[n._id];
 
+        // ✅ NEW: filter out the latest event from history (so time/title doesn't show twice)
+        const latestAtMs = new Date(n.updatedAt || n.createdAt).getTime();
+        const latestTitle = n.title || "Notification";
+        const latestMsg = n.message || "";
+
+        const historyEvs = evs.filter((e) => {
+          const t = new Date(e.at).getTime();
+          const sameTime = Math.abs(t - latestAtMs) < 1000; // within 1 sec
+          const sameTitle = (e.title || "") === latestTitle;
+          const sameMsg = (e.message || "") === latestMsg;
+          return !(sameTime && sameTitle && sameMsg);
+        });
+
         const meId = n?.recipient?._id || n?.recipient; // the user receiving this noti
         const buyerIsMe =
           meId &&
@@ -140,7 +153,10 @@ export default function NotificationsListClient({ initialItems = [] }) {
                   <div className="text-sm text-gray-700 mt-1">{n.message}</div>
                 )}
                 <div className="text-xs text-gray-500 mt-1">
-                  {new Date(n.updatedAt || n.createdAt).toLocaleString()}
+                  {new Date(n.updatedAt || n.createdAt).toLocaleString("en-GB", {
+                    timeZone: "Asia/Bangkok",
+                    hour12: false,
+                  })}
                 </div>
               </div>
 
@@ -156,14 +172,16 @@ export default function NotificationsListClient({ initialItems = [] }) {
             <div className="mt-2 flex items-center justify-between">
               {/* Left: history toggle (only when there is history) */}
               <div>
-                {evs.length > 1 && (
+                {historyEvs.length > 0 && (
                   <button
                     className="text-xs text-[#325082] underline"
                     onClick={() =>
                       setExpanded((m) => ({ ...m, [n._id]: !isOpen }))
                     }
                   >
-                    {isOpen ? "Hide history" : `Show history (${evs.length})`}
+                    {isOpen
+                      ? "Hide history"
+                      : `Show history (${historyEvs.length})`}
                   </button>
                 )}
               </div>
@@ -191,7 +209,7 @@ export default function NotificationsListClient({ initialItems = [] }) {
             {isOpen && (
               <div className="mt-3 border-t border-gray-300 pt-2">
                 <ul className="divide-y divide-gray-200">
-                  {evs
+                  {historyEvs
                     .slice() // clone
                     .sort((a, b) => new Date(b.at) - new Date(a.at))
                     .map((e, idx) => (
@@ -202,7 +220,10 @@ export default function NotificationsListClient({ initialItems = [] }) {
                         <span className="font-medium">{e.title}</span>
                         {e.message ? ` — ${e.message}` : ""}
                         <span className="block text-xs text-gray-500">
-                          {new Date(e.at).toLocaleString()}
+                          {new Date(e.at).toLocaleString("en-GB", {
+                            timeZone: "Asia/Bangkok",
+                            hour12: false,
+                          })}
                         </span>
                       </li>
                     ))}
