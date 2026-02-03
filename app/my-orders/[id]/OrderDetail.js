@@ -451,14 +451,19 @@ export default function OrderDetail({ id }) {
             Fulfillment (Chat)
           </div>
 
-          {canUploadProof && (
-            <ActionButton
-              text="Upload Proof (Delivery)"
-              variant="primaryHover"
-              disabled={busy || proofBusy}
-              onClick={() => setProofOpen(true)}
-            />
-          )}
+          <div className="flex items-center justify-between gap-3">
+            {canUploadProof && (
+              <ActionButton
+                text="Upload Proof (Delivery)"
+                variant="primaryHover"
+                disabled={busy || proofBusy}
+                onClick={() => setProofOpen(true)}
+              />
+            )}
+            <Link href={`/support/new?transactionId=${id}`}>
+              <ActionButton text="Support ?" variant="outlineClick" />
+            </Link>
+          </div>
         </div>
 
         <TxnChat

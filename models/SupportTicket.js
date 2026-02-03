@@ -4,22 +4,27 @@ const { ObjectId } = mongoose.Schema.Types;
 
 const SupportTicketSchema = new mongoose.Schema(
   {
+    // Who created the report
     user: { type: ObjectId, ref: "User", required: true, index: true },
 
+    // Optional relations (auto-filled from Order Detail page)
+    transaction: { type: ObjectId, ref: "Transaction", index: true },
+    product: { type: ObjectId, ref: "Product", index: true },
+    buyer: { type: ObjectId, ref: "User" },
+    seller: { type: ObjectId, ref: "User" },
+
+    // Ticket info
     category: {
       type: String,
       enum: [
-        "ACCOUNT",
-        "PAYMENT",
-        "PRODUCT",
-        "TRANSACTION",
-        "CHAT",
-        "BUG",
-        "SCAM_SAFETY",
+        "DELIVERY_DELAY",
+        "WRONG_ITEM",
+        "PAYMENT_ISSUE",
+        "SELLER_NO_SHOW",
+        "BUYER_NO_SHOW",
         "OTHER",
       ],
-      default: "OTHER",
-      index: true,
+      required: true,
     },
 
     priority: {
@@ -29,23 +34,34 @@ const SupportTicketSchema = new mongoose.Schema(
       index: true,
     },
 
-    subject: { type: String, required: true, trim: true, maxlength: 120 },
-    message: { type: String, required: true, trim: true, maxlength: 4000 },
+    subject: { type: String, required: true },
+    description: { type: String, required: true },
 
-    // useful for admin to locate where the issue happened
-    meta: { type: Object, default: {} },
+    // Attachments (optional proof)
+    images: { type: [String], default: [] },
 
+    // Admin handling
     status: {
       type: String,
-      enum: ["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"],
+      enum: ["OPEN", "IN_PROGRESS", "WAITING_USER", "RESOLVED", "REJECTED"],
       default: "OPEN",
       index: true,
     },
 
-    adminReply: { type: String, default: "", trim: true, maxlength: 4000 },
+    adminNote: { type: String, default: "" },
+    assignedAdmin: { type: ObjectId, ref: "User" },
+
+    createdAt: { type: Date, default: Date.now, index: true },
+    updatedAt: { type: Date, default: Date.now },
   },
-  { timestamps: true },
+  { timestamps: false },
 );
+
+// keep updatedAt fresh
+SupportTicketSchema.pre("save", function (next) {
+  this.updatedAt = new Date();
+  next();
+});
 
 export default mongoose.models.SupportTicket ||
   mongoose.model("SupportTicket", SupportTicketSchema);

@@ -1,158 +1,272 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import NavBar from "@/components/NavBar";
+import ActionButton from "@/components/ActionButton";
 
-export default function SupportPage() {
-  const [category, setCategory] = useState("OTHER");
-  const [priority, setPriority] = useState("MEDIUM");
-  const [subject, setSubject] = useState("");
-  const [message, setMessage] = useState("");
+function PriorityTag({ value }) {
+  const v = String(value || "MEDIUM").toUpperCase();
+  const tone =
+    v === "URGENT"
+      ? "ring-red-200/70 bg-red-50/70 text-red-700"
+      : v === "HIGH"
+        ? "ring-amber-200/70 bg-amber-50/70 text-amber-700"
+        : v === "LOW"
+          ? "ring-slate-200/70 bg-slate-50/70 text-slate-600"
+          : "ring-sky-200/70 bg-sky-50/70 text-sky-700";
+  return (
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 text-[11px] font-medium ring-1 rounded-full ${tone}`}
+    >
+      {v}
+    </span>
+  );
+}
 
-  const [pagePath, setPagePath] = useState("");
+function StatusTag({ value }) {
+  const v = String(value || "OPEN").toUpperCase();
+  const tone =
+    v === "RESOLVED"
+      ? "ring-emerald-200/70 bg-emerald-50/70 text-emerald-700"
+      : v === "IN_PROGRESS"
+        ? "ring-indigo-200/70 bg-indigo-50/70 text-indigo-700"
+        : v === "REJECTED"
+          ? "ring-rose-200/70 bg-rose-50/70 text-rose-700"
+          : "ring-slate-200/70 bg-slate-50/70 text-slate-600";
+  return (
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 text-[11px] font-medium ring-1 rounded-full ${tone}`}
+    >
+      {v.replaceAll("_", " ")}
+    </span>
+  );
+}
+
+export default function SupportHomePage() {
+  const [mine, setMine] = useState(null);
+  const [err, setErr] = useState("");
+  const [busyId, setBusyId] = useState("");
+
+  async function load() {
+    const r = await fetch("/api/support", { cache: "no-store" });
+    if (!r.ok) throw new Error(await r.text());
+    const data = await r.json();
+    setMine(Array.isArray(data) ? data : []);
+  }
+
   useEffect(() => {
-    setPagePath(window.location.pathname);
+    let mounted = true;
+    (async () => {
+      try {
+        await load();
+      } catch (e) {
+        if (mounted) setErr(e.message || "Failed to load support tickets");
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState(false);
-  const [error, setError] = useState("");
+  const popular = useMemo(
+    () => [
+      {
+        title: "Seller no-show / not responding",
+        desc: "Seller is late, didn’t come to meetup, or stopped replying.",
+        category: "SELLER_NO_SHOW",
+        priority: "HIGH",
+      },
+      {
+        title: "Delivery delay",
+        desc: "Item hasn’t arrived in expected timeframe or no delivery proof.",
+        category: "DELIVERY_DELAY",
+        priority: "MEDIUM",
+      },
+      {
+        title: "Wrong / damaged item",
+        desc: "Item received does not match listing, missing parts, or damaged.",
+        category: "WRONG_ITEM",
+        priority: "HIGH",
+      },
+      {
+        title: "Payment issue",
+        desc: "Payment slip, confirmation, or transaction status problem.",
+        category: "PAYMENT_ISSUE",
+        priority: "MEDIUM",
+      },
+    ],
+    [],
+  );
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setError("");
-    setDone(false);
+  async function onDelete(ticketId) {
+    const ok = window.confirm(
+      "Delete this support ticket? This cannot be undone.",
+    );
+    if (!ok) return;
 
-    if (!subject.trim() || !message.trim()) {
-      setError("Please fill subject and message.");
-      return;
-    }
-
-    setLoading(true);
     try {
-      const res = await fetch("/api/support", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          category,
-          priority,
-          subject,
-          message,
-          meta: { page: pagePath },
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Failed to submit");
-
-      setDone(true);
-      setSubject("");
-      setMessage("");
-    } catch (err) {
-      setError(err.message || "Something went wrong");
+      setBusyId(ticketId);
+      const r = await fetch(`/api/support/${ticketId}`, { method: "DELETE" });
+      if (!r.ok) throw new Error(await r.text());
+      await load();
+    } catch (e) {
+      alert(e.message || "Failed to delete");
     } finally {
-      setLoading(false);
+      setBusyId("");
     }
   }
 
   return (
     <>
       <NavBar />
-      <div className="max-w-[760px] mx-auto px-4 py-6">
-        <h1 className="text-2xl font-bold text-slate-900">Customer Support</h1>
-        <p className="mt-1 text-slate-600">
-          Report bugs, chat issues, scams, payment problems, or anything you’re
-          stuck on. Admin will review your report.
-        </p>
 
-        <form
-          onSubmit={handleSubmit}
-          className="mt-6 bg-white rounded-2xl shadow-sm border border-slate-200 p-4"
-        >
-          <div className="grid gap-4">
-            <div className="grid gap-1">
-              <label className="text-sm font-medium text-slate-700">
-                Category
-              </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-slate-300"
-              >
-                <option value="ACCOUNT">Account</option>
-                <option value="PAYMENT">Payment</option>
-                <option value="PRODUCT">Product / Listing</option>
-                <option value="TRANSACTION">Transaction</option>
-                <option value="CHAT">Chat</option>
-                <option value="BUG">Bug / Error</option>
-                <option value="SCAM_SAFETY">Scam / Safety</option>
-                <option value="OTHER">Other</option>
-              </select>
-            </div>
+      <main className="max-w-[1200px] mx-auto px-3 mb-6">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h1 className="text-2xl font-bold text-[#325082]">
+            Customer Support
+          </h1>
 
-            <div className="grid gap-1">
-              <label className="text-sm font-medium text-slate-700">
-                Priority
-              </label>
-              <select
-                value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-                className="border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-slate-300"
-              >
-                <option value="LOW">Low</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HIGH">High</option>
-                <option value="URGENT">Urgent</option>
-              </select>
-            </div>
+          <Link href="/support/new">
+            <ActionButton text="Report a Problem" variant="primaryClick" />
+          </Link>
+        </div>
 
-            <div className="grid gap-1">
-              <label className="text-sm font-medium text-slate-700">
-                Subject
-              </label>
-              <input
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                placeholder="Short title of the issue"
-                maxLength={120}
-                className="border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-slate-300"
-              />
-            </div>
-
-            <div className="grid gap-1">
-              <label className="text-sm font-medium text-slate-700">
-                Message
-              </label>
-              <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Explain what happened, steps to reproduce, and any IDs (product/transaction/chat) if you have them."
-                rows={8}
-                maxLength={4000}
-                className="border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-slate-300"
-              />
-            </div>
-
-            {error ? (
-              <div className="text-sm text-rose-600">{error}</div>
-            ) : null}
-
-            {done ? (
-              <div className="text-sm text-emerald-600">
-                Submitted! Admin will review your report.
-              </div>
-            ) : null}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-xl px-4 py-2 font-semibold border border-slate-300 hover:bg-slate-50 active:scale-[0.99] disabled:opacity-60"
+        <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+          {popular.map((p) => (
+            <article
+              key={p.title}
+              className="bg-white ring-1 ring-slate-200 shadow-sm hover:shadow-md transition-all rounded-[6px] p-4"
             >
-              {loading ? "Submitting..." : "Submit Report"}
-            </button>
+              <div className="flex items-start justify-between gap-2">
+                <div className="text-[15px] font-semibold text-[#325082] leading-tight">
+                  {p.title}
+                </div>
+                <PriorityTag value={p.priority} />
+              </div>
+
+              <p className="text-[12.5px] text-slate-600 mt-2 leading-snug">
+                {p.desc}
+              </p>
+
+              <div className="mt-3">
+                <Link
+                  href={`/support/new?category=${encodeURIComponent(p.category)}&priority=${encodeURIComponent(p.priority)}`}
+                  className="text-sm underline text-[#325082] hover:text-[#22365a] underline-offset-2"
+                >
+                  Report this issue
+                </Link>
+              </div>
+            </article>
+          ))}
+        </section>
+
+        <section className="bg-white p-5 rounded-xl shadow-md">
+          <div className="flex items-center justify-between">
+            <div className="text-[16px] font-semibold text-[#325082]">
+              My Recent Reports
+            </div>
+            <span className="text-[12px] text-slate-500">
+              For order-specific reports, use “Support” inside Order Details.
+            </span>
           </div>
-        </form>
-      </div>
+
+          {err && <p className="text-red-600 mt-2 text-sm">{String(err)}</p>}
+          {!mine && !err && (
+            <p className="text-slate-500 mt-2 text-sm">Loading…</p>
+          )}
+
+          {mine && (
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr>
+                    <th className="p-2 border-b font-medium">Subject</th>
+                    <th className="p-2 border-b font-medium">Category</th>
+                    <th className="p-2 border-b font-medium">Priority</th>
+                    <th className="p-2 border-b font-medium">Status</th>
+                    <th className="p-2 border-b font-medium">Updated</th>
+                    <th className="p-2 border-b font-medium">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {mine.map((t) => {
+                    const tid = t._id?.toString?.() || t._id;
+                    return (
+                      <tr key={tid} className="hover:bg-gray-50">
+                        <td className="p-2">
+                          <div className="font-medium text-[#1f2f4c]">
+                            {t.subject || "Support Ticket"}
+                          </div>
+                          {t.product?.title ? (
+                            <div className="text-[12px] text-slate-500 mt-0.5">
+                              Product:{" "}
+                              <span className="font-medium">
+                                {t.product.title}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="text-[12px] text-slate-500 mt-0.5">
+                              General report (no order attached)
+                            </div>
+                          )}
+                        </td>
+
+                        <td className="p-2">
+                          {String(t.category || "-").replaceAll("_", " ")}
+                        </td>
+
+                        <td className="p-2">
+                          <PriorityTag value={t.priority} />
+                        </td>
+
+                        <td className="p-2">
+                          <StatusTag value={t.status} />
+                        </td>
+
+                        <td className="p-2">
+                          {new Date(
+                            t.updatedAt || t.createdAt,
+                          ).toLocaleString()}
+                        </td>
+
+                        <td className="p-2">
+                          <div className="flex items-center gap-3">
+                            {/* ✅ VIEW ticket page = /support/[id] */}
+                            <Link
+                              href={`/support/${tid}`}
+                              className="text-sm underline text-[#325082] underline-offset-2"
+                            >
+                              View
+                            </Link>
+
+                            <button
+                              type="button"
+                              onClick={() => onDelete(tid)}
+                              disabled={busyId === tid}
+                              className="text-sm underline text-rose-700 underline-offset-2 disabled:opacity-50"
+                            >
+                              {busyId === tid ? "Deleting..." : "Delete"}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+
+                  {mine.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="p-4 text-center text-gray-500">
+                        No reports yet.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </main>
     </>
   );
 }
