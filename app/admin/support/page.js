@@ -3,14 +3,23 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import ActionButton from "@/components/ActionButton";
 
-const STATUS_TABS = [
-  { key: "ALL", label: "All" },
-  { key: "OPEN", label: "Open" },
-  { key: "IN_PROGRESS", label: "In progress" },
-  { key: "CLOSED_BUCKET", label: "Closed" }, // RESOLVED + REJECTED
-];
+function formatDateTime(iso) {
+  try {
+    return new Date(iso).toLocaleString();
+  } catch {
+    return "-";
+  }
+}
+
+function getInitials(nameOrEmail) {
+  const s = (nameOrEmail || "").trim();
+  if (!s) return "?";
+  const parts = s.split(/\s+/).slice(0, 3);
+  return parts.map((p) => p[0]?.toUpperCase()).join("") || "?";
+}
 
 function isThisMonth(d) {
   const now = new Date();
@@ -25,23 +34,7 @@ function daysAgo(n) {
   return d;
 }
 
-function formatDateTime(iso) {
-  try {
-    const d = new Date(iso);
-    return d.toLocaleString();
-  } catch {
-    return "-";
-  }
-}
-
-function getInitials(nameOrEmail) {
-  const s = (nameOrEmail || "").trim();
-  if (!s) return "?";
-  const parts = s.split(/\s+/).slice(0, 2);
-  return parts.map((p) => p[0]?.toUpperCase()).join("") || "?";
-}
-
-function PriorityTag({ value }) {
+function PriorityPill({ value }) {
   const v = String(value || "MEDIUM").toUpperCase();
   const tone =
     v === "URGENT"
@@ -53,14 +46,14 @@ function PriorityTag({ value }) {
           : "ring-sky-200/70 bg-sky-50/70 text-sky-700";
   return (
     <span
-      className={`inline-flex items-center px-2.5 py-0.5 text-[11px] font-medium ring-1 rounded-full ${tone}`}
+      className={`inline-flex items-center px-2.5 py-0.5 text-[11px] font-semibold ring-1 rounded-full ${tone}`}
     >
       {v}
     </span>
   );
 }
 
-function StatusTag({ value }) {
+function StatusPill({ value }) {
   const v = String(value || "OPEN").toUpperCase();
   const tone =
     v === "RESOLVED"
@@ -72,96 +65,160 @@ function StatusTag({ value }) {
           : "ring-slate-200/70 bg-slate-50/70 text-slate-600";
   return (
     <span
-      className={`inline-flex items-center px-2.5 py-0.5 text-[11px] font-medium ring-1 rounded-full ${tone}`}
+      className={`inline-flex items-center px-2.5 py-0.5 text-[11px] font-semibold ring-1 rounded-full ${tone}`}
     >
       {v.replaceAll("_", " ")}
     </span>
   );
 }
 
-function TicketCard({ t }) {
+function StatCard({ label, sub, value }) {
+  return (
+    <div className="bg-white rounded-md shadow-md border border-slate-200 p-4">
+      <div className="text-xs text-slate-500">{label}</div>
+      <div className="text-[11px] text-slate-400">{sub}</div>
+      <div className="mt-2 text-2xl font-bold text-[#1f2f4c]">{value}</div>
+    </div>
+  );
+}
+
+/**
+ * Desktop:
+ *  - click selects summary only (no route change, no loading overlay)
+ * Mobile:
+ *  - click navigates to ticket page (because summary is hidden on mobile)
+ */
+function TicketRowCard({ t, isActive, isDesktop, onSelect }) {
+  const router = useRouter();
+
   const id = t?._id?.toString?.() || t?._id || "";
   const ticketId = String(id).slice(-6).toUpperCase();
   const userName = t?.user?.name || t?.user?.email || "Unknown";
   const initials = getInitials(userName);
 
-  const category = String(t?.category || "OTHER").replaceAll("_", " ");
   const subject = t?.subject || "Support Ticket";
-  const desc = t?.description || "";
+  const desc = t?.description || "—";
+  const category = String(t?.category || "OTHER").replaceAll("_", " ");
   const productTitle = t?.product?.title || "";
   const updated = t?.updatedAt || t?.createdAt;
 
+  const handleClick = () => {
+    if (isDesktop) onSelect?.(id);
+    else router.push(`/admin/support/${id}`);
+  };
+
   return (
-    <div className="rounded-[14px] border border-slate-200 bg-white p-3 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[11px] px-2 py-0.5 rounded-full border border-slate-200 bg-slate-50 text-slate-700">
-            Ticket: {ticketId}
-          </span>
+    <article
+      role="button"
+      tabIndex={0}
+      onClick={handleClick}
+      onKeyDown={(e) => e.key === "Enter" && handleClick()}
+      className={`block bg-white rounded-md shadow-md border p-4 transition-all cursor-pointer
+        ${
+          isActive
+            ? "border-[#325082] ring-1 ring-[#325082]/20"
+            : "border-slate-200 hover:shadow-lg"
+        }
+      `}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] px-2 py-0.5 rounded-full border border-slate-200 bg-slate-50 text-slate-700">
+              #{ticketId}
+            </span>
+            <span className="text-[11px] px-2 py-0.5 rounded-full border border-slate-200 bg-white text-slate-600">
+              {category}
+            </span>
+            <PriorityPill value={t?.priority} />
+            <StatusPill value={t?.status} />
+          </div>
 
-          <span className="text-[11px] px-2 py-0.5 rounded-full border border-slate-200 bg-white text-slate-600">
-            {category}
-          </span>
+          <div className="mt-2 text-[15px] font-semibold text-[#1f2f4c] line-clamp-1">
+            {subject}
+          </div>
 
-          <PriorityTag value={t?.priority} />
-          <StatusTag value={t?.status} />
+          <div className="mt-1 text-[12.5px] text-slate-600 line-clamp-2 whitespace-pre-line">
+            {desc}
+          </div>
+
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-[12px] text-slate-500">
+            <span>Updated: {formatDateTime(updated)}</span>
+            {productTitle ? (
+              <span>
+                Product:{" "}
+                <span className="font-medium text-[#1f2f4c]">
+                  {productTitle}
+                </span>
+              </span>
+            ) : (
+              <span>General report</span>
+            )}
+          </div>
         </div>
 
-        <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-semibold text-slate-700 shrink-0">
-          {initials}
+        <div className="shrink-0 flex items-center gap-3">
+          <div className="hidden sm:flex flex-col items-end">
+            <div className="text-[11px] text-slate-500">Reporter</div>
+            <div className="text-[12px] font-medium text-[#1f2f4c] line-clamp-1 max-w-[160px]">
+              {userName}
+            </div>
+          </div>
+
+          <div className="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-xs font-semibold text-slate-700">
+            {initials}
+          </div>
         </div>
       </div>
-
-      <div className="mt-2 text-sm font-semibold text-slate-900 line-clamp-2">
-        {subject}
-      </div>
-
-      {productTitle ? (
-        <div className="mt-1 text-[12px] text-slate-600">
-          Product:{" "}
-          <span className="font-medium text-slate-800">{productTitle}</span>
-        </div>
-      ) : (
-        <div className="mt-1 text-[12px] text-slate-500">General report</div>
-      )}
-
-      <div className="mt-2 text-sm text-slate-600 line-clamp-3 whitespace-pre-line">
-        {desc}
-      </div>
-
-      <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
-        <span>Updated: {formatDateTime(updated)}</span>
-
-        <Link
-          href={`/admin/support/${id}`}
-          className="text-[#325082] font-semibold underline underline-offset-2 hover:opacity-90"
-        >
-          View
-        </Link>
-      </div>
-    </div>
+    </article>
   );
 }
 
-function StatCard({ labelTop, labelSub, value }) {
+function EmptyState({ onRefresh }) {
   return (
-    <div className="p-3 rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="text-xs text-slate-500">{labelTop}</div>
-      <div className="text-[11px] text-slate-400">{labelSub}</div>
-      <div className="mt-2 text-2xl font-bold text-slate-900">{value}</div>
+    <div className="bg-white rounded-md shadow-md border border-slate-200 p-10 text-center">
+      <div className="text-lg font-semibold text-[#1f2f4c]">
+        No tickets found
+      </div>
+      <p className="text-sm text-slate-500 mt-1">
+        Try clearing filters or refresh the data.
+      </p>
+      <div className="mt-4 flex justify-center">
+        <ActionButton
+          text="Refresh"
+          variant="outlineHover"
+          onClick={onRefresh}
+        />
+      </div>
     </div>
   );
 }
 
 export default function AdminSupportPage() {
-  const [activeTab, setActiveTab] = useState("ALL");
   const [tickets, setTickets] = useState(null);
   const [err, setErr] = useState("");
-  const [searchDraft, setSearchDraft] = useState("");
-  const [search, setSearch] = useState("");
 
-  // keep your existing filters too (optional, but helpful)
-  const [priorityFilter, setPriorityFilter] = useState("ALL");
+  // Search (apply on Enter / Search click)
+  const [qDraft, setQDraft] = useState("");
+  const [q, setQ] = useState("");
+
+  // Filters
+  const [status, setStatus] = useState("ALL");
+  const [priority, setPriority] = useState("ALL");
+
+  // Right preview panel (desktop)
+  const [selectedId, setSelectedId] = useState("");
+
+  // Desktop detection (lg+)
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const update = () => setIsDesktop(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
 
   async function fetchTickets() {
     setErr("");
@@ -169,7 +226,14 @@ export default function AdminSupportPage() {
       const r = await fetch("/api/admin/support", { cache: "no-store" });
       if (!r.ok) throw new Error(await r.text());
       const data = await r.json();
-      setTickets(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : [];
+
+      // default selection
+      if (!selectedId && list[0]?._id) {
+        setSelectedId(list[0]._id?.toString?.() || list[0]._id);
+      }
+
+      setTickets(list);
     } catch (e) {
       setErr(e?.message || "Failed to load tickets");
       setTickets([]);
@@ -178,57 +242,8 @@ export default function AdminSupportPage() {
 
   useEffect(() => {
     fetchTickets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const normalized = search.trim().toLowerCase();
-
-  const filtered = useMemo(() => {
-    const list = Array.isArray(tickets) ? [...tickets] : [];
-
-    // search
-    let out = list;
-    if (normalized) {
-      out = out.filter((t) => {
-        const blob =
-          `${t?.subject || ""} ${t?.description || ""} ${t?.user?.name || ""} ${t?.user?.email || ""} ${t?.product?.title || ""}`.toLowerCase();
-        return blob.includes(normalized);
-      });
-    }
-
-    // sidebar tab filter
-    if (activeTab === "OPEN") {
-      out = out.filter((t) => String(t.status) === "OPEN");
-    } else if (activeTab === "IN_PROGRESS") {
-      out = out.filter((t) => String(t.status) === "IN_PROGRESS");
-    } else if (activeTab === "CLOSED_BUCKET") {
-      out = out.filter(
-        (t) => t.status === "RESOLVED" || t.status === "REJECTED",
-      );
-    }
-
-    // priority filter
-    if (priorityFilter !== "ALL") {
-      out = out.filter((t) => String(t.priority) === priorityFilter);
-    }
-
-    return out;
-  }, [tickets, activeTab, normalized, priorityFilter]);
-
-  const openTickets = useMemo(
-    () => filtered.filter((t) => t.status === "OPEN"),
-    [filtered],
-  );
-  const inProgressTickets = useMemo(
-    () => filtered.filter((t) => t.status === "IN_PROGRESS"),
-    [filtered],
-  );
-  const closedTickets = useMemo(
-    () =>
-      filtered.filter(
-        (t) => t.status === "RESOLVED" || t.status === "REJECTED",
-      ),
-    [filtered],
-  );
 
   const stats = useMemo(() => {
     const list = Array.isArray(tickets) ? tickets : [];
@@ -238,278 +253,320 @@ export default function AdminSupportPage() {
       return !Number.isNaN(d.getTime()) && isThisMonth(d);
     });
 
-    const solvedThisMonth = thisMonth.filter(
-      (t) => t.status === "RESOLVED" || t.status === "REJECTED",
-    );
-
     const last7 = list.filter(
       (t) => new Date(t.createdAt || t.updatedAt) >= daysAgo(7),
     );
 
+    const openAll = list.filter((t) => t.status === "OPEN").length;
+    const inProgressAll = list.filter((t) => t.status === "IN_PROGRESS").length;
+    const closedAll = list.filter(
+      (t) => t.status === "RESOLVED" || t.status === "REJECTED",
+    ).length;
+
+    const highUrgentAll = list.filter(
+      (t) => t.priority === "HIGH" || t.priority === "URGENT",
+    ).length;
+
     return {
       issuesThisMonth: thisMonth.length,
-      solvedThisMonth: solvedThisMonth.length,
       recentCount: last7.length,
-      openAll: list.filter((t) => t.status === "OPEN").length,
-      inProgressAll: list.filter((t) => t.status === "IN_PROGRESS").length,
+      openAll,
+      inProgressAll,
+      closedAll,
+      highUrgentAll,
     };
   }, [tickets]);
 
+  const filtered = useMemo(() => {
+    const list = Array.isArray(tickets) ? [...tickets] : [];
+    const qq = String(q || "")
+      .trim()
+      .toLowerCase();
+
+    let out = list;
+
+    if (qq) {
+      out = out.filter((t) => {
+        // email excluded
+        const blob =
+          `${t?.subject || ""} ${t?.description || ""} ${t?.user?.name || ""} ${t?.product?.title || ""}`.toLowerCase();
+        return blob.includes(qq);
+      });
+    }
+
+    if (status !== "ALL") {
+      if (status === "CLOSED") {
+        out = out.filter(
+          (t) => t.status === "RESOLVED" || t.status === "REJECTED",
+        );
+      } else {
+        out = out.filter((t) => String(t.status) === status);
+      }
+    }
+
+    if (priority !== "ALL") {
+      out = out.filter((t) => String(t.priority) === priority);
+    }
+
+    out.sort(
+      (a, b) =>
+        new Date(b.updatedAt || b.createdAt) -
+        new Date(a.updatedAt || a.createdAt),
+    );
+
+    return out;
+  }, [tickets, q, status, priority]);
+
+  const selectedTicket = useMemo(() => {
+    const list = Array.isArray(filtered) ? filtered : [];
+    const hit = list.find((t) => (t._id?.toString?.() || t._id) === selectedId);
+    return hit || list[0] || null;
+  }, [filtered, selectedId]);
+
+  // Keep selection valid when filters change (desktop)
+  useEffect(() => {
+    if (!isDesktop) return;
+    if (!filtered.length) return;
+
+    const exists = filtered.some(
+      (t) => (t._id?.toString?.() || t._id) === selectedId,
+    );
+    if (!exists) {
+      const first = filtered[0]._id?.toString?.() || filtered[0]._id;
+      setSelectedId(first);
+    }
+  }, [filtered, selectedId, isDesktop]);
+
   const isLoading = tickets === null;
 
-  const sidebarCount = (key) => {
-    const list = Array.isArray(tickets) ? tickets : [];
-    if (key === "ALL") return list.length;
-    if (key === "OPEN") return list.filter((x) => x.status === "OPEN").length;
-    if (key === "IN_PROGRESS")
-      return list.filter((x) => x.status === "IN_PROGRESS").length;
-    return list.filter(
-      (x) => x.status === "RESOLVED" || x.status === "REJECTED",
-    ).length;
-  };
-
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* TrustLoop padding/width like your pages */}
-      <div className="max-w-[1200px] mx-auto px-3 py-6">
-        {/* Top bar */}
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <div className="text-xs text-slate-500">Admin</div>
-            <h1 className="text-2xl font-bold text-[#325082]">
-              Customer Support
-            </h1>
-          </div>
+    <main className="max-w-[1200px] mx-auto mb-6">
+      {/* Header */}
+      <h1 className="text-2xl font-bold text-[#325082] mb-3">
+        Customer Support
+      </h1>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={fetchTickets}
-              className="px-3 py-2 rounded-[8px] border border-slate-200 bg-white hover:bg-slate-50 text-sm font-semibold"
-            >
-              Refresh
-            </button>
-          </div>
-        </div>
+      {/* KPI Row (not sticky) */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
+        <StatCard
+          label="Recent tickets"
+          sub="last 7 days"
+          value={stats.recentCount}
+        />
+        <StatCard label="Open" sub="all time" value={stats.openAll} />
+        <StatCard
+          label="In progress"
+          sub="all time"
+          value={stats.inProgressAll}
+        />
+        <StatCard label="Closed" sub="all time" value={stats.closedAll} />
+        <StatCard
+          label="High / Urgent"
+          sub="all time"
+          value={stats.highUrgentAll}
+        />
+      </section>
 
-        {/* Main layout */}
-        <div className="mt-5 grid grid-cols-12 gap-4">
-          {/* Sidebar */}
-          <aside className="col-span-12 md:col-span-4 lg:col-span-3">
-            <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-              <div className="text-sm font-semibold text-slate-900 mb-2">
-                Tickets
-              </div>
-
-              <div className="space-y-1">
-                {STATUS_TABS.map((t) => {
-                  const isActive = activeTab === t.key;
-                  const count = sidebarCount(t.key);
-
-                  return (
-                    <button
-                      key={t.key}
-                      onClick={() => setActiveTab(t.key)}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-[10px] text-sm transition-colors ${
-                        isActive
-                          ? "bg-[#325082] text-white"
-                          : "hover:bg-slate-50 text-slate-700"
-                      }`}
-                    >
-                      <span>{t.label}</span>
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded-full ${
-                          isActive
-                            ? "bg-white/20 text-white"
-                            : "bg-slate-100 text-slate-700"
-                        }`}
-                      >
-                        {count}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                <div className="text-sm font-semibold text-slate-900">
-                  Quick Filter
-                </div>
-                <div className="mt-1 text-xs text-slate-600">
-                  Filter by priority.
-                </div>
-
-                <select
-                  className="mt-3 w-full border border-slate-200 rounded-[10px] px-3 py-2 text-sm bg-white"
-                  value={priorityFilter}
-                  onChange={(e) => setPriorityFilter(e.target.value)}
+      {/* ✅ ONLY toolbar is sticky */}
+      <section className="sticky -top-10 z-40 pb-3">
+        <div className="bg-white rounded-md shadow-md border border-slate-200 p-4">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+            {/* Search */}
+            <div className="flex-1">
+              <div className="flex items-center w-full border border-gray-300 shadow-md rounded-[6px] px-[3.5px] bg-white">
+                <input
+                  className="min-w-0 flex-1 px-2 py-[10px] text-sm outline-none"
+                  placeholder="Search tickets (subject, user, product)..."
+                  value={qDraft}
+                  autoComplete="off"
+                  onChange={(e) => setQDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") setQ(qDraft);
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setQ(qDraft)}
+                  className="shrink-0 bg-[#325082] text-white px-4 py-[7px] rounded-[3px] hover:opacity-90 text-sm"
                 >
-                  <option value="ALL">All priorities</option>
+                  Search
+                </button>
+              </div>
+            </div>
+
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-600">Status:</span>
+                <select
+                  className="border border-slate-200 rounded-md px-3 py-2 text-sm bg-white"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                >
+                  <option value="ALL">All</option>
+                  <option value="OPEN">Open</option>
+                  <option value="IN_PROGRESS">In progress</option>
+                  <option value="CLOSED">Closed</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-600">Priority:</span>
+                <select
+                  className="border border-slate-200 rounded-md px-3 py-2 text-sm bg-white"
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value)}
+                >
+                  <option value="ALL">All</option>
                   <option value="LOW">Low</option>
                   <option value="MEDIUM">Medium</option>
                   <option value="HIGH">High</option>
                   <option value="URGENT">Urgent</option>
                 </select>
               </div>
-            </div>
-          </aside>
 
-          {/* Content */}
-          <main className="col-span-12 md:col-span-8 lg:col-span-9">
-            {/* Stats row */}
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                <StatCard
-                  labelTop="Number of issues"
-                  labelSub="this month"
-                  value={stats.issuesThisMonth}
-                />
-                <StatCard
-                  labelTop="Issues solved"
-                  labelSub="this month"
-                  value={stats.solvedThisMonth}
-                />
-                <StatCard
-                  labelTop="Recent tickets"
-                  labelSub="last 7 days"
-                  value={stats.recentCount}
-                />
-                <StatCard
-                  labelTop="Open tickets"
-                  labelSub="all"
-                  value={stats.openAll}
-                />
-                <StatCard
-                  labelTop="In progress"
-                  labelSub="all"
-                  value={stats.inProgressAll}
-                />
-              </div>
-            </div>
-
-            {/* Search / actions */}
-            <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3">
-              <div className="flex-1">
-                <div className="flex items-center w-full border border-gray-300 shadow-md rounded-[6px] px-[3.5px] bg-white">
-                  <input
-                    className="min-w-0 flex-1 px-2 py-[10px] text-sm outline-none"
-                    placeholder="Search tickets (subject, user, email, product)..."
-                    value={searchDraft}
-                    onChange={(e) => setSearchDraft(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") setSearch(searchDraft);
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setSearch(searchDraft)}
-                    className="shrink-0 bg-[#325082] text-white px-4 py-[7px] rounded-[3px] hover:opacity-90 text-sm"
-                  >
-                    Search
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  className="px-3 py-2 rounded-[8px] border border-slate-200 bg-white hover:bg-slate-50 text-sm font-semibold"
+              <div className="flex items-center gap-2 justify-between sm:justify-start">
+                <ActionButton
+                  text="Clear"
+                  variant="outlineHover"
                   onClick={() => {
-                    setSearchDraft("");
-                    setSearch("");
+                    setQDraft("");
+                    setQ("");
+                    setStatus("ALL");
+                    setPriority("ALL");
                   }}
-                >
-                  Clear
-                </button>
-
+                />
                 <div className="text-sm text-slate-500">
                   Showing <b>{filtered.length}</b>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
 
-            {/* Errors / loading */}
-            {err && (
-              <div className="mt-4 bg-white border border-rose-200 text-rose-700 rounded-xl p-3 text-sm shadow-sm">
-                {String(err)}
+      {/* Error */}
+      {err && (
+        <div className="mb-4 bg-white border border-rose-200 text-rose-700 rounded-md p-3 text-sm shadow-sm">
+          {String(err)}
+        </div>
+      )}
+
+      {/* Main area */}
+      <section className="grid grid-cols-12 gap-4">
+        {/* List (scrolls normally under sticky toolbar) */}
+        <div className="col-span-12 lg:col-span-8">
+          {isLoading ? (
+            <div className="text-slate-600 text-sm">Loading tickets...</div>
+          ) : filtered.length === 0 ? (
+            <EmptyState onRefresh={fetchTickets} />
+          ) : (
+            <div className="space-y-3">
+              {filtered.map((t) => {
+                const id = t._id?.toString?.() || t._id;
+                const activeId =
+                  selectedTicket?._id?.toString?.() || selectedTicket?._id;
+
+                return (
+                  <div key={id}>
+                    <TicketRowCard
+                      t={t}
+                      isDesktop={isDesktop}
+                      isActive={id === activeId}
+                      onSelect={(tid) => setSelectedId(tid)}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* ✅ Summary stays sticky too (below toolbar height) */}
+        <aside className="hidden lg:block col-span-4">
+          <div
+            className="bg-white rounded-md shadow-md border border-slate-200 p-4 sticky"
+            style={{ top: "48px" }}
+          >
+            <div className="flex items-center justify-between">
+              <div className="text-[15px] font-semibold text-[#1f2f4c]">
+                Quick Summary
               </div>
-            )}
+            </div>
 
-            {/* Tickets board */}
-            <div className="mt-4">
-              {isLoading ? (
-                <div className="text-slate-600">Loading tickets...</div>
-              ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  {/* Open */}
-                  <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="text-sm font-bold text-slate-900">
-                        Open
-                      </div>
-                      <div className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
-                        {openTickets.length}
-                      </div>
-                    </div>
-                    <div className="space-y-3">
-                      {openTickets.map((t) => (
-                        <TicketCard key={t._id} t={t} />
-                      ))}
-                      {openTickets.length === 0 && (
-                        <div className="text-sm text-slate-500">
-                          No open tickets.
-                        </div>
-                      )}
-                    </div>
+            {!selectedTicket ? (
+              <div className="mt-3 text-sm text-slate-500">
+                Select a ticket to preview.
+              </div>
+            ) : (
+              <>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <StatusPill value={selectedTicket.status} />
+                  <PriorityPill value={selectedTicket.priority} />
+                </div>
+
+                <div className="mt-3 text-sm font-semibold text-[#1f2f4c]">
+                  {selectedTicket.subject || "Support Ticket"}
+                </div>
+
+                <div className="mt-2 text-[12.5px] text-slate-600 whitespace-pre-line line-clamp-6">
+                  {selectedTicket.description || "—"}
+                </div>
+
+                <div className="mt-3 space-y-2 text-[12px] text-slate-600">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-slate-500">Ticket ID</span>
+                    <span className="font-mono text-[#325082]">
+                      {String(selectedTicket._id || "")
+                        .slice(-6)
+                        .toUpperCase()}
+                    </span>
                   </div>
 
-                  {/* In progress */}
-                  <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="text-sm font-bold text-slate-900">
-                        In progress
-                      </div>
-                      <div className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
-                        {inProgressTickets.length}
-                      </div>
-                    </div>
-                    <div className="space-y-3">
-                      {inProgressTickets.map((t) => (
-                        <TicketCard key={t._id} t={t} />
-                      ))}
-                      {inProgressTickets.length === 0 && (
-                        <div className="text-sm text-slate-500">
-                          No in-progress tickets.
-                        </div>
-                      )}
-                    </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-slate-500">Reporter</span>
+                    <span className="text-right">
+                      {selectedTicket.user?.name ||
+                        selectedTicket.user?.email ||
+                        "Unknown"}
+                    </span>
                   </div>
 
-                  {/* Closed */}
-                  <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="text-sm font-bold text-slate-900">
-                        Closed
-                      </div>
-                      <div className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
-                        {closedTickets.length}
-                      </div>
-                    </div>
-                    <div className="space-y-3">
-                      {closedTickets.map((t) => (
-                        <TicketCard key={t._id} t={t} />
-                      ))}
-                      {closedTickets.length === 0 && (
-                        <div className="text-sm text-slate-500">
-                          No closed tickets.
-                        </div>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-slate-500">Updated</span>
+                    <span className="text-right">
+                      {formatDateTime(
+                        selectedTicket.updatedAt || selectedTicket.createdAt,
                       )}
-                    </div>
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-slate-500">Product</span>
+                    <span className="text-right">
+                      {selectedTicket.product?.title || "—"}
+                    </span>
                   </div>
                 </div>
-              )}
-            </div>
-          </main>
-        </div>
-      </div>
-    </div>
+
+                <div className="mt-4">
+                  <Link
+                    href={`/admin/support/${
+                      selectedTicket._id?.toString?.() || selectedTicket._id
+                    }`}
+                  >
+                    <ActionButton
+                      text="View ticket details"
+                      variant="primaryHover"
+                      className="w-full justify-center"
+                    />
+                  </Link>
+                </div>
+              </>
+            )}
+          </div>
+        </aside>
+      </section>
+    </main>
   );
 }

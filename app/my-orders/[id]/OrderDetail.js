@@ -460,7 +460,11 @@ export default function OrderDetail({ id }) {
                 onClick={() => setProofOpen(true)}
               />
             )}
-            <Link href={`/support/new?transactionId=${id}`}>
+            <Link
+              href={`/support/new?transactionId=${id}&as=${encodeURIComponent(
+                isSeller ? "seller" : "buyer",
+              )}`}
+            >
               <ActionButton text="Support ?" variant="outlineClick" />
             </Link>
           </div>

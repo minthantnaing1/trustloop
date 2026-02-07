@@ -1,4 +1,3 @@
-// app/api/admin/support/route.js
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -16,16 +15,20 @@ export async function GET() {
 
     await connectDB();
 
-    const me = await User.findOne({ email: session.user.email });
+    const me = await User.findOne({ email: session.user.email }).lean();
     if (!me) return new Response("User not found", { status: 404 });
-    if (me.role !== "admin") return new Response("Forbidden", { status: 403 });
+    if (String(me.role || "").toLowerCase() !== "admin")
+      return new Response("Forbidden", { status: 403 });
 
     const tickets = await SupportTicket.find({})
       .sort({ updatedAt: -1, createdAt: -1 })
-      .populate("user transaction product buyer seller assignedAdmin")
+      .populate("user", "name email image")
+      .populate("product", "title")
+      .populate("buyer", "name email")
+      .populate("seller", "name email")
       .lean();
 
-    return new Response(JSON.stringify(tickets), {
+    return new Response(JSON.stringify(Array.isArray(tickets) ? tickets : []), {
       status: 200,
       headers: {
         "Content-Type": "application/json",

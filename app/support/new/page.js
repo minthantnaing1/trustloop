@@ -1,4 +1,4 @@
-// app/support/new/page.js
+import { Suspense } from "react";
 import NavBar from "@/components/NavBar";
 import SupportReportClient from "./SupportReportClient";
 
@@ -6,7 +6,9 @@ export default function SupportNewPage() {
   return (
     <>
       <NavBar />
-      <SupportReportClient mode="new" />
+      <Suspense fallback={<div className="p-4 text-slate-500">Loading…</div>}>
+        <SupportReportClient mode="new" />
+      </Suspense>
     </>
   );
 }

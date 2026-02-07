@@ -2,18 +2,25 @@ import mongoose from "mongoose";
 
 const { ObjectId } = mongoose.Schema.Types;
 
+const MessageSchema = new mongoose.Schema(
+  {
+    at: { type: Date, default: Date.now },
+    by: { type: ObjectId, ref: "User", required: true },
+    role: { type: String, enum: ["USER", "ADMIN"], required: true },
+    text: { type: String, required: true },
+  },
+  { _id: false },
+);
+
 const SupportTicketSchema = new mongoose.Schema(
   {
-    // Who created the report
     user: { type: ObjectId, ref: "User", required: true, index: true },
 
-    // Optional relations (auto-filled from Order Detail page)
-    transaction: { type: ObjectId, ref: "Transaction", index: true },
-    product: { type: ObjectId, ref: "Product", index: true },
+    transaction: { type: ObjectId, ref: "Transaction" },
+    product: { type: ObjectId, ref: "Product" },
     buyer: { type: ObjectId, ref: "User" },
     seller: { type: ObjectId, ref: "User" },
 
-    // Ticket info
     category: {
       type: String,
       enum: [
@@ -31,33 +38,32 @@ const SupportTicketSchema = new mongoose.Schema(
       type: String,
       enum: ["LOW", "MEDIUM", "HIGH", "URGENT"],
       default: "MEDIUM",
-      index: true,
     },
 
-    subject: { type: String, required: true },
+    subject: { type: String, default: "" },
+
+    // initial user report (NOT chat)
     description: { type: String, required: true },
 
-    // Attachments (optional proof)
-    images: { type: [String], default: [] },
-
-    // Admin handling
     status: {
       type: String,
-      enum: ["OPEN", "IN_PROGRESS", "WAITING_USER", "RESOLVED", "REJECTED"],
+      enum: ["OPEN", "IN_PROGRESS", "RESOLVED", "REJECTED"],
       default: "OPEN",
       index: true,
     },
 
-    adminNote: { type: String, default: "" },
-    assignedAdmin: { type: ObjectId, ref: "User" },
+    // ✅ who last changed status (for "Closed by Admin X")
+    statusUpdatedBy: { type: ObjectId, ref: "User" },
+    statusUpdatedAt: { type: Date },
 
-    createdAt: { type: Date, default: Date.now, index: true },
+    messages: { type: [MessageSchema], default: [] },
+
+    createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
   },
   { timestamps: false },
 );
 
-// keep updatedAt fresh
 SupportTicketSchema.pre("save", function (next) {
   this.updatedAt = new Date();
   next();
