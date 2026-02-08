@@ -1,5 +1,6 @@
 import "@/app/globals.css";
 import LoadingOverlay from "@/components/LoadingOverlay"; // client component
+import TrustLoopChatbot from "@/components/TrustLoopChatbot";
 
 export const metadata = {
   title: "TrustLoop",
@@ -15,7 +16,9 @@ export default function RootLayout({ children }) {
         {children}
         {/* Global page-loading overlay (client) */}
         <LoadingOverlay />
+        <TrustLoopChatbot />
       </body>
     </html>
   );
 }
+

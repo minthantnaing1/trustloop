@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation"; // ✅ added
 import NavBar from "@/components/NavBar";
 
 export default function SupportPage() {
+  const searchParams = useSearchParams(); // ✅ added
+
   const [category, setCategory] = useState("OTHER");
   const [priority, setPriority] = useState("MEDIUM");
   const [subject, setSubject] = useState("");
@@ -11,8 +14,16 @@ export default function SupportPage() {
 
   const [pagePath, setPagePath] = useState("");
   useEffect(() => {
-    setPagePath(window.location.pathname);
-  }, []);
+    // ✅ added: read prefill values from chatbot
+    const from = searchParams.get("from") || "";
+    const msg = searchParams.get("msg") || "";
+
+    // ✅ keep existing behavior but prefer "from" when provided
+    setPagePath(from || window.location.pathname);
+
+    // ✅ prefill message only if empty (don’t overwrite user typing)
+    if (msg && !message) setMessage(msg);
+  }, [searchParams, message]); // ✅ added deps
 
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
