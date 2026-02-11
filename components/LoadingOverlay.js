@@ -67,7 +67,7 @@ export default function LoadingOverlay() {
       if (
         path &&
         path.some(
-          (el) => el && el.dataset && el.dataset.suppressOverlay === "true"
+          (el) => el && el.dataset && el.dataset.suppressOverlay === "true",
         )
       ) {
         return;
@@ -94,12 +94,9 @@ export default function LoadingOverlay() {
 
       if (!isSameOrigin(a.href)) return;
       const dest = new URL(a.href, window.location.href);
-      const nextPath = dest.pathname + dest.search + dest.hash;
-      const currPath =
-        window.location.pathname +
-        window.location.search +
-        window.location.hash;
-      if (nextPath === currPath) return;
+      // ✅ only treat it as a "real navigation" if pathname changes
+      // (query/hash changes shouldn't trigger the global overlay)
+      if (dest.pathname === window.location.pathname) return;
 
       pendingRef.current = true;
 

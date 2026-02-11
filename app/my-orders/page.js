@@ -1,3 +1,7 @@
+// app/my-orders/page.js
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import { Suspense } from "react";
 import NavBar from "@/components/NavBar";
 import MyOrdersClient from "./MyOrdersClient";

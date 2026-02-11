@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useSearchParams } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { usePathname } from "next/navigation";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import ConfirmModal from "@/components/ConfirmModal";
 import ActionButton from "@/components/ActionButton";
@@ -117,20 +117,26 @@ function NavBar() {
   }, []);
 
   const pathname = usePathname();
-  const searchParams = useSearchParams();
+
+  const [currentSearch, setCurrentSearch] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setCurrentSearch(window.location.search || "");
+    }
+  }, [pathname]);
 
   const myOrdersHref = useMemo(() => {
     // If you're already in /my-orders (including /my-orders/[id]), keep current query
     if (pathname.startsWith("/my-orders")) {
-      const q = searchParams?.toString() || "";
-      return q
-        ? `/my-orders?${q}`
+      return currentSearch
+        ? `/my-orders${currentSearch}`
         : "/my-orders?role=buyer&status=ALL&kind=BUY_SELL";
     }
 
     // Default entry when coming from other pages
     return "/my-orders?role=buyer&status=ALL&kind=BUY_SELL";
-  }, [pathname, searchParams]);
+  }, [pathname, currentSearch]);
 
   useEffect(() => {
     fetch("/api/users/me")
