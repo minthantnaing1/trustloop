@@ -65,7 +65,7 @@ export const STATUS_CODES = Object.keys(STATUS_META);
 // UI-only label overrides per kind
 const DONATION_LABEL_OVERRIDES = {
   SELLER_ACCEPTED: "Donor Accepted",
-  DELIVERY_IN_PROGRESS: "Meetup In Progress",
+  SELLER_PROOF_UPLOADED: "Donor Delivered",
   BUYER_CONFIRMED: "Recipient Received Item",
   CANCELLED_BY_SELLER: "Cancelled by Donor",
   // AWAITING_DONOR already reads correctly

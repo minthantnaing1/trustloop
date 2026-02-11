@@ -34,10 +34,7 @@ const TransactionSchema = new mongoose.Schema({
       "AWAITING_DONOR",
       "SELLER_ACCEPTED",
       "DELIVERY_IN_PROGRESS",
-
-      // ✅ NEW: seller uploaded proof, countdown starts
       "SELLER_PROOF_UPLOADED",
-
       "BUYER_CONFIRMED",
       "PAID_OUT",
       "CANCELLED_BY_BUYER",
@@ -47,6 +44,9 @@ const TransactionSchema = new mongoose.Schema({
     default: "PENDING_PAYMENT",
     index: true,
   },
+
+  // ✅ Has this transaction ever hit PAYMENT_SUCCESSFUL at least once?
+  hasPaymentSucceeded: { type: Boolean, default: false, index: true },
 
   // Money (donation can be zeros)
   price: { type: Number, required: true, default: 0 },
@@ -59,16 +59,18 @@ const TransactionSchema = new mongoose.Schema({
 
   // Deadlines / proofs
   expiresAt: { type: Date },
-  buyerReceiptUrl: { type: String, default: "" }, // payment slip
   adminPayoutReceiptUrl: { type: String, default: "" }, // admin payout proof (if any)
+
+  // ✅ Refund (admin refund proof)
+  adminRefundReceiptUrl: { type: String, default: "" }, // admin refund slip (if any)
+  refundFee: { type: Number, default: 0 }, // 5% fee kept by platform
+  buyerRefundNet: { type: Number, default: 0 }, // 95% refund amount to buyer
+  refundedAt: { type: Date },
 
   // ✅ Seller proof (image URLs) + auto confirm
   sellerProofUrls: { type: [String], default: [] },
   sellerProofUploadedAt: { type: Date },
   autoConfirmAt: { type: Date },
-
-  // Admin / routing fields (keep if you already use these)
-  payAdmin: { type: ObjectId, ref: "User" }, // round-robin admin
 
   // Cancellation / rejection notes
   cancelledBy: { type: ObjectId, ref: "User" },

@@ -413,6 +413,7 @@ export default function DonationDetails({
               initialComments={product.comments || []}
               userEmail={sessionEmail}
               productOwnerEmail={product.owner?.email}
+              isAvailable={product.isAvailable}
             />
           </div>
         </div>

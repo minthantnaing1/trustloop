@@ -13,6 +13,7 @@ import {
   Cog6ToothIcon,
   ArrowLeftOnRectangleIcon,
   ArrowUturnLeftIcon,
+  ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline";
 
 export default function AdminSidebar({ collapsed, setCollapsed }) {
@@ -44,7 +45,7 @@ export default function AdminSidebar({ collapsed, setCollapsed }) {
     {
       label: "Support Tickets",
       href: "/admin/support",
-      icon: <CubeIcon className="w-5 h-5" />,
+      icon: <ChatBubbleLeftRightIcon className="w-5 h-5" />,
     },
     // {
     //   label: "Settings",

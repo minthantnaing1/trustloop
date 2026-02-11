@@ -21,11 +21,11 @@ export default function EditProductClient({ initialProduct }) {
 
   // images: [{ url? , file? }]
   const [images, setImages] = useState(
-    (initialProduct?.images || []).map((url) => ({ url }))
+    (initialProduct?.images || []).map((url) => ({ url })),
   );
   const def =
     (initialProduct?.images || []).findIndex(
-      (u) => u === initialProduct?.defaultImage
+      (u) => u === initialProduct?.defaultImage,
     ) ?? -1;
   const [defaultIndex, setDefaultIndex] = useState(def >= 0 ? def : 0);
   const [loading, setLoading] = useState(false);
@@ -74,7 +74,7 @@ export default function EditProductClient({ initialProduct }) {
           const data = await res.json();
           if (!data.url) throw new Error("Upload failed");
           return data.url;
-        })
+        }),
       );
 
       const defaultImage = finalImages[defaultIndex] ?? finalImages[0];
@@ -208,8 +208,8 @@ export default function EditProductClient({ initialProduct }) {
             <input
               name="price"
               type="number"
-              min="1"
-              placeholder="Price (in ฿) *"
+              min="10"
+              placeholder="Minimum Price - 10฿ *"
               value={form.price}
               onChange={handleChange}
               className="bg-[#f1f1f1] p-3 rounded-[8px] outline-none"

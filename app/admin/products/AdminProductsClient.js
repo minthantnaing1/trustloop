@@ -53,7 +53,7 @@ export default function AdminProductsClient({ initialProducts }) {
         t(p.title).includes(qq) ||
         t(p.category).includes(qq) ||
         t(p.owner?.email).includes(qq) ||
-        t(p.owner?.name).includes(qq)
+        t(p.owner?.name).includes(qq),
     );
   }, [products, q]);
 
@@ -69,7 +69,7 @@ export default function AdminProductsClient({ initialProducts }) {
       });
       if (!res.ok) throw new Error(await res.text());
       setProducts((prev) =>
-        prev.filter((p) => (p._id?.toString?.() || p._id) !== id)
+        prev.filter((p) => (p._id?.toString?.() || p._id) !== id),
       );
     } catch (e) {
       alert(e.message || "Failed to delete product");
@@ -124,10 +124,8 @@ export default function AdminProductsClient({ initialProducts }) {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr>
-                  <th className="p-2 border-b font-medium w-10 text-center">
-                    #
-                  </th>
-                  <th className="p-2 border-b font-medium w-[30%]">Title</th>
+                  <th className="p-2 border-b font-medium text-center">#</th>
+                  <th className="p-2 border-b font-medium">Title</th>
                   <th className="p-2 border-b font-medium">Price</th>
                   <th className="p-2 border-b font-medium">Category</th>
                   <th className="p-2 border-b font-medium">Owner</th>
@@ -156,7 +154,7 @@ export default function AdminProductsClient({ initialProducts }) {
                       <td className="p-2 text-center text-gray-600">
                         {idx + 1}
                       </td>
-                      <td className="p-2 w-[30%]">
+                      <td className="p-2">
                         <div className="flex items-center gap-3">
                           {p.defaultImage && (
                             <img

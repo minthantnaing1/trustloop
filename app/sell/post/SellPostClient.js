@@ -66,7 +66,7 @@ export default function SellPostClient({ initialLocation = "" }) {
           const data = await res.json();
           if (!data.url) throw new Error("Upload failed");
           return data.url;
-        })
+        }),
       );
 
       const defaultImage = uploadedUrls[defaultIndex];
@@ -251,8 +251,8 @@ export default function SellPostClient({ initialLocation = "" }) {
           <input
             name="price"
             type="number"
-            min="1"
-            placeholder="Price (in ฿) *"
+            min="10"
+            placeholder="Minimum Price - 10฿ *"
             value={form.price}
             onChange={handleChange}
             className="bg-[#f1f1f1] p-3 rounded-[8px] outline-none"

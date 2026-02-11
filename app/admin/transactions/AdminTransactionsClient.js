@@ -19,6 +19,8 @@ export default function AdminTransactionsClient({ initialTxns }) {
 
   // UI state
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [kindFilter, setKindFilter] = useState("BUY_SELL"); // default
+
   const [editMode, setEditMode] = useState(false);
   const [deleteMode, setDeleteMode] = useState(false);
 
@@ -28,9 +30,20 @@ export default function AdminTransactionsClient({ initialTxns }) {
 
   const filtered = useMemo(() => {
     if (!Array.isArray(txns)) return [];
-    if (statusFilter === "ALL") return txns;
-    return txns.filter((t) => t.status === statusFilter);
-  }, [txns, statusFilter]);
+
+    const base = txns.filter((t) => {
+      const up = String(t?.kind || t?.type || "").toUpperCase();
+      return up === kindFilter;
+    });
+
+    if (statusFilter === "ALL") return base;
+    return base.filter((t) => t.status === statusFilter);
+  }, [txns, kindFilter, statusFilter]);
+
+  function changeKind(next) {
+    setKindFilter(next);
+    setStatusFilter("ALL"); // so dropdown doesn’t keep invalid status
+  }
 
   async function deleteTxn(id) {
     try {
@@ -39,7 +52,7 @@ export default function AdminTransactionsClient({ initialTxns }) {
       });
       if (!res.ok) throw new Error(await res.text());
       setTxns((prev) =>
-        prev.filter((r) => (r._id?.toString?.() || r._id) !== id)
+        prev.filter((r) => (r._id?.toString?.() || r._id) !== id),
       );
     } catch (e) {
       alert(e.message || "Failed to delete transaction");
@@ -49,27 +62,6 @@ export default function AdminTransactionsClient({ initialTxns }) {
   function askDelete(id) {
     setPendingDeleteId(id);
     setConfirmOpen(true);
-  }
-
-  function MethodTag({ method }) {
-    if (!method) return <span className="text-gray-400">—</span>;
-    const label =
-      method === "DELIVERY"
-        ? "Delivery"
-        : method === "MEETUP"
-        ? "Meetup"
-        : method;
-    const tone =
-      method === "DELIVERY"
-        ? "ring-indigo-200/70 bg-indigo-50/60 text-indigo-700"
-        : "ring-emerald-200/70 bg-emerald-50/60 text-emerald-700";
-    return (
-      <span
-        className={`inline-flex items-center px-2 py-0.5 text-[11px] font-medium ring-1 rounded-full ${tone}`}
-      >
-        {label}
-      </span>
-    );
   }
 
   function TypeTag({ kind }) {
@@ -89,13 +81,8 @@ export default function AdminTransactionsClient({ initialTxns }) {
     );
   }
 
-  function TypeAndMethod({ kind, method }) {
-    return (
-      <div className="leading-tight flex flex-col gap-1 items-start">
-        <TypeTag kind={kind} />
-        <MethodTag method={method} />
-      </div>
-    );
+  function TypeOnly({ kind }) {
+    return <TypeTag kind={kind} />;
   }
 
   function Thumb({ product }) {
@@ -125,6 +112,8 @@ export default function AdminTransactionsClient({ initialTxns }) {
         className="mb-1"
         statusFilter={statusFilter}
         onChangeFilter={setStatusFilter}
+        kindFilter={kindFilter}
+        onChangeKind={changeKind}
         editMode={editMode}
         deleteMode={deleteMode}
         onToggleEdit={() => {
@@ -150,17 +139,13 @@ export default function AdminTransactionsClient({ initialTxns }) {
             <table className="w-full text-left text-sm">
               <thead>
                 <tr>
-                  <th className="p-2 border-b font-medium w-10 text-center">
-                    #
-                  </th>
+                  <th className="p-2 border-b font-medium text-center">#</th>
                   {/* NEW: Images */}
-                  <th className="p-2 border-b font-medium w-[60px]">Images</th>
+                  <th className="p-2 border-b font-medium">Images</th>
                   <th className="p-2 border-b font-medium">Product</th>
                   <th className="p-2 border-b font-medium">Buyer</th>
                   <th className="p-2 border-b font-medium">Seller</th>
                   <th className="p-2 border-b font-medium">Total</th>
-                  <th className="p-2 border-b font-medium">Updated</th>
-                  <th className="p-2 border-b font-medium">Type / Method</th>
                   <th className="p-2 border-b font-medium">Order Status</th>
                   <th className="p-2 border-b font-medium">Actions</th>
                 </tr>
@@ -168,6 +153,7 @@ export default function AdminTransactionsClient({ initialTxns }) {
               <tbody>
                 {filtered.map((t, idx) => {
                   const txnId = t._id?.toString?.() || t._id;
+                  const hasPaid = Boolean(t?.hasPaymentSucceeded);
                   const showActions = editMode;
 
                   const kindUp = String(t?.kind || t?.type || "").toUpperCase();
@@ -248,47 +234,31 @@ export default function AdminTransactionsClient({ initialTxns }) {
                         </div>
                       </td>
 
-                      <td className="p-2 align-top">
-                        {isDonation ? (
-                          <span className="text-sm font-semibold text-emerald-700">
-                            Free
-                          </span>
-                        ) : (
-                          <div className="text-sm">
-                            {/* Buyer total */}
-                            <div className="font-medium text-[#1f2f4c]">
-                              ฿{Number(t.total || 0).toLocaleString()}
-                            </div>
+                      <td className="p-2">
+                        <span
+                          className={`text-sm font-semibold ${
+                            isDonation ? "text-emerald-700" : "text-[#1f2f4c]"
+                          }`}
+                        >
+                          {fmtTotal(t)}
+                        </span>
+                      </td>
 
-                            {/* Assigned admin (round-robin) */}
-                            {t.payAdmin && (
-                              <div className="text-[11px] text-gray-500 mt-0.5">
-                                Pay to Admin:{" "}
-                                <span className="font-medium">
-                                  {t.payAdmin.name || t.payAdmin.email || "—"}
-                                </span>
-                              </div>
-                            )}
+                      <td className="p-2">
+                        <div className="leading-tight">
+                          <div className="font-medium">
+                            <StatusPill
+                              status={t.status}
+                              kind={String(t.kind || t.type).toUpperCase()}
+                            />
                           </div>
-                        )}
-                      </td>
 
-                      <td className="p-2">
-                        {new Date(t.updatedAt || t.createdAt).toLocaleString()}
-                      </td>
-
-                      <td className="p-2">
-                        <TypeAndMethod
-                          kind={t.kind || t.type}
-                          method={t.fulfillment?.method}
-                        />
-                      </td>
-
-                      <td className="p-2">
-                        <StatusPill
-                          status={t.status}
-                          kind={String(t.kind || t.type).toUpperCase()}
-                        />
+                          <div className="text-xs text-gray-600 mt-2">
+                            {new Date(
+                              t.updatedAt || t.createdAt,
+                            ).toLocaleString()}
+                          </div>
+                        </div>
                       </td>
 
                       <td className="p-2">
@@ -307,8 +277,41 @@ export default function AdminTransactionsClient({ initialTxns }) {
                               Delete
                             </span>
                           </button>
+                        ) : showActions ? (
+                          <AdminTxnRowActions
+                            txnId={txnId}
+                            currentStatus={t.status}
+                            kind={
+                              kindUp === "DONATION" ? "DONATION" : "BUY_SELL"
+                            }
+                            onDone={({ id, newStatus }) => {
+                              setTxns((prev) =>
+                                prev.map((row) => {
+                                  const rowId =
+                                    row._id?.toString?.() || row._id;
+                                  if (rowId !== id) return row;
+
+                                  // ✅ "counter" behavior: once paid success happens, keep it true forever
+                                  const already = Boolean(
+                                    row?.hasPaymentSucceeded,
+                                  );
+                                  const hitNow =
+                                    String(newStatus).toUpperCase() ===
+                                    "PAYMENT_SUCCESSFUL";
+
+                                  return {
+                                    ...row,
+                                    status: newStatus,
+                                    hasPaymentSucceeded: already || hitNow,
+                                    updatedAt: new Date().toISOString(),
+                                  };
+                                }),
+                              );
+
+                              if (editMode) setEditMode(false);
+                            }}
+                          />
                         ) : !isDonation && t.status === "BUYER_CONFIRMED" ? (
-                          // Hide payout button for DONATION
                           <ActionButton
                             text="Payout"
                             variant="primaryClick"
@@ -316,7 +319,7 @@ export default function AdminTransactionsClient({ initialTxns }) {
                             onClick={(e) => {
                               e.stopPropagation();
                               router.push(
-                                `/admin/transactions/${txnId}/payout`
+                                `/admin/transactions/${txnId}/payout`,
                               );
                             }}
                           />
@@ -328,28 +331,31 @@ export default function AdminTransactionsClient({ initialTxns }) {
                           >
                             View Payout
                           </a>
-                        ) : showActions ? (
-                          <AdminTxnRowActions
-                            txnId={txnId}
-                            currentStatus={t.status}
-                            kind={
-                              kindUp === "DONATION" ? "DONATION" : "BUY_SELL"
-                            }
-                            onDone={({ id, newStatus }) => {
-                              setTxns((prev) =>
-                                prev.map((row) =>
-                                  (row._id?.toString?.() || row._id) === id
-                                    ? {
-                                        ...row,
-                                        status: newStatus,
-                                        updatedAt: new Date().toISOString(),
-                                      }
-                                    : row
-                                )
-                              );
-                              if (editMode) setEditMode(false);
-                            }}
-                          />
+                        ) : !isDonation &&
+                          hasPaid &&
+                          (t.status === "CANCELLED_BY_BUYER" ||
+                            t.status === "CANCELLED_BY_SELLER") ? (
+                          !t.adminRefundReceiptUrl ? (
+                            <ActionButton
+                              text="Refund"
+                              variant="primaryClick"
+                              className="bg-amber-700 border-amber-700 hover:bg-amber-800 hover:border-amber-800"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(
+                                  `/admin/transactions/${txnId}/refund`,
+                                );
+                              }}
+                            />
+                          ) : (
+                            <a
+                              href={`/admin/transactions/${txnId}/refund`}
+                              className="text-sm underline text-[#325082] underline-offset-2"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              View Refund
+                            </a>
+                          )
                         ) : (
                           <span className="text-gray-400">—</span>
                         )}
@@ -360,8 +366,8 @@ export default function AdminTransactionsClient({ initialTxns }) {
 
                 {filtered.length === 0 && (
                   <tr>
-                    {/* updated colspan: 12 columns total */}
-                    <td colSpan={11} className="p-4 text-center text-gray-500">
+                    {/* updated colspan: 10 columns total */}
+                    <td colSpan={9} className="p-4 text-center text-gray-500">
                       No transactions found.
                     </td>
                   </tr>

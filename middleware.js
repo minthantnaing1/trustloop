@@ -12,6 +12,7 @@ const protectedRoutes = [
   /^\/review(\/.*)?$/,
   /^\/favorites$/,
   /^\/notifications$/,
+  /^\/support(\/.*)?$/,
 ];
 
 const authPageRoutes = ["/"];
@@ -24,7 +25,7 @@ export default auth((req) => {
   const path = nextUrl.pathname;
   const isApiAuthRoute = path.startsWith(apiAuthPrefix);
   const isProtectedRoute = protectedRoutes.some((route) =>
-    route instanceof RegExp ? route.test(path) : route === path
+    route instanceof RegExp ? route.test(path) : route === path,
   );
   const isAuthPageRoute = authPageRoutes.includes(path);
 

@@ -41,7 +41,7 @@ export default function FilterDropdown({
             <input
               type="number"
               placeholder="Min Price"
-              min="0"
+              min="10"
               value={filters.minPrice}
               onChange={(e) =>
                 setFilters({ ...filters, minPrice: e.target.value })
@@ -52,7 +52,7 @@ export default function FilterDropdown({
             <input
               type="number"
               placeholder="Max Price"
-              min="0"
+              min="10"
               value={filters.maxPrice}
               onChange={(e) =>
                 setFilters({ ...filters, maxPrice: e.target.value })

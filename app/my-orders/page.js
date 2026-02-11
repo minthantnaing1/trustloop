@@ -281,15 +281,19 @@ function MyOrdersClient() {
       const updated = await res.json();
 
       // ✅ Optimistic update (local UI)
-      setSellerTxns((prev) =>
+      const patchLocal = (prev) =>
         (prev || []).map((t) => {
           if ((t._id?.toString?.() || t._id) !== id) return t;
 
           const nextStatus =
-            action === "seller_cancel" ? "CANCELLED_BY_SELLER" : t.status;
+            action === "seller_cancel"
+              ? "CANCELLED_BY_SELLER"
+              : action === "buyer_cancel"
+                ? "CANCELLED_BY_BUYER"
+                : t.status;
 
           const nextCancelReason =
-            action === "seller_cancel"
+            action === "seller_cancel" || action === "buyer_cancel"
               ? (extra?.cancelReason ?? updated?.cancelReason ?? t.cancelReason)
               : t.cancelReason;
 
@@ -299,8 +303,13 @@ function MyOrdersClient() {
             cancelReason: nextCancelReason,
             updatedAt: new Date().toISOString(),
           };
-        }),
-      );
+        });
+
+      if (action === "buyer_cancel") {
+        setBuyerTxns(patchLocal);
+      } else {
+        setSellerTxns(patchLocal);
+      }
 
       // ✅ Redirect and refresh logic unified for all kinds
       const kind = (
@@ -323,8 +332,8 @@ function MyOrdersClient() {
         );
       }
 
-      // 🪄 Always re-fetch seller list in background (sync across all kinds)
-      await refreshRoleLists("seller");
+      // 🪄 Always re-fetch buyer/seller list in background (sync across all kinds)
+      await refreshRoleLists(role);
     } catch (e) {
       alert(e.message || "Action failed");
     } finally {
@@ -394,12 +403,23 @@ function MyOrdersClient() {
       : { ctaHref: "/sell/post", ctaText: "Create a listing" };
   })();
 
+  function setKindAndReset(nextKind) {
+    setKindFilter(nextKind);
+    setStatusFilter("ALL");
+  }
+
+  function setRoleAndReset(nextRole) {
+    setRole(nextRole);
+    setStatusFilter("ALL");
+  }
+
   useEffect(() => {
-    const sp = new URLSearchParams(searchParams);
+    const sp = new URLSearchParams();
     sp.set("role", role);
     sp.set("status", statusFilter);
     sp.set("kind", kindFilter);
-    router.replace(`/my-orders?${sp.toString()}`);
+
+    router.replace(`/my-orders?${sp.toString()}`, { scroll: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role, statusFilter, kindFilter]);
 
@@ -453,8 +473,12 @@ function MyOrdersClient() {
               />
             </div>
             <div className="flex items-center gap-2">
-              <KindSwitch kind={kindFilter} setKind={setKindFilter} />
-              <RoleSwitch role={role} setRole={setRole} kind={kindFilter} />
+              <KindSwitch kind={kindFilter} setKind={setKindAndReset} />
+              <RoleSwitch
+                role={role}
+                setRole={setRoleAndReset}
+                kind={kindFilter}
+              />
             </div>
           </div>
 
@@ -462,7 +486,11 @@ function MyOrdersClient() {
           <div className="flex flex-col sm:hidden">
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-bold text-[#325082]">My Orders</h1>
-              <RoleSwitch role={role} setRole={setRole} kind={kindFilter} />
+              <RoleSwitch
+                role={role}
+                setRole={setRoleAndReset}
+                kind={kindFilter}
+              />
             </div>
             <div className="flex justify-between items-center mt-2 gap-2">
               <MyOrdersStatusFilter
@@ -472,7 +500,7 @@ function MyOrdersClient() {
                 value={statusFilter}
                 onChange={setStatusFilter}
               />
-              <KindSwitch kind={kindFilter} setKind={setKindFilter} />
+              <KindSwitch kind={kindFilter} setKind={setKindAndReset} />
             </div>
           </div>
         </div>
@@ -519,13 +547,23 @@ function MyOrdersClient() {
             list.map((t) => {
               const id = t._id?.toString?.() || t._id;
               const isSeller = role === "seller";
-              const isAwaitingDonor = t.status === "AWAITING_DONOR";
-              const canCancelOnly =
+
+              // ✅ seller cancel rules (your existing)
+              const sellerCanCancel =
                 isSeller &&
                 ((t.kind === "BUY_SELL" && t.status === "PAYMENT_SUCCESSFUL") ||
-                  (t.kind === "DONATION" &&
-                    (t.status === "AWAITING_DONOR" ||
-                      t.status === "SELLER_ACCEPTED")));
+                  (t.kind === "DONATION" && t.status === "AWAITING_DONOR"));
+
+              // ✅ buyer cancel rules (new)
+              const buyerCanCancel =
+                !isSeller &&
+                ((t.kind === "BUY_SELL" &&
+                  ["PENDING_PAYMENT", "PAYMENT_SUCCESSFUL"].includes(
+                    t.status,
+                  )) ||
+                  (t.kind === "DONATION" && t.status === "AWAITING_DONOR"));
+
+              const canCancelOnly = sellerCanCancel || buyerCanCancel;
 
               const counterparty = isSeller ? t.buyer : t.seller;
 
@@ -673,11 +711,13 @@ function MyOrdersClient() {
                             />
                           )}
 
-                          {isSeller && canCancelOnly && (
+                          {canCancelOnly && (
                             <ActionButton
                               text={
                                 t.kind === "DONATION"
-                                  ? "Reject Request"
+                                  ? isSeller
+                                    ? "Reject Request"
+                                    : "Cancel Request"
                                   : "Cancel Order"
                               }
                               variant="orderCancel"
@@ -685,14 +725,20 @@ function MyOrdersClient() {
                               onClick={() => {
                                 const reason = prompt(
                                   t.kind === "DONATION"
-                                    ? "Please enter a reason for rejection:"
+                                    ? isSeller
+                                      ? "Please enter a reason for rejection:"
+                                      : "Please enter a reason for cancellation:"
                                     : "Please enter a reason for cancellation:",
                                 );
-                                if (reason?.trim()) {
-                                  actOnTxn(id, "seller_cancel", {
+                                if (!reason?.trim()) return;
+
+                                actOnTxn(
+                                  id,
+                                  isSeller ? "seller_cancel" : "buyer_cancel",
+                                  {
                                     cancelReason: reason.trim(),
-                                  });
-                                }
+                                  },
+                                );
                               }}
                             />
                           )}

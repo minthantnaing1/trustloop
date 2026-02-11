@@ -4,38 +4,22 @@ import { STATUS_CODES, getStatusLabel } from "@/components/StatusPill";
 
 /**
  * Only show statuses that matter per kind.
- * BUY_SELL: everything except AWAITING_DONOR
+ * BUY_SELL: everything except AWAITING_DONOR, SELLER_ACCEPTED
  * DONATION: meetup-only flow + donor/recipient wording; no admin/buyer cancel; no payment steps.
  */
 const STATUSES_BY_KIND = {
   BUY_SELL: STATUS_CODES.filter(
-    (s) => !["AWAITING_DONOR", "SELLER_ACCEPTED"].includes(s)
+    (s) => !["AWAITING_DONOR", "SELLER_ACCEPTED"].includes(s),
   ),
   DONATION: [
     "AWAITING_DONOR",
     "SELLER_ACCEPTED",
     "DELIVERY_IN_PROGRESS",
-    "MEETUP_COMPLETED",
+    "SELLER_PROOF_UPLOADED",
     "BUYER_CONFIRMED",
     "CANCELLED_BY_SELLER",
   ],
 };
-
-// Label overrides for Donation (UI only)
-function labelFor(kind, role, code) {
-  if (kind === "DONATION") {
-    const map = {
-      AWAITING_DONOR: "Awaiting Donor Response",
-      SELLER_ACCEPTED: "Donor Accepted",
-      DELIVERY_IN_PROGRESS: "Meetup In Progress",
-      MEETUP_COMPLETED: "Meetup Completed",
-      BUYER_CONFIRMED: "Recipient Received Item",
-      CANCELLED_BY_SELLER: "Cancelled by Donor",
-    };
-    return map[code] || getStatusLabel(code);
-  }
-  return getStatusLabel(code);
-}
 
 export default function MyOrdersStatusFilter({
   role, // "buyer" | "seller"
@@ -63,7 +47,7 @@ export default function MyOrdersStatusFilter({
         <option value="ALL">All</option>
         {options.map((code) => (
           <option key={code} value={code}>
-            {labelFor(kind, role, code)}
+            {getStatusLabel(code, kind)}
           </option>
         ))}
       </select>

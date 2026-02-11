@@ -1,7 +1,7 @@
 // components/TxnChat.js
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import ActionButton from "@/components/ActionButton";
 
 function safeIso(d) {
@@ -90,16 +90,14 @@ function ChatInput({ onSend, disabled }) {
           disabled={disabled}
           className="hidden"
           onChange={(e) => {
-            // ✅ FIX: accumulate (append) selections instead of replacing
             const incoming = Array.from(e.target.files || []);
             if (!incoming.length) return;
 
             setFiles((prev) => {
-              const merged = [...prev, ...incoming].slice(0, 3); // ✅ max 3
+              const merged = [...prev, ...incoming].slice(0, 3);
               return merged;
             });
 
-            // allow picking same file again later
             if (fileRef.current) fileRef.current.value = "";
           }}
         />
@@ -142,8 +140,30 @@ export default function TxnChat({
   const stickRef = useRef(true);
   const pollRef = useRef(null);
 
-  const chatLocked =
+  // ✅ 1) Completion lock (your existing meaning)
+  const chatFinalizedLocked =
     txnStatus === "BUYER_CONFIRMED" || txnStatus === "PAID_OUT";
+
+  // ✅ 2) Privacy / no-need-to-talk lock
+  const chatPrivacyLocked = useMemo(() => {
+    const CHAT_PRIVACY_LOCK_STATUSES = new Set([
+      "PENDING_PAYMENT",
+      "AWAITING_DONOR",
+      "CANCELLED_BY_BUYER",
+      "CANCELLED_BY_SELLER",
+      "REJECTED_BY_ADMIN",
+    ]);
+    return CHAT_PRIVACY_LOCK_STATUSES.has(txnStatus);
+  }, [txnStatus]);
+
+  // ✅ Final decision
+  const chatDisabled = chatFinalizedLocked || chatPrivacyLocked;
+
+  const lockedMessage = chatFinalizedLocked
+    ? "Chat is closed — order completed."
+    : chatPrivacyLocked
+      ? "Chat is locked for privacy until the order is accepted."
+      : "";
 
   const scrollToBottom = useCallback((smooth = true) => {
     const el = boxRef.current;
@@ -234,7 +254,8 @@ export default function TxnChat({
   }
 
   async function send(payload) {
-    if (chatLocked) return;
+    // ✅ Block sends if chat is disabled for any reason
+    if (chatDisabled) return;
 
     const trimmed = String(payload?.text || "").trim();
     const files = Array.isArray(payload?.files) ? payload.files : [];
@@ -398,12 +419,12 @@ export default function TxnChat({
         })}
       </div>
 
-      {chatLocked ? (
+      {chatDisabled ? (
         <div className="border-t border-[#e7ecf8] bg-white px-3 py-3 text-center text-sm text-gray-500">
-          Chat is closed — order completed.
+          {lockedMessage}
         </div>
       ) : (
-        <ChatInput disabled={busy || !meId} onSend={send} />
+        <ChatInput disabled={busy || !meId || chatDisabled} onSend={send} />
       )}
     </div>
   );

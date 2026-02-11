@@ -65,11 +65,7 @@ export default async function ReviewPage({ params }) {
     session.user.email &&
     txn?.buyer?.email?.toLowerCase?.() === session.user.email.toLowerCase();
 
-  const allowedStatuses = [
-    "AUTO_CONFIRMED_AFTER_3_DAYS",
-    "BUYER_CONFIRMED",
-    "PAID_OUT",
-  ];
+  const allowedStatuses = ["BUYER_CONFIRMED", "PAID_OUT"];
   const statusAllowed = allowedStatuses.includes(txn?.status);
 
   // Block unless the viewer is the buyer/recipient AND the order is complete
@@ -120,7 +116,7 @@ export default async function ReviewPage({ params }) {
   const counterRole = isDonation ? "donor" : "seller";
   const counterRes = await fetch(
     `${process.env.NEXT_PUBLIC_BASE_URL}/api/transactions/${id}/review?role=${counterRole}`,
-    { headers: { Cookie: cookieStore.toString() }, cache: "no-store" }
+    { headers: { Cookie: cookieStore.toString() }, cache: "no-store" },
   );
   const counterpartyReview = counterRes.ok ? await counterRes.json() : null;
 

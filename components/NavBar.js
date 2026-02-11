@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -117,6 +117,20 @@ function NavBar() {
   }, []);
 
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const myOrdersHref = useMemo(() => {
+    // If you're already in /my-orders (including /my-orders/[id]), keep current query
+    if (pathname.startsWith("/my-orders")) {
+      const q = searchParams?.toString() || "";
+      return q
+        ? `/my-orders?${q}`
+        : "/my-orders?role=buyer&status=ALL&kind=BUY_SELL";
+    }
+
+    // Default entry when coming from other pages
+    return "/my-orders?role=buyer&status=ALL&kind=BUY_SELL";
+  }, [pathname, searchParams]);
 
   useEffect(() => {
     fetch("/api/users/me")
@@ -298,17 +312,22 @@ function NavBar() {
       { label: "BUY", href: "/buy" },
       { label: "SELL", href: "/sell" },
       { label: "DONATION", href: "/donation" },
-      { label: "MY ORDERS", href: "/my-orders" },
+      { label: "MY ORDERS", href: myOrdersHref }, // ✅ changed
     ],
-    []
+    [myOrdersHref],
   );
 
-  const isActiveLink = (href) =>
-    pathname === href ||
-    (href === "/buy" && pathname.startsWith("/buy/")) ||
-    (href === "/sell" && pathname.startsWith("/sell/")) ||
-    (href === "/donation" && pathname.startsWith("/donation/")) ||
-    (href === "/my-orders" && pathname.startsWith("/my-orders/"));
+  const isActiveLink = (href) => {
+    const baseHref = (href || "").split("?")[0];
+
+    return (
+      pathname === baseHref ||
+      (baseHref === "/buy" && pathname.startsWith("/buy/")) ||
+      (baseHref === "/sell" && pathname.startsWith("/sell/")) ||
+      (baseHref === "/donation" && pathname.startsWith("/donation/")) ||
+      (baseHref === "/my-orders" && pathname.startsWith("/my-orders"))
+    );
+  };
 
   const blurDataURL =
     "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNmMmYyZjQiIC8+PC9zdmc+";
@@ -551,7 +570,6 @@ function NavBar() {
               Customer Support
             </div>
           </Link>
-
 
           {/* Logout Button */}
           <ActionButton

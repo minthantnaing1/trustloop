@@ -343,16 +343,6 @@ export async function PATCH(req, { params }) {
     return Response.json({ success: true, status: txn.status });
   }
 
-  // ✅ Start chat can move to DELIVERY_IN_PROGRESS (same as your idea)
-  // if (action === "start_chat") {
-  //   if (txn.kind === "BUY_SELL" && txn.status === "PAYMENT_SUCCESSFUL") {
-  //     txn.status = "DELIVERY_IN_PROGRESS";
-  //     txn.timeline.push({ by: me._id, action: "CHAT_STARTED" });
-  //     await txn.save();
-  //   }
-  //   return Response.json({ success: true });
-  // }
-
   // ---- Seller accepts (unchanged) ----
   if (action === "seller_accept") {
     const isSeller = String(txn.seller) === String(me._id);
@@ -375,19 +365,61 @@ export async function PATCH(req, { params }) {
     return Response.json({ success: true, status: txn.status });
   }
 
+  // ---- Buyer cancels ----
+  if (action === "buyer_cancel") {
+    const isBuyer = String(txn.buyer) === String(me._id);
+    if (!isBuyer) return new Response("Forbidden", { status: 403 });
+
+    if (
+      !["PENDING_PAYMENT", "PAYMENT_SUCCESSFUL", "AWAITING_DONOR"].includes(
+        txn.status,
+      )
+    ) {
+      return new Response("Not allowed in current state", { status: 409 });
+    }
+
+    const { cancelReason = "" } = body || {};
+    const reason = String(cancelReason).trim().slice(0, 300);
+
+    if (!reason) {
+      return new Response("Cancellation reason is required.", { status: 400 });
+    }
+
+    txn.status = "CANCELLED_BY_BUYER";
+    txn.cancelledBy = me._id;
+    txn.cancelReason = reason;
+
+    txn.timeline.push({
+      at: new Date(),
+      by: me._id,
+      action: "CANCELLED_BY_BUYER",
+      meta: { reason },
+    });
+
+    await txn.save();
+
+    await notifyTxnEvent({
+      txn,
+      actorId: me._id,
+      type: "CANCELLED_BY_BUYER",
+    });
+
+    if (txn.product) {
+      await Product.updateOne(
+        { _id: txn.product },
+        { $set: { isAvailable: true } },
+      );
+    }
+
+    return Response.json({ success: true, status: txn.status });
+  }
+
   // ---- Seller cancels after admin approved (allow from funded/accepted/in-delivery) ----
   if (action === "seller_cancel") {
     const isSeller = String(txn.seller) === String(me._id);
     if (!isSeller) return new Response("Forbidden", { status: 403 });
 
-    if (
-      ![
-        "AWAITING_DONOR",
-        "PAYMENT_SUCCESSFUL",
-        "SELLER_ACCEPTED",
-        "DELIVERY_IN_PROGRESS",
-      ].includes(txn.status)
-    ) {
+    if (!["PAYMENT_SUCCESSFUL", "AWAITING_DONOR"].includes(txn.status)) {
       return new Response("Not allowed in current state", { status: 409 });
     }
 
@@ -448,10 +480,14 @@ export async function PATCH(req, { params }) {
     const now = new Date();
 
     // ✅ Change countdown duration here
-    const AUTO_CONFIRM_DAYS = 3;
-    const autoConfirmAt = new Date(
-      now.getTime() + AUTO_CONFIRM_DAYS * 24 * 60 * 60 * 1000,
-    );
+    // const AUTO_CONFIRM_DAYS = 3;
+    // const autoConfirmAt = new Date(
+    //   now.getTime() + AUTO_CONFIRM_DAYS * 24 * 60 * 60 * 1000,
+    // );
+
+    // ✅ TEST MODE: 1 minute 30 seconds
+    const AUTO_CONFIRM_MS = 90 * 1000;
+    const autoConfirmAt = new Date(now.getTime() + AUTO_CONFIRM_MS);
 
     // (If you want testing: 90 seconds)
     // const autoConfirmAt = new Date(now.getTime() + 90 * 1000);
@@ -488,10 +524,8 @@ export async function PATCH(req, { params }) {
     const isBuyer = String(txn.buyer) === String(me._id);
     if (!isBuyer) return new Response("Forbidden", { status: 403 });
 
-    // allow confirm from in-progress OR after proof uploaded
-    if (
-      !["DELIVERY_IN_PROGRESS", "SELLER_PROOF_UPLOADED"].includes(txn.status)
-    ) {
+    // allow confirm ONLY after proof uploaded
+    if (txn.status !== "SELLER_PROOF_UPLOADED") {
       return new Response("Not allowed in current state", { status: 409 });
     }
 

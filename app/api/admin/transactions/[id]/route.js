@@ -35,7 +35,7 @@ export async function PATCH(req, { params }) {
 
     await connectDB();
     const me = await User.findOne({ email: session.user.email }).select(
-      "_id role"
+      "_id role",
     );
     if (!me || me.role !== "admin")
       return new Response("Forbidden", { status: 403 });
@@ -58,6 +58,27 @@ export async function PATCH(req, { params }) {
       if (!status) return new Response("Missing status", { status: 400 });
 
       txn.status = status;
+
+      // ✅ If admin cancels/rejects, release the product back to available
+      const next = String(status || "").toUpperCase();
+      const shouldRelease =
+        next === "CANCELLED_BY_BUYER" ||
+        next === "CANCELLED_BY_SELLER" ||
+        next === "REJECTED_BY_ADMIN";
+
+      if (shouldRelease && txn.product) {
+        // txn.product might be populated doc or just ObjectId
+        const productId = txn.product?._id || txn.product;
+        await Product.updateOne(
+          { _id: productId },
+          { $set: { isAvailable: true } },
+        );
+      }
+
+      // ✅ If admin manually sets payment successful (testing), allow refund flow later
+      if (status === "PAYMENT_SUCCESSFUL") {
+        txn.hasPaymentSucceeded = true;
+      }
 
       if (status === "REJECTED_BY_ADMIN" && reason) {
         txn.adminRejectReason = reason;
@@ -82,6 +103,65 @@ export async function PATCH(req, { params }) {
       return Response.json({ ok: true, status: txn.status });
     }
 
+    // 💵 REFUND (buyer gets 95%, platform keeps 5%)
+    if (action === "mark_refunded") {
+      const { refundUrl, refundFee, buyerRefundNet } = body;
+
+      if (!refundUrl)
+        return new Response("refundUrl required", { status: 400 });
+
+      const kindUp = String(txn?.kind || "").toUpperCase();
+      if (kindUp !== "BUY_SELL") {
+        return new Response("Refund only for BUY_SELL", { status: 409 });
+      }
+
+      const isCancelled =
+        txn.status === "CANCELLED_BY_BUYER" ||
+        txn.status === "CANCELLED_BY_SELLER";
+
+      if (!isCancelled) {
+        return new Response("Not allowed in current state", { status: 409 });
+      }
+
+      if (!txn.hasPaymentSucceeded) {
+        return new Response("Cannot refund: payment was never successful", {
+          status: 409,
+        });
+      }
+
+      // prevent double refund
+      if (txn.adminRefundReceiptUrl) {
+        return new Response("Already refunded", { status: 409 });
+      }
+
+      txn.adminRefundReceiptUrl = refundUrl;
+      txn.refundFee = Number(refundFee || 0);
+      txn.buyerRefundNet = Number(buyerRefundNet || 0);
+      txn.refundedAt = now;
+
+      txn.timeline.push({
+        by: me._id,
+        at: now,
+        action: "ADMIN_REFUNDED_BUYER",
+        meta: {
+          refundUrl,
+          refundFee: txn.refundFee,
+          buyerRefundNet: txn.buyerRefundNet,
+        },
+      });
+
+      txn.updatedAt = now;
+      await txn.save();
+
+      await notifyTxnEvent({
+        txn,
+        actorId: me._id,
+        type: "ADMIN_REFUNDED_BUYER",
+      });
+
+      return Response.json({ ok: true });
+    }
+
     // 💸 PAYOUT
     if (action === "mark_paid") {
       if (!payoutUrl)
@@ -103,7 +183,7 @@ export async function PATCH(req, { params }) {
 
       await User.updateOne(
         { _id: txn.seller },
-        { $inc: { revenue: Number(txn.total || 0) } }
+        { $inc: { revenue: Number(txn.total || 0) } },
       );
 
       txn.updatedAt = now;
@@ -135,7 +215,7 @@ export async function DELETE(_req, { params }) {
 
     await connectDB();
     const me = await User.findOne({ email: session.user.email }).select(
-      "_id role"
+      "_id role",
     );
     if (!me || me.role !== "admin")
       return new Response("Forbidden", { status: 403 });
@@ -145,16 +225,16 @@ export async function DELETE(_req, { params }) {
 
     // ↓ include product id so we can free the listing + BOTH receipts
     const txn = await Transaction.findById(id).select(
-      "buyerReceiptUrl adminPayoutReceiptUrl product"
+      "adminRefundReceiptUrl adminPayoutReceiptUrl product",
     );
     if (!txn) return new Response("Not found", { status: 404 });
 
     // Remove any Cloudinary receipts (buyer + admin). De-dupe just in case.
     const pids = new Set(
-      [txn.buyerReceiptUrl, txn.adminPayoutReceiptUrl]
+      [txn.adminRefundReceiptUrl, txn.adminPayoutReceiptUrl]
         .filter(Boolean)
         .map((url) => extractPublicId(url))
-        .filter(Boolean)
+        .filter(Boolean),
     );
 
     await Promise.allSettled(
@@ -164,14 +244,14 @@ export async function DELETE(_req, { params }) {
         } catch (e) {
           console.warn("cloudinary destroy failed:", pid, e?.message);
         }
-      })
+      }),
     );
 
     // ↓ make the product available again if there is one
     if (txn.product) {
       await Product.updateOne(
         { _id: txn.product },
-        { $set: { isAvailable: true } }
+        { $set: { isAvailable: true } },
       );
     }
 

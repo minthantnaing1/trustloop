@@ -16,7 +16,7 @@ export async function POST(req) {
     event = stripe.webhooks.constructEvent(
       body,
       sig,
-      process.env.STRIPE_WEBHOOK_SECRET
+      process.env.STRIPE_WEBHOOK_SECRET,
     );
   } catch (err) {
     console.error("❌ Webhook signature error:", err.message);
@@ -53,6 +53,7 @@ export async function POST(req) {
       // ✅ VALID PAYMENT
       txn.status = "PAYMENT_SUCCESSFUL";
       txn.expiresAt = null;
+      txn.hasPaymentSucceeded = true;
 
       txn.timeline.push({
         at: new Date(),
@@ -91,7 +92,7 @@ export async function POST(req) {
       if (txn.product) {
         await Product.updateOne(
           { _id: txn.product },
-          { $set: { isAvailable: true } }
+          { $set: { isAvailable: true } },
         );
       }
     }

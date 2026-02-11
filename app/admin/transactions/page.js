@@ -1,4 +1,4 @@
-// app/admin/transactiions/page.js
+// app/admin/transactions/page.js
 import AdminTransactionsClient from "./AdminTransactionsClient";
 import { connectDB } from "@/lib/db";
 import Transaction from "@/models/Transaction";

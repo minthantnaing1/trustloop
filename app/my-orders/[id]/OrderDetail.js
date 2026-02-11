@@ -17,7 +17,6 @@ import SlipLink from "@/components/SlipLink";
 import Timeline from "@/components/Timeline";
 import TxnChat from "@/components/TxnChat";
 import UploadProofModal from "@/components/UploadProofModal";
-import ConfirmModal from "@/components/ConfirmModal"; // ✅ ADD
 
 function labelParty(kind, isSellerView) {
   if (kind === "DONATION") return isSellerView ? "Recipient" : "Donor";
@@ -42,9 +41,6 @@ export default function OrderDetail({ id }) {
   const [busy, setBusy] = useState(false);
   const [remainMs, setRemainMs] = useState(null);
   const router = useRouter();
-
-  // ✅ Confirm Received warning modal (only when seller hasn't uploaded proof)
-  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const didRefreshRef = useRef(false);
   useEffect(() => {
@@ -145,12 +141,8 @@ export default function OrderDetail({ id }) {
   const [proofOpen, setProofOpen] = useState(false);
   const [proofBusy, setProofBusy] = useState(false);
 
-  const chatLocked =
-    txn?.status === "BUYER_CONFIRMED" || txn?.status === "PAID_OUT";
-
   const canUploadProof =
     isSeller &&
-    !chatLocked &&
     ["DELIVERY_IN_PROGRESS", "SELLER_ACCEPTED"].includes(txn?.status);
 
   async function uploadOne(file) {
@@ -215,20 +207,6 @@ export default function OrderDetail({ id }) {
 
   if (err) return <p className="text-red-600 mb-3">{err}</p>;
   if (!txn) return <p className="text-gray-500">Loading…</p>;
-
-  // ✅ helper for buyer confirm click
-  const handleBuyerConfirmClick = () => {
-    if (busy) return;
-
-    // If seller hasn't uploaded proof yet, warn buyer.
-    if (txn.status === "DELIVERY_IN_PROGRESS") {
-      setConfirmOpen(true);
-      return;
-    }
-
-    // If proof uploaded (or other allowed state), proceed directly.
-    doPatch({ action: "buyer_confirm" });
-  };
 
   return (
     <div className="space-y-6">
@@ -377,21 +355,18 @@ export default function OrderDetail({ id }) {
             </Link>
 
             {/* Buyer: Confirm Received */}
-            {isBuyer &&
-              (txn.status === "DELIVERY_IN_PROGRESS" ||
-                txn.status === "SELLER_PROOF_UPLOADED") && (
-                <ActionButton
-                  text="Confirm Received"
-                  variant="primaryClick"
-                  disabled={busy}
-                  onClick={handleBuyerConfirmClick} // ✅ changed
-                />
-              )}
+            {isBuyer && txn.status === "SELLER_PROOF_UPLOADED" && (
+              <ActionButton
+                text="Confirm Received"
+                variant="primaryClick"
+                disabled={busy}
+                onClick={() => doPatch({ action: "buyer_confirm" })}
+              />
+            )}
 
             {/* Buyer: Review */}
             {isBuyer &&
               (txn.status === "BUYER_CONFIRMED" ||
-                txn.status === "AUTO_CONFIRMED_AFTER_3_DAYS" ||
                 txn.status === "PAID_OUT") && (
                 <Link href={`/review/${id}`}>
                   <ActionButton
@@ -404,12 +379,9 @@ export default function OrderDetail({ id }) {
             {/* Seller: payout link */}
             {kind !== "DONATION" &&
               isSeller &&
-              [
-                "SELLER_PROOF_UPLOADED",
-                "AUTO_CONFIRMED_AFTER_3_DAYS",
-                "BUYER_CONFIRMED",
-                "PAID_OUT",
-              ].includes(txn.status) && (
+              ["SELLER_PROOF_UPLOADED", "BUYER_CONFIRMED", "PAID_OUT"].includes(
+                txn.status,
+              ) && (
                 <Link href={`/my-orders/${id}/payout`}>
                   <ActionButton text="View Payout" variant="primaryClick" />
                 </Link>
@@ -484,18 +456,6 @@ export default function OrderDetail({ id }) {
         busy={proofBusy}
         onClose={() => setProofOpen(false)}
         onConfirm={confirmProofUpload}
-      />
-
-      {/* ✅ Confirm modal for early buyer confirm */}
-      <ConfirmModal
-        isOpen={confirmOpen}
-        message="Are you sure you have received the product? The seller hasn’t uploaded delivery proof yet."
-        onCancel={() => setConfirmOpen(false)}
-        onConfirm={() => {
-          setConfirmOpen(false);
-          doPatch({ action: "buyer_confirm" });
-        }}
-        variant="default"
       />
 
       {/* Timeline */}

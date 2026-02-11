@@ -7,15 +7,16 @@ export default function CommentSection({
   initialComments,
   userEmail,
   productOwnerEmail,
+  isAvailable, // ✅ NEW
 }) {
   const [comments, setComments] = useState(() =>
-    [...initialComments].reverse()
+    [...initialComments].reverse(),
   );
   const [commentInput, setCommentInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmitComment = async () => {
-    if (!commentInput.trim()) return;
+    if (!commentInput.trim() || !isAvailable) return; // ✅ guard
 
     setSubmitting(true);
 
@@ -77,7 +78,6 @@ export default function CommentSection({
                 <button
                   onClick={() => handleDeleteComment(c._id)}
                   className="text-red-500 text-sm hover:underline absolute top-2 right-2"
-                  title="Delete comment"
                 >
                   Delete
                 </button>
@@ -91,17 +91,31 @@ export default function CommentSection({
         )}
       </div>
 
+      {/* ✅ Closed message */}
+      {!isAvailable && (
+        <p className="text-sm text-gray-500 mb-2">
+          Comments are closed because this item is currently in an active
+          transaction.
+        </p>
+      )}
+
+      {/* ✅ Input disabled when unavailable */}
       <input
         type="text"
         value={commentInput}
         onChange={(e) => setCommentInput(e.target.value)}
-        placeholder="Ask Questions about Products..."
-        className="w-full p-3 border border-gray-300 rounded-md outline-none mb-2"
+        placeholder={
+          isAvailable
+            ? "Ask questions about this product..."
+            : "Comments are closed"
+        }
+        disabled={!isAvailable}
+        className="w-full p-3 border border-gray-300 rounded-md outline-none mb-2 disabled:bg-gray-100"
       />
 
       <button
         onClick={handleSubmitComment}
-        disabled={submitting}
+        disabled={submitting || !isAvailable}
         className="bg-[#325082] text-white px-4 py-2 rounded-md hover:opacity-90 disabled:opacity-50 w-full"
       >
         {submitting ? "Posting..." : "Post Comment"}
