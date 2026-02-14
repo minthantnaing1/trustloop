@@ -146,16 +146,22 @@ export default async function CheckoutPage({ params }) {
                 </h3>
                 <ul className="text-sm text-gray-700 space-y-1 list-disc pl-5">
                   <li>
-                    We&apos;ll create the order and move you to the payment
-                    page.
+                    We&apos;ll create the order and open Stripe Checkout for
+                    payment.
+                  </li>
+                  <li>Your payment is held securely in TrustLoop escrow.</li>
+                  <li>
+                    After payment, arrange delivery via fulfillment chat in
+                    Order Details.
                   </li>
                   <li>
-                    Pay to the admin account and upload your payment slip.
+                    Seller delivers or meets you; you confirm you&apos;ve
+                    received the item.
                   </li>
                   <li>
-                    Seller delivers or meets you; you confirm received the item.
+                    After confirmation, TrustLoop releases the payout to the
+                    seller.
                   </li>
-                  <li>Admin releases payout to the seller.</li>
                 </ul>
               </div>
             </div>
@@ -221,9 +227,9 @@ export default async function CheckoutPage({ params }) {
 
                   <p className="text-xs text-center text-gray-600 -mt-1 leading-relaxed">
                     By confirming, you agree to TrustLoop&apos;s escrow process.
-                    You&apos;ll pay on the next screen and upload a payment
-                    slip. Funds are held until you confirm you&apos;ve received
-                    the item.
+                    You&apos;ll be redirected to Stripe Checkout to complete
+                    payment. Funds are held securely until you confirm
+                    you&apos;ve received the item.
                   </p>
                 </form>
               </div>

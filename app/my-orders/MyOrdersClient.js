@@ -215,6 +215,51 @@ export default function MyOrdersClient() {
     }
   }
 
+  function hasActivePending(list) {
+    return Array.isArray(list) && list.some((t) => isPendingPaymentActive(t));
+  }
+
+  useEffect(() => {
+    // refresh when user comes back to this tab
+    const onFocus = () => refreshRoleLists(role);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refreshRoleLists(role);
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role]);
+
+  useEffect(() => {
+    const currentList = role === "buyer" ? buyerTxns : sellerTxns;
+
+    // Only poll if this tab currently shows an active pending payment
+    if (!hasActivePending(currentList)) return;
+
+    let tries = 0;
+    const maxTries = 20; // 20 * 3s = 60s
+
+    const id = setInterval(async () => {
+      tries += 1;
+      await refreshRoleLists(role);
+
+      // stop after a minute, or once no active pending remains
+      const nextList = role === "buyer" ? buyerTxns : sellerTxns;
+      if (tries >= maxTries || !hasActivePending(nextList)) {
+        clearInterval(id);
+      }
+    }, 3000);
+
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role, buyerTxns, sellerTxns]);
+
   // when buyer list changes, schedule auto-refreshes for buyer
   useEffect(() => {
     if (role === "buyer") scheduleExpiryRefresh(buyerTxns, "buyer");
@@ -686,30 +731,6 @@ export default function MyOrdersClient() {
 
                         {/* 👇 Replace this single Link with a small group */}
                         <div className="flex items-center gap-2">
-                          {role === "buyer" && isPendingPaymentActive(t) && (
-                            <ActionButton
-                              text="Continue Payment"
-                              variant="outlineClick"
-                              onClick={async () => {
-                                const res = await fetch("/api/checkout", {
-                                  method: "POST",
-                                  headers: {
-                                    "Content-Type": "application/json",
-                                  },
-                                  body: JSON.stringify({ transactionId: id }),
-                                });
-
-                                if (!res.ok) {
-                                  alert(await res.text());
-                                  return;
-                                }
-
-                                const { url } = await res.json();
-                                window.location.href = url;
-                              }}
-                            />
-                          )}
-
                           {canCancelOnly && (
                             <ActionButton
                               text={
@@ -754,17 +775,56 @@ export default function MyOrdersClient() {
                       {role === "buyer" &&
                         isPendingPaymentActive(t) &&
                         t.expiresAt && (
-                          <div className="text-center mb-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900 text-sm">
-                            Payment pending — please click{" "}
-                            <span className="font-semibold">
-                              “Continue Payment”
-                            </span>{" "}
-                            and complete your payment within{" "}
-                            <Countdown
-                              expiresAt={t.expiresAt}
-                              onExpire={() => refreshRoleLists(role)}
-                            />{" "}
-                            or this order will be automatically cancelled.
+                          <div className="mb-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900 text-sm">
+                            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                              {/* Left spacer (keeps center truly centered) */}
+                              <div />
+
+                              {/* Center text */}
+                              <div className="text-center">
+                                Payment pending — please complete your payment
+                                within{" "}
+                                <Countdown
+                                  expiresAt={t.expiresAt}
+                                  onExpire={() => refreshRoleLists(role)}
+                                />{" "}
+                                or this order will be automatically cancelled.
+                              </div>
+
+                              {/* Right button */}
+                              <div className="flex justify-end">
+                                <ActionButton
+                                  text="Continue Payment"
+                                  variant="outlineHover"
+                                  onClick={async (e) => {
+                                    e?.preventDefault?.();
+                                    e?.stopPropagation?.();
+
+                                    const res = await fetch("/api/checkout", {
+                                      method: "POST",
+                                      headers: {
+                                        "Content-Type": "application/json",
+                                      },
+                                      body: JSON.stringify({
+                                        transactionId: id,
+                                      }),
+                                    });
+
+                                    if (!res.ok) {
+                                      alert(await res.text());
+                                      return;
+                                    }
+
+                                    const { url } = await res.json();
+                                    window.open(
+                                      url,
+                                      "_blank",
+                                      "noopener,noreferrer",
+                                    );
+                                  }}
+                                />
+                              </div>
+                            </div>
                           </div>
                         )}
                     </summary>

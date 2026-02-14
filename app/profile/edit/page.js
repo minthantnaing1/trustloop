@@ -1,3 +1,5 @@
+// app/profile/edit/page.js
+import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { connectDB } from "@/lib/db";
@@ -9,13 +11,15 @@ export default async function ProfileEditPage({ searchParams }) {
   const session = await auth();
   if (!session?.user?.email) redirect("/");
 
+  // ✅ Next.js 15: searchParams is a Promise in server components
+  const sp = (await searchParams) || {};
+
   await connectDB();
   const me = await User.findOne({ email: session.user.email }).lean();
   if (!me?._id) redirect("/");
 
   // sanitize next: allow only same-origin relative paths like "/buy/123"
-  const rawNext =
-    typeof searchParams?.next === "string" ? searchParams.next : "";
+  const rawNext = typeof sp?.next === "string" ? sp.next : "";
   const safeNext =
     rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "";
 
