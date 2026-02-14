@@ -280,69 +280,6 @@ export async function PATCH(req, { params }) {
     });
   }
 
-  // ---- Cancel (buyer or admin) -> release the product ----
-  if (action === "cancel") {
-    const { reason = "cancelled" } = body || {};
-    const isBuyer = String(txn.buyer) === String(me._id);
-    const isAdmin = me.role === "admin";
-
-    // must be buyer or admin
-    if (!isBuyer && !isAdmin) return new Response("Forbidden", { status: 403 });
-
-    // already terminal?
-    if (
-      [
-        "PAID_OUT",
-        "CANCELLED_BY_BUYER",
-        "CANCELLED_BY_SELLER",
-        "REJECTED_BY_ADMIN",
-      ].includes(txn.status)
-    ) {
-      return new Response("Already finalized", { status: 409 });
-    }
-
-    // PRIORITIZE BUYER INTENT:
-    // If the caller is the buyer (even if also an admin), treat as buyer-cancel.
-    if (isBuyer) {
-      txn.status = "CANCELLED_BY_BUYER";
-      txn.cancelledBy = me._id;
-      txn.cancelReason = reason;
-      txn.timeline.push({
-        by: me._id,
-        action: "CANCELLED_BY_BUYER",
-        meta: { reason },
-      });
-    } else if (isAdmin) {
-      // Pure admin-triggered path (rare here; admin rejections should normally use the admin endpoint)
-      txn.status = "REJECTED_BY_ADMIN";
-      txn.adminRejectReason = reason;
-      txn.timeline.push({
-        by: me._id,
-        action: "REJECTED_BY_ADMIN",
-        meta: { reason },
-      });
-    }
-
-    await txn.save();
-    await notifyTxnEvent({
-      txn,
-      actorId: me._id,
-      type:
-        txn.status === "CANCELLED_BY_BUYER"
-          ? "CANCELLED_BY_BUYER"
-          : "REJECTED_BY_ADMIN",
-    });
-
-    if (txn.product) {
-      await Product.updateOne(
-        { _id: txn.product },
-        { $set: { isAvailable: true } },
-      );
-    }
-
-    return Response.json({ success: true, status: txn.status });
-  }
-
   // ---- Seller accepts (unchanged) ----
   if (action === "seller_accept") {
     const isSeller = String(txn.seller) === String(me._id);

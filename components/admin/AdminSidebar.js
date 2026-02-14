@@ -47,11 +47,11 @@ export default function AdminSidebar({ collapsed, setCollapsed }) {
       href: "/admin/support",
       icon: <ChatBubbleLeftRightIcon className="w-5 h-5" />,
     },
-    // {
-    //   label: "Settings",
-    //   href: "/admin/settings",
-    //   icon: <Cog6ToothIcon className="w-5 h-5" />,
-    // },
+    {
+      label: "Settings",
+      href: "/admin/settings",
+      icon: <Cog6ToothIcon className="w-5 h-5" />,
+    },
   ];
 
   return (

@@ -90,7 +90,7 @@ export default function AdminProductsClient({ initialProducts }) {
       </div>
 
       {/* Desktop title */}
-      <h1 className="hidden sm:block text-2xl font-bold text-[#325082] mb-2">
+      <h1 className="hidden sm:block text-2xl font-bold text-[#325082] mb-3">
         Products
       </h1>
 

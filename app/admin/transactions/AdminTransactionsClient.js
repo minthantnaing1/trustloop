@@ -106,7 +106,7 @@ export default function AdminTransactionsClient({ initialTxns }) {
 
   return (
     <>
-      <h1 className="text-2xl font-bold text-[#325082] mb-2">Transactions</h1>
+      <h1 className="text-2xl font-bold text-[#325082] mb-3">Transactions</h1>
 
       <TxnToolbar
         className="mb-1"

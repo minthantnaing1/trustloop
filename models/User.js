@@ -17,6 +17,27 @@ const UserSchema = new mongoose.Schema({
   // Role & Permissions
   role: { type: String, enum: ["user", "admin"], default: "user" },
   postingCredits: { type: Number, default: 5 },
+  adminRank: {
+    type: String,
+    enum: ["NORMAL", "DEVELOPER"],
+    default: "NORMAL",
+  },
+
+  // ✅ Admin moderation
+  status: {
+    type: String,
+    enum: ["active", "banned"],
+    default: "active",
+    index: true,
+  },
+  banType: {
+    type: String,
+    enum: ["PERMANENT", "TEMPORARY"],
+    default: "PERMANENT",
+  },
+  bannedReason: { type: String, default: "" },
+  bannedAt: { type: Date },
+  bannedUntil: { type: Date }, // only for TEMPORARY
 
   // Trust & Reputation
   rating: { type: Number, default: 0 },
@@ -47,4 +68,4 @@ const UserSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 });
 
-export default mongoose.models.User || mongoose.model("User", UserSchema);
+export default mongoose.models?.User || mongoose.model("User", UserSchema);

@@ -19,7 +19,7 @@ const STATUSES_BY_KIND = {
     "AWAITING_DONOR",
     "SELLER_ACCEPTED",
     "DELIVERY_IN_PROGRESS",
-    "MEETUP_COMPLETED",
+    "SELLER_PROOF_UPLOADED",
     "BUYER_CONFIRMED",
     "CANCELLED_BY_SELLER",
   ],
@@ -150,7 +150,7 @@ export default function TxnToolbar({
         <div className="flex items-center gap-2 shrink-0">
           {showEdit && (
             <ActionButton
-              text="Edit"
+              text={editMode ? "Exit Edit" : "Edit"}
               variant={editMode ? "primaryClick" : "outlineClick"}
               onClick={onToggleEdit}
               className="h-[32px] min-w-[70px] text-sm"

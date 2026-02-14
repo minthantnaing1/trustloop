@@ -12,7 +12,17 @@ export default async function AdminRefundPage({ params }) {
   const session = await auth();
 
   if (!session?.user?.email) {
-    return <div className="p-6">Unauthorized</div>;
+    redirect("/");
+  }
+
+  await connectDB();
+
+  const me = await User.findOne({ email: session.user.email })
+    .select("role")
+    .lean();
+
+  if (!me || me.role !== "admin") {
+    redirect("/home");
   }
 
   const res = await fetch(

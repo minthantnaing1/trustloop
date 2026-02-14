@@ -24,6 +24,22 @@ export async function GET() {
 
   const user = await User.findOne({ email: session.user.email });
 
+  // ✅ auto-release temporary bans if expired
+  if (
+    user &&
+    user.status === "banned" &&
+    user.banType === "TEMPORARY" &&
+    user.bannedUntil &&
+    new Date(user.bannedUntil) <= new Date()
+  ) {
+    user.status = "active";
+    user.banType = "PERMANENT";
+    user.bannedUntil = undefined;
+    user.bannedAt = undefined;
+    user.bannedReason = "";
+    await user.save();
+  }
+
   // Always return role + user (if found). Default role is "user".
   return new Response(
     JSON.stringify({ role: user?.role || "user", user: user || null }),
@@ -33,6 +49,6 @@ export async function GET() {
         "Content-Type": "application/json",
         "Cache-Control": "no-store",
       },
-    }
+    },
   );
 }

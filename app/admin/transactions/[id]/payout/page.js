@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import AdminPayoutPanel from "@/components/admin/AdminPayoutPanel";
 import Link from "next/link";
 import BackButton from "@/components/BackButton";
+import User from "@/models/User";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,17 @@ export default async function AdminPayoutPage({ params }) {
   const session = await auth();
 
   if (!session?.user?.email) {
-    return <div className="p-6">Unauthorized</div>;
+    redirect("/");
+  }
+
+  await connectDB();
+
+  const me = await User.findOne({ email: session.user.email })
+    .select("role")
+    .lean();
+
+  if (!me || me.role !== "admin") {
+    redirect("/home");
   }
 
   // fetch the full txn (server component)
@@ -22,7 +33,7 @@ export default async function AdminPayoutPage({ params }) {
     {
       headers: { Cookie: cookieStore.toString() },
       cache: "no-store",
-    }
+    },
   );
 
   if (!res.ok) {
