@@ -1,11 +1,42 @@
 // app/api/webhooks/stripe/route.js
 import { stripe } from "@/lib/stripe";
 import { connectDB } from "@/lib/db";
-import User from "@/models/User";
 import Product from "@/models/Product";
 import Transaction from "@/models/Transaction";
 
 export const runtime = "nodejs";
+
+async function tryGetStripeFeeTHBFromPaymentIntent(paymentIntentId) {
+  if (!paymentIntentId) return null;
+
+  // Expand charges so we can grab the balance transaction id
+  const pi = await stripe.paymentIntents.retrieve(paymentIntentId, {
+    expand: ["charges.data.balance_transaction"],
+  });
+
+  const charge = pi?.charges?.data?.[0];
+  const bt = charge?.balance_transaction;
+
+  // bt can be object or string depending on expand
+  const btObj =
+    bt && typeof bt === "object"
+      ? bt
+      : bt
+        ? await stripe.balanceTransactions.retrieve(bt)
+        : null;
+
+  if (!btObj) return null;
+
+  // Stripe uses smallest unit (satang) for THB
+  const fee = Number(btObj.fee || 0) / 100;
+  const net = Number(btObj.net || 0) / 100;
+
+  return {
+    feeTHB: fee,
+    netTHB: net,
+    balanceTxnId: btObj.id || "",
+  };
+}
 
 export async function POST(req) {
   const body = await req.text();
@@ -39,14 +70,12 @@ export async function POST(req) {
         txn.status !== "PENDING_PAYMENT" ||
         (txn.expiresAt && txn.expiresAt.getTime() <= Date.now())
       ) {
-        // 🔁 Refund safely (idempotent on Stripe side)
         if (session.payment_intent) {
           await stripe.refunds.create({
             payment_intent: session.payment_intent,
             reason: "requested_by_customer",
           });
         }
-
         return new Response("Expired payment refunded", { status: 200 });
       }
 
@@ -55,10 +84,42 @@ export async function POST(req) {
       txn.expiresAt = null;
       txn.hasPaymentSucceeded = true;
 
+      // ✅ store Stripe identifiers
+      txn.stripeCheckoutSessionId = session.id || "";
+      txn.stripePaymentIntentId = session.payment_intent || "";
+
+      // ✅ store Stripe fee/net (best effort)
+      try {
+        // only compute if not already stored (idempotent)
+        if (!txn.stripeFee || txn.stripeFee === 0) {
+          const info = await tryGetStripeFeeTHBFromPaymentIntent(
+            session.payment_intent,
+          );
+          if (info) {
+            txn.stripeFee = Number(info.feeTHB || 0);
+            txn.stripeNet = Number(txn.total || 0) - Number(txn.stripeFee || 0);
+            txn.stripeBalanceTxnId = info.balanceTxnId || "";
+          }
+        } else {
+          // keep stripeNet in sync just in case
+          txn.stripeNet = Number(txn.total || 0) - Number(txn.stripeFee || 0);
+        }
+      } catch (e) {
+        console.warn(
+          "⚠️ Could not fetch Stripe fee for txn:",
+          txn._id,
+          e?.message,
+        );
+        // still continue; finance will show stripeFee as 0 until later fix
+      }
+
       txn.timeline.push({
         at: new Date(),
         action: "STRIPE_PAYMENT_CONFIRMED",
-        meta: { sessionId: session.id },
+        meta: {
+          sessionId: session.id,
+          paymentIntentId: session.payment_intent,
+        },
       });
 
       await txn.save();

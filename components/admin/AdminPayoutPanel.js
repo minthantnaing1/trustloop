@@ -18,7 +18,7 @@ export default function AdminPayoutPanel({ txn }) {
   // ← keep UI reactive after submit (no redirect)
   const [status, setStatus] = useState(txn?.status || "");
   const [adminReceiptUrl, setAdminReceiptUrl] = useState(
-    txn?.adminPayoutReceiptUrl || ""
+    txn?.adminPayoutReceiptUrl || "",
   );
 
   const canPay = txn?.status === "BUYER_CONFIRMED";
@@ -65,7 +65,7 @@ export default function AdminPayoutPanel({ txn }) {
       const res = await fetch(`/api/admin/transactions/${txn._id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ op: "mark_paid", payoutUrl: upData.url }),
+        body: JSON.stringify({ action: "mark_paid", payoutUrl: upData.url }),
       });
       if (!res.ok) throw new Error(await res.text());
 

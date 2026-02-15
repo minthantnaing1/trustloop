@@ -1,3 +1,4 @@
+// app/pay/success/page.js
 "use client";
 
 import { useEffect } from "react";

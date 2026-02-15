@@ -1,3 +1,4 @@
+// app/pay/cancel/page.js
 "use client";
 
 import { useEffect } from "react";

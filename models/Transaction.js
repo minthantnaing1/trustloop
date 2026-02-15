@@ -54,6 +54,15 @@ const TransactionSchema = new mongoose.Schema({
   total: { type: Number, required: true, default: 0 },
   sellerNet: { type: Number, required: true, default: 0 },
 
+  // ✅ Stripe accounting (stored for finance page)
+  stripeCheckoutSessionId: { type: String, default: "", index: true },
+  stripePaymentIntentId: { type: String, default: "", index: true },
+  stripeBalanceTxnId: { type: String, default: "" },
+
+  // Stripe fee per transaction (in THB)
+  stripeFee: { type: Number, default: 0 },
+  stripeNet: { type: Number, default: 0 }, // total - stripeFee
+
   // ✅ Buyer-provided location (since no fulfillment)
   buyerLocation: { type: String, default: "" },
 

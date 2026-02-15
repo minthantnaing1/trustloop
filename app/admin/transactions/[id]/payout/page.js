@@ -1,10 +1,13 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { connectDB } from "@/lib/db";
+import Transaction from "@/models/Transaction";
+import Product from "@/models/Product";
+import User from "@/models/User";
 import AdminPayoutPanel from "@/components/admin/AdminPayoutPanel";
 import Link from "next/link";
 import BackButton from "@/components/BackButton";
-import User from "@/models/User";
 
 export const dynamic = "force-dynamic";
 

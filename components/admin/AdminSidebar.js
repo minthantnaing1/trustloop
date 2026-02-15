@@ -14,6 +14,8 @@ import {
   ArrowLeftOnRectangleIcon,
   ArrowUturnLeftIcon,
   ChatBubbleLeftRightIcon,
+  ScaleIcon,
+  CalculatorIcon,
 } from "@heroicons/react/24/outline";
 
 export default function AdminSidebar({ collapsed, setCollapsed }) {
@@ -41,6 +43,11 @@ export default function AdminSidebar({ collapsed, setCollapsed }) {
       label: "Transactions",
       href: "/admin/transactions",
       icon: <BanknotesIcon className="w-5 h-5" />,
+    },
+    {
+      label: "Finance",
+      href: "/admin/finance",
+      icon: <CalculatorIcon className="w-5 h-5" />,
     },
     {
       label: "Support Tickets",
