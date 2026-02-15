@@ -33,16 +33,19 @@ export async function POST(req) {
 
   const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
 
+  // ✅ keep meta in one place
+  const meta = { transactionId: txn._id.toString() };
+
   const sessionStripe = await stripe.checkout.sessions.create({
     mode: "payment",
     payment_method_types: ["promptpay"],
     customer_email: txn.buyer.email,
 
-    payment_intent_data: {
-      metadata: { transactionId: txn._id.toString() },
-    },
+    // ✅ important for charge/payment_intent events mapping
+    payment_intent_data: { metadata: meta },
 
-    metadata: { transactionId: txn._id.toString() },
+    // ✅ also keep on session
+    metadata: meta,
 
     line_items: [
       {
@@ -52,7 +55,8 @@ export async function POST(req) {
             name: txn.product.title,
             description: "Secured by TrustLoop escrow",
           },
-          unit_amount: txn.total * 100,
+          // ✅ avoid float issues
+          unit_amount: Math.round(Number(txn.total || 0) * 100),
         },
         quantity: 1,
       },

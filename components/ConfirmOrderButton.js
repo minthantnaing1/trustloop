@@ -40,9 +40,9 @@ export default function ConfirmOrderButton({ productId, formId }) {
 <body>
   <div class="card">
     <p class="title">Opening Stripe Checkout…</p>
-    <p class="sub">Please don’t close this tab.</p>
+    <p class="sub">Please don't close this tab.</p>
     <div class="bar"><i></i></div>
-    <p class="small">If nothing happens, allow popups for TrustLoop.</p>
+    <p class="small">If nothing happens for 10 seconds, you can close this tab and return to TrustLoop and pay in My Orders.</p>
   </div>
 </body>
 </html>`);

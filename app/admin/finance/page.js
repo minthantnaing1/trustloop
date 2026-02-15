@@ -1,9 +1,12 @@
 // app/admin/finance/page.js
 import { connectDB } from "@/lib/db";
-import User from "@/models/User";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import AdminFinanceClient from "./AdminFinanceClient";
+import Transaction from "@/models/Transaction";
+import Product from "@/models/Product";
+import User from "@/models/User";
+import AdminSettlement from "@/models/AdminSettlement";
 
 export default async function AdminFinancePage() {
   await connectDB();

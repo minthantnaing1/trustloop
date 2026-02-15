@@ -6,10 +6,38 @@ import Transaction from "@/models/Transaction";
 
 export const runtime = "nodejs";
 
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+function toTHB(minor) {
+  return Number(minor || 0) / 100;
+}
+
+async function getFeeFromChargeExpanded(chargeId) {
+  if (!chargeId) return null;
+
+  const ch = await stripe.charges.retrieve(chargeId, {
+    expand: ["balance_transaction"],
+  });
+
+  const bt = ch?.balance_transaction;
+  const btObj = typeof bt === "object" ? bt : null;
+  if (!btObj?.id) return null;
+
+  const feeTHB = toTHB(btObj.fee);
+  const netTHB = toTHB(btObj.net);
+
+  return {
+    feeTHB,
+    netTHB,
+    balanceTxnId: btObj.id || "",
+  };
+}
+
 async function tryGetStripeFeeTHBFromPaymentIntent(paymentIntentId) {
   if (!paymentIntentId) return null;
 
-  // Expand charges so we can grab the balance transaction id
   const pi = await stripe.paymentIntents.retrieve(paymentIntentId, {
     expand: ["charges.data.balance_transaction"],
   });
@@ -17,7 +45,6 @@ async function tryGetStripeFeeTHBFromPaymentIntent(paymentIntentId) {
   const charge = pi?.charges?.data?.[0];
   const bt = charge?.balance_transaction;
 
-  // bt can be object or string depending on expand
   const btObj =
     bt && typeof bt === "object"
       ? bt
@@ -27,7 +54,6 @@ async function tryGetStripeFeeTHBFromPaymentIntent(paymentIntentId) {
 
   if (!btObj) return null;
 
-  // Stripe uses smallest unit (satang) for THB
   const fee = Number(btObj.fee || 0) / 100;
   const net = Number(btObj.net || 0) / 100;
 
@@ -36,6 +62,73 @@ async function tryGetStripeFeeTHBFromPaymentIntent(paymentIntentId) {
     netTHB: net,
     balanceTxnId: btObj.id || "",
   };
+}
+
+async function recordStripeFeeWithRetry({
+  transactionId,
+  chargeId,
+  paymentIntentId,
+}) {
+  if (!transactionId) return;
+
+  const txn = await Transaction.findById(transactionId);
+  if (!txn) return;
+
+  // idempotent
+  if (Number(txn.stripeFee || 0) > 0) {
+    const net = Number(txn.total || 0) - Number(txn.stripeFee || 0);
+    if (Number(txn.stripeNet || 0) !== net) {
+      txn.stripeNet = net;
+      await txn.save();
+    }
+    return;
+  }
+
+  // ✅ PromptPay sometimes delays balance_transaction fee; retry a few times
+  let info = null;
+  const delays = [0, 600, 900, 1200, 1500]; // ~4.2s max
+
+  for (let i = 0; i < delays.length; i++) {
+    if (delays[i]) await sleep(delays[i]);
+
+    try {
+      info = await getFeeFromChargeExpanded(chargeId);
+      if (info && Number(info.feeTHB || 0) > 0) break;
+      info = null;
+    } catch (e) {
+      info = null;
+    }
+  }
+
+  // fallback to PI expand once
+  if (!info && paymentIntentId) {
+    try {
+      info = await tryGetStripeFeeTHBFromPaymentIntent(paymentIntentId);
+      if (info && Number(info.feeTHB || 0) <= 0) info = null;
+    } catch (e) {
+      info = null;
+    }
+  }
+
+  if (!info) return;
+
+  txn.stripeFee = Number(info.feeTHB || 0);
+  txn.stripeNet = Number(txn.total || 0) - Number(txn.stripeFee || 0);
+  txn.stripeBalanceTxnId = info.balanceTxnId || "";
+
+  txn.timeline.push({
+    at: new Date(),
+    action: "STRIPE_FEE_RECORDED",
+    meta: {
+      paymentIntentId: paymentIntentId || txn.stripePaymentIntentId || "",
+      chargeId: chargeId || "",
+      balanceTxnId: txn.stripeBalanceTxnId,
+      stripeFee: txn.stripeFee,
+      stripeNet: txn.stripeNet,
+    },
+  });
+
+  await txn.save();
 }
 
 export async function POST(req) {
@@ -88,30 +181,7 @@ export async function POST(req) {
       txn.stripeCheckoutSessionId = session.id || "";
       txn.stripePaymentIntentId = session.payment_intent || "";
 
-      // ✅ store Stripe fee/net (best effort)
-      try {
-        // only compute if not already stored (idempotent)
-        if (!txn.stripeFee || txn.stripeFee === 0) {
-          const info = await tryGetStripeFeeTHBFromPaymentIntent(
-            session.payment_intent,
-          );
-          if (info) {
-            txn.stripeFee = Number(info.feeTHB || 0);
-            txn.stripeNet = Number(txn.total || 0) - Number(txn.stripeFee || 0);
-            txn.stripeBalanceTxnId = info.balanceTxnId || "";
-          }
-        } else {
-          // keep stripeNet in sync just in case
-          txn.stripeNet = Number(txn.total || 0) - Number(txn.stripeFee || 0);
-        }
-      } catch (e) {
-        console.warn(
-          "⚠️ Could not fetch Stripe fee for txn:",
-          txn._id,
-          e?.message,
-        );
-        // still continue; finance will show stripeFee as 0 until later fix
-      }
+      // ✅ DO NOT try to record fee here (PromptPay often not ready yet)
 
       txn.timeline.push({
         at: new Date(),
@@ -123,6 +193,35 @@ export async function POST(req) {
       });
 
       await txn.save();
+    }
+
+    /* ================= CHARGE SUCCEEDED (BEST for fee) ================= */
+    if (event.type === "charge.succeeded") {
+      const ch = event.data.object;
+
+      const transactionId = ch?.metadata?.transactionId || "";
+      const chargeId = ch?.id || "";
+      const paymentIntentId =
+        typeof ch.payment_intent === "string"
+          ? ch.payment_intent
+          : ch.payment_intent?.id || "";
+
+      await recordStripeFeeWithRetry({
+        transactionId,
+        chargeId,
+        paymentIntentId,
+      });
+    }
+
+    /* ================= PAYMENT INTENT SUCCEEDED (backup) ================= */
+    if (event.type === "payment_intent.succeeded") {
+      const pi = event.data.object;
+      const transactionId = pi?.metadata?.transactionId || "";
+      await recordStripeFeeWithRetry({
+        transactionId,
+        chargeId: "",
+        paymentIntentId: pi?.id || "",
+      });
     }
 
     /* ================= PAYMENT FAILED ================= */
