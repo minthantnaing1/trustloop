@@ -41,9 +41,9 @@ export default function AdminSidebar({ collapsed, setCollapsed }) {
       href: "/admin/transactions",
       icon: <BanknotesIcon className="w-5 h-5" />,
     },
-     {
+    {
       label: "Support Tickets",
-      href: "/admin/support-tickets",
+      href: "/admin/support",
       icon: <CubeIcon className="w-5 h-5" />,
     },
     // {

@@ -4,8 +4,13 @@ import React from "react";
 /** Built-in presets (sell & donation) */
 const PRESETS = {
   // Buy & Sell (final)
-  buyer: ["Checkout & Pay", "Contact", "Product Received", "review"],
-  seller: ["Sell", "Contact", "Product Delivered (upload evidence)", "Payout"],
+  buyer: ["Checkout & Pay", "Chat / Contact", "Product Received", "Review"],
+  seller: [
+    "Sell",
+    "Chat / Contact",
+    "Product Delivered (upload evidence)",
+    "Payout & Review",
+  ],
 
   // Donation (unchanged)
   donor: ["Donate", "Accept / Review", "Meetup", "Complete"],

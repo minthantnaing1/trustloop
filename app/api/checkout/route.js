@@ -19,9 +19,8 @@ export async function POST(req) {
 
   await connectDB();
 
-  const txn = await Transaction.findById(transactionId).populate(
-    "product buyer"
-  );
+  const txn =
+    await Transaction.findById(transactionId).populate("product buyer");
 
   if (!txn) return new Response("Transaction not found", { status: 404 });
   if (txn.status !== "PENDING_PAYMENT") {
@@ -59,7 +58,7 @@ export async function POST(req) {
       },
     ],
 
-    success_url: `${BASE_URL}/pay/success`,
+    success_url: `${BASE_URL}/pay/success?txn=${txn._id}`,
     cancel_url: `${BASE_URL}/pay/cancel?txn=${txn._id}`,
   });
 

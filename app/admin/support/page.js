@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import ActionButton from "@/components/ActionButton";
 
 function formatDateTime(iso) {
@@ -16,7 +17,7 @@ function formatDateTime(iso) {
 function getInitials(nameOrEmail) {
   const s = (nameOrEmail || "").trim();
   if (!s) return "?";
-  const parts = s.split(/\s+/).slice(0, 2);
+  const parts = s.split(/\s+/).slice(0, 3);
   return parts.map((p) => p[0]?.toUpperCase()).join("") || "?";
 }
 
@@ -73,7 +74,7 @@ function StatusPill({ value }) {
 
 function StatCard({ label, sub, value }) {
   return (
-    <div className="bg-white rounded-xl shadow-md border border-slate-200 p-4">
+    <div className="bg-white rounded-md shadow-md border border-slate-200 p-4">
       <div className="text-xs text-slate-500">{label}</div>
       <div className="text-[11px] text-slate-400">{sub}</div>
       <div className="mt-2 text-2xl font-bold text-[#1f2f4c]">{value}</div>
@@ -81,7 +82,15 @@ function StatCard({ label, sub, value }) {
   );
 }
 
-function TicketRowCard({ t, isActive }) {
+/**
+ * Desktop:
+ *  - click selects summary only (no route change, no loading overlay)
+ * Mobile:
+ *  - click navigates to ticket page (because summary is hidden on mobile)
+ */
+function TicketRowCard({ t, isActive, isDesktop, onSelect }) {
+  const router = useRouter();
+
   const id = t?._id?.toString?.() || t?._id || "";
   const ticketId = String(id).slice(-6).toUpperCase();
   const userName = t?.user?.name || t?.user?.email || "Unknown";
@@ -93,11 +102,23 @@ function TicketRowCard({ t, isActive }) {
   const productTitle = t?.product?.title || "";
   const updated = t?.updatedAt || t?.createdAt;
 
+  const handleClick = () => {
+    if (isDesktop) onSelect?.(id);
+    else router.push(`/admin/support/${id}`);
+  };
+
   return (
-    <Link
-      href={`/admin/support/${id}`}
-      className={`block bg-white rounded-xl shadow-md border p-4 transition-all
-        ${isActive ? "border-[#325082] ring-1 ring-[#325082]/20" : "border-slate-200 hover:shadow-lg"}
+    <article
+      role="button"
+      tabIndex={0}
+      onClick={handleClick}
+      onKeyDown={(e) => e.key === "Enter" && handleClick()}
+      className={`block bg-white rounded-md shadow-md border p-4 transition-all cursor-pointer
+        ${
+          isActive
+            ? "border-[#325082] ring-1 ring-[#325082]/20"
+            : "border-slate-200 hover:shadow-lg"
+        }
       `}
     >
       <div className="flex items-start justify-between gap-3">
@@ -149,13 +170,13 @@ function TicketRowCard({ t, isActive }) {
           </div>
         </div>
       </div>
-    </Link>
+    </article>
   );
 }
 
 function EmptyState({ onRefresh }) {
   return (
-    <div className="bg-white rounded-xl shadow-md border border-slate-200 p-10 text-center">
+    <div className="bg-white rounded-md shadow-md border border-slate-200 p-10 text-center">
       <div className="text-lg font-semibold text-[#1f2f4c]">
         No tickets found
       </div>
@@ -188,6 +209,17 @@ export default function AdminSupportPage() {
   // Right preview panel (desktop)
   const [selectedId, setSelectedId] = useState("");
 
+  // Desktop detection (lg+)
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const update = () => setIsDesktop(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
   async function fetchTickets() {
     setErr("");
     try {
@@ -195,9 +227,12 @@ export default function AdminSupportPage() {
       if (!r.ok) throw new Error(await r.text());
       const data = await r.json();
       const list = Array.isArray(data) ? data : [];
+
       // default selection
-      if (!selectedId && list[0]?._id)
+      if (!selectedId && list[0]?._id) {
         setSelectedId(list[0]._id?.toString?.() || list[0]._id);
+      }
+
       setTickets(list);
     } catch (e) {
       setErr(e?.message || "Failed to load tickets");
@@ -218,9 +253,6 @@ export default function AdminSupportPage() {
       return !Number.isNaN(d.getTime()) && isThisMonth(d);
     });
 
-    const solvedThisMonth = thisMonth.filter(
-      (t) => t.status === "RESOLVED" || t.status === "REJECTED",
-    );
     const last7 = list.filter(
       (t) => new Date(t.createdAt || t.updatedAt) >= daysAgo(7),
     );
@@ -231,13 +263,17 @@ export default function AdminSupportPage() {
       (t) => t.status === "RESOLVED" || t.status === "REJECTED",
     ).length;
 
+    const highUrgentAll = list.filter(
+      (t) => t.priority === "HIGH" || t.priority === "URGENT",
+    ).length;
+
     return {
       issuesThisMonth: thisMonth.length,
-      solvedThisMonth: solvedThisMonth.length,
       recentCount: last7.length,
       openAll,
       inProgressAll,
       closedAll,
+      highUrgentAll,
     };
   }, [tickets]);
 
@@ -251,8 +287,9 @@ export default function AdminSupportPage() {
 
     if (qq) {
       out = out.filter((t) => {
+        // email excluded
         const blob =
-          `${t?.subject || ""} ${t?.description || ""} ${t?.user?.name || ""} ${t?.user?.email || ""} ${t?.product?.title || ""}`.toLowerCase();
+          `${t?.subject || ""} ${t?.description || ""} ${t?.user?.name || ""} ${t?.product?.title || ""}`.toLowerCase();
         return blob.includes(qq);
       });
     }
@@ -276,6 +313,7 @@ export default function AdminSupportPage() {
         new Date(b.updatedAt || b.createdAt) -
         new Date(a.updatedAt || a.createdAt),
     );
+
     return out;
   }, [tickets, q, status, priority]);
 
@@ -285,47 +323,35 @@ export default function AdminSupportPage() {
     return hit || list[0] || null;
   }, [filtered, selectedId]);
 
+  // Keep selection valid when filters change (desktop)
+  useEffect(() => {
+    if (!isDesktop) return;
+    if (!filtered.length) return;
+
+    const exists = filtered.some(
+      (t) => (t._id?.toString?.() || t._id) === selectedId,
+    );
+    if (!exists) {
+      const first = filtered[0]._id?.toString?.() || filtered[0]._id;
+      setSelectedId(first);
+    }
+  }, [filtered, selectedId, isDesktop]);
+
   const isLoading = tickets === null;
 
   return (
-    <main className="max-w-[1200px] mx-auto px-3 mb-6">
+    <main className="max-w-[1200px] mx-auto mb-6">
       {/* Header */}
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-xs text-slate-500">Admin</div>
-          <h1 className="text-2xl font-bold text-[#325082] leading-tight">
-            Customer Support
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Manage user reports, review details, and track resolution progress.
-          </p>
-        </div>
+      <h1 className="text-2xl font-bold text-[#325082] mb-3">
+        Customer Support
+      </h1>
 
-        <div className="shrink-0 pt-1">
-          <ActionButton
-            text="Refresh"
-            variant="outlineHover"
-            onClick={fetchTickets}
-          />
-        </div>
-      </div>
-
-      {/* KPI Row */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 mb-4">
+      {/* KPI Row (not sticky) */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
         <StatCard
           label="Recent tickets"
           sub="last 7 days"
           value={stats.recentCount}
-        />
-        <StatCard
-          label="Issues created"
-          sub="this month"
-          value={stats.issuesThisMonth}
-        />
-        <StatCard
-          label="Solved"
-          sub="this month"
-          value={stats.solvedThisMonth}
         />
         <StatCard label="Open" sub="all time" value={stats.openAll} />
         <StatCard
@@ -334,77 +360,85 @@ export default function AdminSupportPage() {
           value={stats.inProgressAll}
         />
         <StatCard label="Closed" sub="all time" value={stats.closedAll} />
+        <StatCard
+          label="High / Urgent"
+          sub="all time"
+          value={stats.highUrgentAll}
+        />
       </section>
 
-      {/* Toolbar */}
-      <section className="bg-white rounded-xl shadow-md border border-slate-200 p-4 mb-4">
-        <div className="flex flex-col lg:flex-row lg:items-center gap-3">
-          {/* Search */}
-          <div className="flex-1">
-            <div className="flex items-center w-full border border-gray-300 shadow-md rounded-[6px] px-[3.5px] bg-white">
-              <input
-                className="min-w-0 flex-1 px-2 py-[10px] text-sm outline-none"
-                placeholder="Search tickets (subject, user, email, product)..."
-                value={qDraft}
-                onChange={(e) => setQDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") setQ(qDraft);
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => setQ(qDraft)}
-                className="shrink-0 bg-[#325082] text-white px-4 py-[7px] rounded-[3px] hover:opacity-90 text-sm"
-              >
-                Search
-              </button>
-            </div>
-          </div>
-
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-slate-600">Status:</span>
-              <select
-                className="border border-slate-200 rounded-md px-3 py-2 text-sm bg-white"
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-              >
-                <option value="ALL">All</option>
-                <option value="OPEN">Open</option>
-                <option value="IN_PROGRESS">In progress</option>
-                <option value="CLOSED">Closed</option>
-              </select>
+      {/* ✅ ONLY toolbar is sticky */}
+      <section className="sticky -top-10 z-40 pb-3">
+        <div className="bg-white rounded-md shadow-md border border-slate-200 p-4">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+            {/* Search */}
+            <div className="flex-1">
+              <div className="flex items-center w-full border border-gray-300 shadow-md rounded-[6px] px-[3.5px] bg-white">
+                <input
+                  className="min-w-0 flex-1 px-2 py-[10px] text-sm outline-none"
+                  placeholder="Search tickets (subject, user, product)..."
+                  value={qDraft}
+                  autoComplete="off"
+                  onChange={(e) => setQDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") setQ(qDraft);
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setQ(qDraft)}
+                  className="shrink-0 bg-[#325082] text-white px-4 py-[7px] rounded-[3px] hover:opacity-90 text-sm"
+                >
+                  Search
+                </button>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-slate-600">Priority:</span>
-              <select
-                className="border border-slate-200 rounded-md px-3 py-2 text-sm bg-white"
-                value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-              >
-                <option value="ALL">All</option>
-                <option value="LOW">Low</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HIGH">High</option>
-                <option value="URGENT">Urgent</option>
-              </select>
-            </div>
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-600">Status:</span>
+                <select
+                  className="border border-slate-200 rounded-md px-3 py-2 text-sm bg-white"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                >
+                  <option value="ALL">All</option>
+                  <option value="OPEN">Open</option>
+                  <option value="IN_PROGRESS">In progress</option>
+                  <option value="CLOSED">Closed</option>
+                </select>
+              </div>
 
-            <div className="flex items-center gap-2 justify-between sm:justify-start">
-              <ActionButton
-                text="Clear"
-                variant="outlineHover"
-                onClick={() => {
-                  setQDraft("");
-                  setQ("");
-                  setStatus("ALL");
-                  setPriority("ALL");
-                }}
-              />
-              <div className="text-sm text-slate-500">
-                Showing <b>{filtered.length}</b>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-600">Priority:</span>
+                <select
+                  className="border border-slate-200 rounded-md px-3 py-2 text-sm bg-white"
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value)}
+                >
+                  <option value="ALL">All</option>
+                  <option value="LOW">Low</option>
+                  <option value="MEDIUM">Medium</option>
+                  <option value="HIGH">High</option>
+                  <option value="URGENT">Urgent</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2 justify-between sm:justify-start">
+                <ActionButton
+                  text="Clear"
+                  variant="outlineHover"
+                  onClick={() => {
+                    setQDraft("");
+                    setQ("");
+                    setStatus("ALL");
+                    setPriority("ALL");
+                  }}
+                />
+                <div className="text-sm text-slate-500">
+                  Showing <b>{filtered.length}</b>
+                </div>
               </div>
             </div>
           </div>
@@ -413,14 +447,14 @@ export default function AdminSupportPage() {
 
       {/* Error */}
       {err && (
-        <div className="mb-4 bg-white border border-rose-200 text-rose-700 rounded-xl p-3 text-sm shadow-sm">
+        <div className="mb-4 bg-white border border-rose-200 text-rose-700 rounded-md p-3 text-sm shadow-sm">
           {String(err)}
         </div>
       )}
 
       {/* Main area */}
       <section className="grid grid-cols-12 gap-4">
-        {/* List */}
+        {/* List (scrolls normally under sticky toolbar) */}
         <div className="col-span-12 lg:col-span-8">
           {isLoading ? (
             <div className="text-slate-600 text-sm">Loading tickets...</div>
@@ -430,19 +464,16 @@ export default function AdminSupportPage() {
             <div className="space-y-3">
               {filtered.map((t) => {
                 const id = t._id?.toString?.() || t._id;
+                const activeId =
+                  selectedTicket?._id?.toString?.() || selectedTicket?._id;
+
                 return (
-                  <div
-                    key={id}
-                    onMouseEnter={() => setSelectedId(id)}
-                    onFocus={() => setSelectedId(id)}
-                  >
+                  <div key={id}>
                     <TicketRowCard
                       t={t}
-                      isActive={
-                        id ===
-                        (selectedTicket?._id?.toString?.() ||
-                          selectedTicket?._id)
-                      }
+                      isDesktop={isDesktop}
+                      isActive={id === activeId}
+                      onSelect={(tid) => setSelectedId(tid)}
                     />
                   </div>
                 );
@@ -451,26 +482,21 @@ export default function AdminSupportPage() {
           )}
         </div>
 
-        {/* Preview panel (desktop) */}
+        {/* ✅ Summary stays sticky too (below toolbar height) */}
         <aside className="hidden lg:block col-span-4">
-          <div className="bg-white rounded-xl shadow-md border border-slate-200 p-4 sticky top-4">
+          <div
+            className="bg-white rounded-md shadow-md border border-slate-200 p-4 sticky"
+            style={{ top: "48px" }}
+          >
             <div className="flex items-center justify-between">
               <div className="text-[15px] font-semibold text-[#1f2f4c]">
                 Quick Summary
               </div>
-              {selectedTicket?._id && (
-                <Link
-                  href={`/admin/support/${selectedTicket._id?.toString?.() || selectedTicket._id}`}
-                  className="text-sm underline text-[#325082] underline-offset-2"
-                >
-                  Open
-                </Link>
-              )}
             </div>
 
             {!selectedTicket ? (
               <div className="mt-3 text-sm text-slate-500">
-                Hover a ticket to preview.
+                Select a ticket to preview.
               </div>
             ) : (
               <>
@@ -525,7 +551,9 @@ export default function AdminSupportPage() {
 
                 <div className="mt-4">
                   <Link
-                    href={`/admin/support/${selectedTicket._id?.toString?.() || selectedTicket._id}`}
+                    href={`/admin/support/${
+                      selectedTicket._id?.toString?.() || selectedTicket._id
+                    }`}
                   >
                     <ActionButton
                       text="View ticket details"

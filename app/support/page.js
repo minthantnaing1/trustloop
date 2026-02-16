@@ -1,12 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation"; // ✅ added
 import NavBar from "@/components/NavBar";
 
 export default function SupportPage() {
-  const searchParams = useSearchParams(); // ✅ added
-
   const [category, setCategory] = useState("OTHER");
   const [priority, setPriority] = useState("MEDIUM");
   const [subject, setSubject] = useState("");
@@ -14,156 +11,171 @@ export default function SupportPage() {
 
   const [pagePath, setPagePath] = useState("");
   useEffect(() => {
-    // ✅ added: read prefill values from chatbot
-    const from = searchParams.get("from") || "";
-    const msg = searchParams.get("msg") || "";
+    setPagePath(window.location.pathname);
+  }, []);
 
-    // ✅ keep existing behavior but prefer "from" when provided
-    setPagePath(from || window.location.pathname);
+  const popular = useMemo(
+    () => [
+      {
+        title: "Seller no-show / not responding",
+        desc: "Seller is late, didn't come to meetup, or stopped replying.",
+        category: "SELLER_NO_SHOW",
+      },
+      {
+        title: "Delivery delay",
+        desc: "Item hasn't arrived in expected timeframe or no delivery proof.",
+        category: "DELIVERY_DELAY",
+      },
+      {
+        title: "Wrong / damaged item",
+        desc: "Item received does not match listing, missing parts, or damaged.",
+        category: "WRONG_ITEM",
+      },
+      {
+        title: "Payment issue",
+        desc: "Payment slip, confirmation, or transaction status problem.",
+        category: "PAYMENT_ISSUE",
+      },
+    ],
+    [],
+  );
 
-    // ✅ prefill message only if empty (don’t overwrite user typing)
-    if (msg && !message) setMessage(msg);
-  }, [searchParams, message]); // ✅ added deps
+  function onAskDelete(ticket) {
+    setDeleteTarget(ticket);
+    setConfirmOpen(true);
+  }
 
-  const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState(false);
-  const [error, setError] = useState("");
+  async function doDelete() {
+    if (!deleteTarget || busyDelete) return;
+    const id = deleteTarget._id?.toString?.() || deleteTarget._id;
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setError("");
-    setDone(false);
-
-    if (!subject.trim() || !message.trim()) {
-      setError("Please fill subject and message.");
-      return;
-    }
-
-    setLoading(true);
     try {
-      const res = await fetch("/api/support", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          category,
-          priority,
-          subject,
-          message,
-          meta: { page: pagePath },
-        }),
+      setBusyDelete(true);
+      setErr("");
+
+      const r = await fetch(`/api/support/${id}`, { method: "DELETE" });
+      if (!r.ok) throw new Error(await r.text());
+
+      // remove from UI immediately
+      setMine((prev) => {
+        const list = Array.isArray(prev) ? prev : [];
+        return list.filter((x) => String(x._id) !== String(id));
       });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Failed to submit");
-
-      setDone(true);
-      setSubject("");
-      setMessage("");
-    } catch (err) {
-      setError(err.message || "Something went wrong");
+    } catch (e) {
+      setErr(e?.message || "Failed to delete ticket");
     } finally {
-      setLoading(false);
+      setBusyDelete(false);
     }
   }
 
   return (
     <>
       <NavBar />
-      <div className="max-w-[760px] mx-auto px-4 py-6">
-        <h1 className="text-2xl font-bold text-slate-900">Customer Support</h1>
-        <p className="mt-1 text-slate-600">
-          Report bugs, chat issues, scams, payment problems, or anything you’re
-          stuck on. Admin will review your report.
-        </p>
 
-        <form
-          onSubmit={handleSubmit}
-          className="mt-6 bg-white rounded-2xl shadow-sm border border-slate-200 p-4"
-        >
-          <div className="grid gap-4">
-            <div className="grid gap-1">
-              <label className="text-sm font-medium text-slate-700">
-                Category
-              </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-slate-300"
-              >
-                <option value="ACCOUNT">Account</option>
-                <option value="PAYMENT">Payment</option>
-                <option value="PRODUCT">Product / Listing</option>
-                <option value="TRANSACTION">Transaction</option>
-                <option value="CHAT">Chat</option>
-                <option value="BUG">Bug / Error</option>
-                <option value="SCAM_SAFETY">Scam / Safety</option>
-                <option value="OTHER">Other</option>
-              </select>
-            </div>
+      <main className="max-w-[1200px] mx-auto px-3 mb-6">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h1 className="text-2xl font-bold text-[#325082]">
+            Customer Support
+          </h1>
 
-            <div className="grid gap-1">
-              <label className="text-sm font-medium text-slate-700">
-                Priority
-              </label>
-              <select
-                value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-                className="border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-slate-300"
-              >
-                <option value="LOW">Low</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HIGH">High</option>
-                <option value="URGENT">Urgent</option>
-              </select>
-            </div>
+          <Link href="/support/new">
+            <ActionButton text="Report a Problem" variant="primaryClick" />
+          </Link>
+        </div>
 
-            <div className="grid gap-1">
-              <label className="text-sm font-medium text-slate-700">
-                Subject
-              </label>
-              <input
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                placeholder="Short title of the issue"
-                maxLength={120}
-                className="border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-slate-300"
-              />
-            </div>
-
-            <div className="grid gap-1">
-              <label className="text-sm font-medium text-slate-700">
-                Message
-              </label>
-              <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Explain what happened, steps to reproduce, and any IDs (product/transaction/chat) if you have them."
-                rows={8}
-                maxLength={4000}
-                className="border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-slate-300"
-              />
-            </div>
-
-            {error ? (
-              <div className="text-sm text-rose-600">{error}</div>
-            ) : null}
-
-            {done ? (
-              <div className="text-sm text-emerald-600">
-                Submitted! Admin will review your report.
-              </div>
-            ) : null}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-xl px-4 py-2 font-semibold border border-slate-300 hover:bg-slate-50 active:scale-[0.99] disabled:opacity-60"
+        <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+          {popular.map((p) => (
+            <article
+              key={p.title}
+              className="bg-white ring-1 ring-slate-200 shadow-sm hover:shadow-md transition-all rounded-[6px] p-4"
             >
-              {loading ? "Submitting..." : "Submit Report"}
-            </button>
+              <div className="flex items-start justify-between gap-2">
+                <div className="text-[15px] font-semibold text-[#325082] leading-tight">
+                  {p.title}
+                </div>
+                <PriorityTag value={priorityForCategory(p.category)} />
+              </div>
+
+              <p className="text-[12.5px] text-slate-600 mt-2 leading-snug">
+                {p.desc}
+              </p>
+
+              <div className="mt-3">
+                <Link
+                  href={`/support/new?category=${encodeURIComponent(p.category)}`}
+                  className="text-sm underline text-[#325082] hover:text-[#22365a] underline-offset-2"
+                >
+                  Report this issue
+                </Link>
+              </div>
+            </article>
+          ))}
+        </section>
+
+        <section className="bg-white p-5 rounded-xl shadow-md">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="text-[16px] font-semibold text-[#325082]">
+              My Recent Reports
+            </div>
+            <span className="text-[12px] text-slate-500">
+              For order-specific reports, use “Support” inside Order Details.
+            </span>
           </div>
-        </form>
-      </div>
+
+          {err && <p className="text-red-600 mt-2 text-sm">{String(err)}</p>}
+          {!mine && !err && (
+            <p className="text-slate-500 mt-2 text-sm">Loading…</p>
+          )}
+
+          {mine && (
+            <div className="mt-3 space-y-3">
+              {mine.map((t) => (
+                <RecentTicketCard
+                  key={t._id?.toString?.() || t._id}
+                  t={t}
+                  onAskDelete={onAskDelete}
+                />
+              ))}
+
+              {mine.length === 0 && (
+                <div className="border border-gray-300 shadow-sm bg-white p-10 text-center rounded-[6px]">
+                  <div className="text-lg font-medium text-[#1f2d4d] mb-1">
+                    No reports yet
+                  </div>
+                  <p className="text-sm text-slate-500">
+                    If something goes wrong, report it here and we'll help.
+                  </p>
+                  <div className="mt-4">
+                    <Link href="/support/new">
+                      <ActionButton
+                        text="Create a report"
+                        variant="primaryHover"
+                        className="inline-flex items-center"
+                      />
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+
+        <ConfirmModal
+          isOpen={confirmOpen}
+          message="Delete this support ticket? This cannot be undone."
+          variant="danger"
+          onCancel={() => {
+            if (busyDelete) return;
+            setConfirmOpen(false);
+            setDeleteTarget(null);
+          }}
+          onConfirm={async () => {
+            await doDelete();
+            setConfirmOpen(false);
+            setDeleteTarget(null);
+          }}
+        />
+      </main>
     </>
   );
 }

@@ -26,7 +26,7 @@ function formatMMSS(ms) {
 
 function Countdown({ expiresAt, onExpire }) {
   const [remainMs, setRemainMs] = useState(() =>
-    Math.max(0, new Date(expiresAt).getTime() - Date.now())
+    Math.max(0, new Date(expiresAt).getTime() - Date.now()),
   );
 
   useEffect(() => {
@@ -45,27 +45,6 @@ function Countdown({ expiresAt, onExpire }) {
   }, [expiresAt, onExpire]);
 
   return <b className="font-mono tabular-nums">{formatMMSS(remainMs)}</b>;
-}
-
-function MethodTag({ method }) {
-  if (!method) return null;
-  const label =
-    method === "DELIVERY"
-      ? "Delivery"
-      : method === "MEETUP"
-      ? "Meetup"
-      : method;
-  const tone =
-    method === "DELIVERY"
-      ? "ring-indigo-200/70 bg-indigo-50/60 text-indigo-700"
-      : "ring-emerald-200/70 bg-emerald-50/60 text-emerald-700";
-  return (
-    <span
-      className={`inline-flex items-center px-2.5 py-0.5 text-[11px] font-medium ring-1 rounded-full ${tone}`}
-    >
-      {label}
-    </span>
-  );
 }
 
 /** Animated sliding pill role switch (800ms) */
@@ -171,7 +150,7 @@ function MyOrdersClient() {
   const statusParam = searchParams.get("status");
 
   const [role, setRole] = useState(
-    roleParam === "seller" || roleParam === "buyer" ? roleParam : "buyer"
+    roleParam === "seller" || roleParam === "buyer" ? roleParam : "buyer",
   );
   const [buyerTxns, setBuyerTxns] = useState(null);
   const [sellerTxns, setSellerTxns] = useState(null);
@@ -184,7 +163,7 @@ function MyOrdersClient() {
   const [kindFilter, setKindFilter] = useState(
     ["BUY_SELL", "DONATION", "AUCTION"].includes(kindParam)
       ? kindParam
-      : "BUY_SELL"
+      : "BUY_SELL",
   );
 
   // keep track of scheduled refresh timers so we can clean them up
@@ -311,7 +290,7 @@ function MyOrdersClient() {
 
           const nextCancelReason =
             action === "seller_cancel"
-              ? extra?.cancelReason ?? updated?.cancelReason ?? t.cancelReason
+              ? (extra?.cancelReason ?? updated?.cancelReason ?? t.cancelReason)
               : t.cancelReason;
 
           return {
@@ -320,7 +299,7 @@ function MyOrdersClient() {
             cancelReason: nextCancelReason,
             updatedAt: new Date().toISOString(),
           };
-        })
+        }),
       );
 
       // ✅ Redirect and refresh logic unified for all kinds
@@ -339,8 +318,8 @@ function MyOrdersClient() {
         setStatusFilter("CANCELLED_BY_SELLER");
         router.push(
           `/my-orders?role=seller&status=CANCELLED_BY_SELLER&kind=${encodeURIComponent(
-            kind
-          )}`
+            kind,
+          )}`,
         );
       }
 
@@ -363,7 +342,7 @@ function MyOrdersClient() {
 
     if (role === "buyer" && statusFilter === "BUYER_CONFIRMED") {
       return byKind.filter(
-        (t) => t.status === "BUYER_CONFIRMED" || t.status === "PAID_OUT"
+        (t) => t.status === "BUYER_CONFIRMED" || t.status === "PAID_OUT",
       );
     }
 
@@ -390,12 +369,12 @@ function MyOrdersClient() {
         ? "You haven't requested any donations."
         : "No donation requests yet."
       : kindFilter === "AUCTION"
-      ? role === "buyer"
-        ? "You haven't joined any auctions."
-        : "No active auctions."
-      : role === "buyer"
-      ? "You haven't placed any orders."
-      : "You don't have any sales transactions.";
+        ? role === "buyer"
+          ? "You haven't joined any auctions."
+          : "No active auctions."
+        : role === "buyer"
+          ? "You haven't placed any orders."
+          : "You don't have any sales transactions.";
 
   // ✅ choose the right CTA link + text by kind/role
   const { ctaHref, ctaText } = (() => {
@@ -549,19 +528,13 @@ function MyOrdersClient() {
                       t.status === "SELLER_ACCEPTED")));
 
               const counterparty = isSeller ? t.buyer : t.seller;
-              const method = t.fulfillment?.method;
-
-              const accent =
-                method === "DELIVERY"
-                  ? "before:bg-indigo-400/70"
-                  : "before:bg-emerald-400/70";
 
               return (
                 <article
                   key={id}
                   className={`relative bg-white ring-1 ring-slate-200 shadow-sm hover:shadow-md
                               transition-all duration-[800ms] rounded-none
-                              before:content-[''] before:absolute before:inset-y-0 before:left-0 before:w-1 ${accent}`}
+                              before:content-[''] before:absolute before:inset-y-0 before:left-0 before:w-1 before:bg-[#325082]/60`}
                 >
                   {/* Banner */}
                   <header className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 bg-slate-50">
@@ -570,33 +543,6 @@ function MyOrdersClient() {
                       <span>
                         {counterparty?.name || counterparty?.email || "-"}
                       </span>
-                    </div>
-
-                    {/* 👇 New Type label to match layout */}
-                    <div className="flex items-center justify-end gap-2">
-                      <span className="text-[#325082]">Type:</span>
-                      <span
-                        className={`text-sm font-medium px-2 py-0.5 rounded-full ${
-                          t.kind === "DONATION"
-                            ? "bg-pink-100 text-pink-700"
-                            : t.kind === "AUCTION"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : "bg-blue-100 text-blue-700"
-                        }`}
-                      >
-                        {t.kind === "BUY_SELL"
-                          ? "Buy/Sell"
-                          : t.kind === "DONATION"
-                          ? "Donation"
-                          : t.kind === "AUCTION"
-                          ? "Auction"
-                          : t.kind}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-end gap-2">
-                      <span className="text-[#325082]">Delivery Method:</span>
-                      <MethodTag method={method} />
                     </div>
 
                     <div className="flex items-center justify-end gap-2">
@@ -681,7 +627,7 @@ function MyOrdersClient() {
                             <span className="text-slate-500">Updated:</span>{" "}
                             <time>
                               {new Date(
-                                t.updatedAt || t.createdAt
+                                t.updatedAt || t.createdAt,
                               ).toLocaleString()}
                             </time>
                           </div>
@@ -729,14 +675,18 @@ function MyOrdersClient() {
 
                           {isSeller && canCancelOnly && (
                             <ActionButton
-                              text={t.kind === "DONATION" ? "Reject" : "Cancel"}
+                              text={
+                                t.kind === "DONATION"
+                                  ? "Reject Request"
+                                  : "Cancel Order"
+                              }
                               variant="orderCancel"
                               disabled={pendingActionId === id}
                               onClick={() => {
                                 const reason = prompt(
                                   t.kind === "DONATION"
                                     ? "Please enter a reason for rejection:"
-                                    : "Please enter a reason for cancellation:"
+                                    : "Please enter a reason for cancellation:",
                                 );
                                 if (reason?.trim()) {
                                   actOnTxn(id, "seller_cancel", {
