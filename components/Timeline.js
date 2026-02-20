@@ -2,44 +2,50 @@
 
 import { fmtBKK } from "@/utils/timeAgo";
 
-/** Base labels for timeline actions */
+/** Only actions that exist in your current system (Stripe + your routes) */
 export const TIMELINE_LABELS = {
+  // Core
   ORDER_CREATED: "Order created",
-  PAYMENT_WINDOW_STARTED: "Payment window started",
-  BUYER_UPLOADED_RECEIPT: "Buyer uploaded payment slip",
-  ADMIN_VERIFIED_PAYMENT: "Admin verified payment slip",
-  SELLER_ACCEPTED: "Seller accepted the order",
-  SELLER_SET_DELIVERY: "Seller set delivery details",
-  DELIVERY_STARTED: "Delivery started",
-  SELLER_DELIVERED: "Seller marked as delivered",
-  MEETUP_PROPOSED: "Meetup proposed",
-  MEETUP_ACCEPTED: "Meetup accepted",
-  MEETUP_COMPLETED: "Meetup completed",
+
+  // Stripe flow
+  STRIPE_PAYMENT_CONFIRMED: "Stripe payment Successful",
+  STRIPE_FEE_RECORDED: "Stripe fee recorded",
+  PAYMENT_FAILED: "Payment failed",
+
+  // Seller / proof / confirm
+  CHAT_STARTED: "Delivery chat started",
+  SELLER_PROOF_UPLOADED: "Seller uploaded delivery proof",
   BUYER_CONFIRMED: "Buyer confirmed received",
   AUTO_CONFIRMED_AFTER_3_DAYS: "Order auto-confirmed received",
-  ADMIN_PAID_OUT: "Payout released to seller",
+
+  // Cancellation
   CANCELLED_BY_BUYER: "Buyer cancelled the order",
   CANCELLED_BY_SELLER: "Seller cancelled the order",
-  AUTO_CANCELLED_EXPIRED: "Order auto-cancelled (Time Out)",
-  REJECTED_BY_ADMIN: "Admin rejected the order",
+  AUTO_CANCELLED_EXPIRED: "Order auto-cancelled (time out)",
 
-  // instant donation creation
-  DONATION_INSTANT_CREATED: "Instant donation requested",
+  // Admin operations
+  ADMIN_STATUS_OVERRIDE: "Admin changed order status",
+  ADMIN_REFUNDED_BUYER: "Admin refunded buyer",
+  ADMIN_PAID_OUT: "Payout released to seller",
 };
 
-/** Donation-specific label overrides */
+/** Donation wording overrides (label only) */
 const DONATION_LABEL_OVERRIDES = {
   SELLER_ACCEPTED: "Donor accepted the request",
+  SELLER_PROOF_UPLOADED: "Donor uploaded delivery proof",
   BUYER_CONFIRMED: "Recipient confirmed received",
-  CANCELLED_BY_SELLER: "Donor cancelled the order",
+  CANCELLED_BY_SELLER: "Donor cancelled the request",
 };
 
-/** Get a friendly label with kind-aware overrides */
+/** Friendly label with kind-aware override */
 export function toFriendlyAction(action, kind = "BUY_SELL") {
   if (!action) return "-";
   const key = String(action).toUpperCase();
 
-  if (kind === "DONATION" && DONATION_LABEL_OVERRIDES[key]) {
+  if (
+    String(kind).toUpperCase() === "DONATION" &&
+    DONATION_LABEL_OVERRIDES[key]
+  ) {
     return DONATION_LABEL_OVERRIDES[key];
   }
 
@@ -50,6 +56,15 @@ export function toFriendlyAction(action, kind = "BUY_SELL") {
       .replace(/_/g, " ")
       .replace(/\b\w/g, (c) => c.toUpperCase())
   );
+}
+
+/** Only show extra detail for ADMIN_STATUS_OVERRIDE: which status was set */
+function overrideDetail(e) {
+  const action = String(e?.action || "").toUpperCase();
+  if (action !== "ADMIN_STATUS_OVERRIDE") return "";
+
+  const st = String(e?.meta?.status || "").trim();
+  return st ? `→ ${st}` : "";
 }
 
 /**
@@ -69,6 +84,7 @@ export default function Timeline({
 
   const data = raw.map((e) => ({
     label: toFriendlyAction(e?.action, kind),
+    detail: overrideDetail(e),
     at: e?.at ? new Date(e.at) : null,
   }));
 
@@ -89,7 +105,16 @@ export default function Timeline({
                   : "flex items-center justify-between rounded-[3px] shadow-sm bg-[#f8fbff] ring-1 ring-[#e6eeff] px-3 py-2"
               }
             >
-              <div className="text-sm text-slate-800">{e.label}</div>
+              <div className="text-sm text-slate-800">
+                {e.label}
+                {e.detail ? (
+                  <span className="text-slate-500 font-medium">
+                    {" "}
+                    {e.detail}
+                  </span>
+                ) : null}
+              </div>
+
               <time
                 className="text-xs text-slate-500"
                 dateTime={e.at ? e.at.toISOString() : undefined}

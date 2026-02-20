@@ -296,7 +296,7 @@ export default function AdminUsersClient({ initialUsers }) {
         <StatCard label="Banned" value={stats.banned} />
       </div>
 
-      <div className="hidden sm:block mb-2">
+      <div className="mb-2">
         <TxnToolbar
           className="mb-0"
           leftSlot={leftSearchBar}
@@ -327,9 +327,6 @@ export default function AdminUsersClient({ initialUsers }) {
           }}
         />
       </div>
-
-      <div className="sm:hidden mb-2">{leftSearchBar}</div>
-
       <div className="bg-white p-5 rounded-xl shadow-md">
         {err && <p className="text-red-600 mb-2">Error: {String(err)}</p>}
 

@@ -142,8 +142,7 @@ export default function OrderDetail({ id }) {
   const [proofBusy, setProofBusy] = useState(false);
 
   const canUploadProof =
-    isSeller &&
-    ["DELIVERY_IN_PROGRESS", "SELLER_ACCEPTED"].includes(txn?.status);
+    isSeller && ["DELIVERY_IN_PROGRESS"].includes(txn?.status);
 
   async function uploadOne(file) {
     const fd = new FormData();

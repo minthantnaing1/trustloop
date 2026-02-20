@@ -251,35 +251,6 @@ export async function PATCH(req, { params }) {
   const body = await req.json().catch(() => ({}));
   const { action } = body || {};
 
-  if (action === "start_payment_window") {
-    if (txn.status !== "PENDING_PAYMENT") {
-      return new Response("Invalid state", { status: 400 });
-    }
-    if (!txn.expiresAt) {
-      txn.expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-      txn.timeline.push({
-        at: new Date(),
-        by: me._id,
-        action: "PAYMENT_WINDOW_STARTED",
-        meta: { minutes: 5 },
-      });
-      await txn.save();
-      // RIGHT AFTER await txn.save();
-      await notifyTxnEvent({
-        txn,
-        actorId: me._id,
-        type: "PAYMENT_WINDOW_STARTED",
-      });
-    }
-    return new Response(JSON.stringify({ expiresAt: txn.expiresAt }), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Cache-Control": "no-store",
-      },
-    });
-  }
-
   // ---- Seller accepts (unchanged) ----
   if (action === "seller_accept") {
     const isSeller = String(txn.seller) === String(me._id);
