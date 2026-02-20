@@ -30,10 +30,12 @@ export async function GET() {
 
   await connectDB();
   const me = await User.findOne({ email: session.user.email }).select(
-    "_id role name email",
+    "_id role name email adminRank",
   );
   if (!me || me.role !== "admin")
     return new Response("Forbidden", { status: 403 });
+
+  const isDeveloper = String(me.adminRank || "NORMAL") === "DEVELOPER";
 
   // Only BUY_SELL transactions that have had payment success at least once
   const txns = await Transaction.find({
@@ -46,15 +48,15 @@ export async function GET() {
     .sort({ createdAt: -1 })
     .lean();
 
-  // Admin list (for settlement dropdown)
+  // Admin list (for settlement dropdown) + include adminRank
   const admins = await User.find({ role: "admin" })
-    .select("_id name email role")
+    .select("_id name email role adminRank")
     .lean();
 
   // Settlement history
   const settlements = await AdminSettlement.find()
-    .populate("fromAdmin", "name email")
-    .populate("toAdmin", "name email")
+    .populate("fromAdmin", "name email adminRank")
+    .populate("toAdmin", "name email adminRank")
     .sort({ createdAt: -1 })
     .lean();
 
@@ -82,7 +84,6 @@ export async function GET() {
     const isOutstandingPayout =
       t.status === "BUYER_CONFIRMED" && !t.adminPayoutReceiptUrl;
 
-    // refund outstanding: cancelled + payment succeeded + not yet refunded
     const isCancelled =
       t.status === "CANCELLED_BY_BUYER" || t.status === "CANCELLED_BY_SELLER";
     const isOutstandingRefund =
@@ -92,7 +93,6 @@ export async function GET() {
     if (isOutstandingRefund)
       outstandingRefundTotal += money(t.buyerRefundNet || t.total - t.fee);
 
-    // who advanced?
     const payoutAdminId = t.adminPayoutReceiptUrl
       ? getLatestTimelineActorId(t, "ADMIN_PAID_OUT")
       : "";
@@ -130,8 +130,7 @@ export async function GET() {
   });
 
   // ---------- ADMIN LEDGER ----------
-  // advanced payouts/refunds grouped per admin
-  const adminMap = new Map(); // adminId -> ledger
+  const adminMap = new Map();
 
   function ensureAdmin(adminId) {
     if (!adminMap.has(adminId)) {
@@ -147,7 +146,6 @@ export async function GET() {
     return adminMap.get(adminId);
   }
 
-  // from transactions timeline actors
   for (const r of rows) {
     if (r.payoutAdminId) {
       const a = ensureAdmin(r.payoutAdminId);
@@ -159,7 +157,6 @@ export async function GET() {
     }
   }
 
-  // settlement reimbursements grouped by toAdmin
   for (const s of settlements) {
     const toId = String(s.toAdmin?._id || s.toAdmin);
     if (!toId) continue;
@@ -167,13 +164,11 @@ export async function GET() {
     a.reimbursedTotal += money(s.amount);
   }
 
-  // finalize totals
   for (const a of adminMap.values()) {
     a.advancedTotal = money(a.payoutAdvance) + money(a.refundAdvance);
     a.netOwed = money(a.advancedTotal) - money(a.reimbursedTotal);
   }
 
-  // attach admin info (name/email)
   const adminInfo = new Map(admins.map((u) => [String(u._id), u]));
   const adminLedger = Array.from(adminMap.values())
     .map((a) => {
@@ -184,11 +179,18 @@ export async function GET() {
         email: info?.email || "",
       };
     })
-    // show those who are owed money first
     .sort((x, y) => money(y.netOwed) - money(x.netOwed));
 
   return Response.json({
     ok: true,
+
+    // ✅ expose permission to client
+    permissions: {
+      isDeveloper,
+      adminRank: String(me.adminRank || "NORMAL"),
+      adminId: String(me._id),
+    },
+
     summary: {
       incomingTotal,
       stripeFeesTotal,
@@ -198,12 +200,17 @@ export async function GET() {
       outstandingRefundTotal,
     },
     rows,
+
+    // ✅ include adminRank for dropdown filtering (optional)
     admins: admins.map((a) => ({
       _id: String(a._id),
       name: a.name,
       email: a.email,
+      adminRank: String(a.adminRank || "NORMAL"),
     })),
+
     adminLedger,
+
     settlements: settlements.map((s) => ({
       _id: String(s._id),
       fromAdmin: s.fromAdmin
@@ -211,6 +218,7 @@ export async function GET() {
             _id: String(s.fromAdmin._id),
             name: s.fromAdmin.name,
             email: s.fromAdmin.email,
+            adminRank: String(s.fromAdmin.adminRank || "NORMAL"),
           }
         : null,
       toAdmin: s.toAdmin
@@ -218,6 +226,7 @@ export async function GET() {
             _id: String(s.toAdmin._id),
             name: s.toAdmin.name,
             email: s.toAdmin.email,
+            adminRank: String(s.toAdmin.adminRank || "NORMAL"),
           }
         : null,
       amount: money(s.amount),
@@ -235,10 +244,18 @@ export async function POST(req) {
 
   await connectDB();
   const me = await User.findOne({ email: session.user.email }).select(
-    "_id role",
+    "_id role adminRank",
   );
   if (!me || me.role !== "admin")
     return new Response("Forbidden", { status: 403 });
+
+  // ✅ Only Stripe owner (DEVELOPER) can record repayments
+  const isDeveloper = String(me.adminRank || "NORMAL") === "DEVELOPER";
+  if (!isDeveloper) {
+    return new Response("Only Stripe owner can record repayments.", {
+      status: 403,
+    });
+  }
 
   const body = await req.json().catch(() => ({}));
   const { toAdminId, amount, receiptUrl, note } = body;
@@ -250,11 +267,119 @@ export async function POST(req) {
   const amt = money(amount);
   if (!(amt > 0)) return new Response("Amount must be > 0", { status: 400 });
 
+  // ----- MINIMAL FIX STARTS HERE -----
+  // We must block repayment if nothing is owed, and cap repayment by total owed (including self).
+  // Also: slip is optional ONLY when paying self.
+
+  // Rebuild owed map (admin advances - reimbursed), same logic as GET, but minimal & local.
+  const txns = await Transaction.find({
+    kind: "BUY_SELL",
+    hasPaymentSucceeded: true,
+  })
+    .select(
+      "status total fee sellerNet buyerRefundNet hasPaymentSucceeded adminPayoutReceiptUrl adminRefundReceiptUrl timeline",
+    )
+    .lean();
+
+  const settlements = await AdminSettlement.find()
+    .select("toAdmin amount")
+    .lean();
+
+  const adminMap = new Map(); // adminId -> { payoutAdvance, refundAdvance, reimbursedTotal }
+
+  function ensureAdmin(adminId) {
+    if (!adminId) return null;
+    const k = String(adminId);
+    if (!adminMap.has(k)) {
+      adminMap.set(k, {
+        payoutAdvance: 0,
+        refundAdvance: 0,
+        reimbursedTotal: 0,
+      });
+    }
+    return adminMap.get(k);
+  }
+
+  for (const t of txns) {
+    const payoutAdminId = t.adminPayoutReceiptUrl
+      ? getLatestTimelineActorId(t, "ADMIN_PAID_OUT")
+      : "";
+    const refundAdminId = t.adminRefundReceiptUrl
+      ? getLatestTimelineActorId(t, "ADMIN_REFUNDED_BUYER")
+      : "";
+
+    if (payoutAdminId) {
+      const a = ensureAdmin(payoutAdminId);
+      if (a) a.payoutAdvance += money(t.sellerNet);
+    }
+    if (refundAdminId) {
+      const a = ensureAdmin(refundAdminId);
+      if (a)
+        a.refundAdvance += money(
+          t.buyerRefundNet || money(t.total) - money(t.fee),
+        );
+    }
+  }
+
+  for (const s of settlements) {
+    const toId = String(s.toAdmin || "");
+    if (!toId) continue;
+    const a = ensureAdmin(toId);
+    if (a) a.reimbursedTotal += money(s.amount);
+  }
+
+  // owedMap: adminId -> netOwed
+  const owedMap = new Map();
+  let totalOwedAll = 0;
+
+  for (const [adminId, a] of adminMap.entries()) {
+    const advancedTotal = money(a.payoutAdvance) + money(a.refundAdvance);
+    const netOwed = advancedTotal - money(a.reimbursedTotal);
+    owedMap.set(adminId, netOwed);
+    if (netOwed > 0) totalOwedAll += netOwed;
+  }
+
+  // Rule 2: no repayment allowed if total owed = 0 (including self)
+  if (!(totalOwedAll > 0)) {
+    return new Response(
+      "No outstanding amount owed to admins. Repayment is not allowed.",
+      { status: 409 },
+    );
+  }
+
+  // Rule 1: cannot repay more than total owed to admins (including self)
+  if (amt > totalOwedAll) {
+    return new Response(
+      `Amount exceeds total owed to admins (max: ${totalOwedAll}).`,
+      { status: 409 },
+    );
+  }
+
+  const targetId = String(toAdminId);
+  const targetOwed = money(owedMap.get(targetId));
+
+  // Optional sanity: can't repay an admin that isn't owed
+  if (!(targetOwed > 0)) {
+    return new Response("Selected admin is not owed any amount.", {
+      status: 409,
+    });
+  }
+
+  const isSelf = String(me._id) === targetId;
+
+  const receipt = String(receiptUrl || "").trim();
+
+  // Rule 3: receipt required ONLY if not paying self
+  if (!isSelf && !receipt) {
+    return new Response("Receipt URL is required", { status: 400 });
+  }
+  // ----- MINIMAL FIX ENDS HERE -----
+
   const doc = await AdminSettlement.create({
     fromAdmin: me._id,
     toAdmin: toAdminId,
     amount: amt,
-    receiptUrl: String(receiptUrl || "").trim(),
+    receiptUrl: receipt || "", // allow empty when self
     note: String(note || "").trim(),
   });
 

@@ -592,22 +592,27 @@ export default function MyOrdersClient() {
               const id = t._id?.toString?.() || t._id;
               const isSeller = role === "seller";
 
-              // ✅ seller cancel rules (your existing)
+              // ✅ seller cancel rules (UPDATED)
+              // - BUY_SELL: seller cannot cancel anymore (even if PAYMENT_SUCCESSFUL)
+              // - DONATION: donor can still cancel while awaiting donor
               const sellerCanCancel =
                 isSeller &&
-                ((t.kind === "BUY_SELL" && t.status === "PAYMENT_SUCCESSFUL") ||
-                  (t.kind === "DONATION" && t.status === "AWAITING_DONOR"));
+                t.kind === "DONATION" &&
+                t.status === "AWAITING_DONOR";
 
               // ✅ buyer cancel rules (new)
               const buyerCanCancel =
                 !isSeller &&
-                ((t.kind === "BUY_SELL" &&
-                  ["PENDING_PAYMENT", "PAYMENT_SUCCESSFUL"].includes(
-                    t.status,
-                  )) ||
-                  (t.kind === "DONATION" && t.status === "AWAITING_DONOR"));
+                t.kind === "BUY_SELL" &&
+                ["PENDING_PAYMENT", "PAYMENT_SUCCESSFUL"].includes(t.status);
 
               const canCancelOnly = sellerCanCancel || buyerCanCancel;
+
+              // ✅ Donation accept (seller/donor only)
+              const sellerCanAcceptDonation =
+                isSeller &&
+                t.kind === "DONATION" &&
+                t.status === "AWAITING_DONOR";
 
               const counterparty = isSeller ? t.buyer : t.seller;
 
@@ -731,6 +736,7 @@ export default function MyOrdersClient() {
 
                         {/* 👇 Replace this single Link with a small group */}
                         <div className="flex items-center gap-2">
+                          {/* Cancel / Reject */}
                           {canCancelOnly && (
                             <ActionButton
                               text={
@@ -740,7 +746,7 @@ export default function MyOrdersClient() {
                                     : "Cancel Request"
                                   : "Cancel Order"
                               }
-                              variant="orderCancel"
+                              variant="dangerOutlineHover"
                               disabled={pendingActionId === id}
                               onClick={() => {
                                 const reason = prompt(
@@ -763,68 +769,83 @@ export default function MyOrdersClient() {
                             />
                           )}
 
-                          <Link href={`/my-orders/${id}`}>
+                          {/* ✅ Donation: donor can accept request */}
+                          {sellerCanAcceptDonation && (
                             <ActionButton
-                              text="Order Details"
+                              text="Accept"
                               variant="primaryClick"
+                              disabled={pendingActionId === id}
+                              onClick={() => {
+                                actOnTxn(id, "seller_accept", {
+                                  kind: "DONATION",
+                                });
+                              }}
                             />
-                          </Link>
+                          )}
+
+                          {/* ✅ Move Continue Payment into Order Details slot (BUY_SELL + PENDING_PAYMENT, buyer only) */}
+                          {role === "buyer" &&
+                          t.kind === "BUY_SELL" &&
+                          isPendingPaymentActive(t) ? (
+                            <ActionButton
+                              text="Continue Payment"
+                              variant="outlineHover"
+                              onClick={async (e) => {
+                                e?.preventDefault?.();
+                                e?.stopPropagation?.();
+
+                                const res = await fetch("/api/checkout", {
+                                  method: "POST",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                  },
+                                  body: JSON.stringify({ transactionId: id }),
+                                });
+
+                                if (!res.ok) {
+                                  alert(await res.text());
+                                  return;
+                                }
+
+                                const { url } = await res.json();
+                                window.open(
+                                  url,
+                                  "_blank",
+                                  "noopener,noreferrer",
+                                );
+                              }}
+                            />
+                          ) : (
+                            /* ✅ Show Order Details only when NOT pending and NOT donation awaiting donor */
+                            !(
+                              t.status === "PENDING_PAYMENT" ||
+                              t.status === "AWAITING_DONOR"
+                            ) && (
+                              <Link href={`/my-orders/${id}`}>
+                                <ActionButton
+                                  text="Order Details"
+                                  variant="primaryClick"
+                                />
+                              </Link>
+                            )
+                          )}
                         </div>
                       </div>
                       {/* ⚠️ Warning note — same visibility logic as the Pay button */}
                       {role === "buyer" &&
                         isPendingPaymentActive(t) &&
                         t.expiresAt && (
-                          <div className="mb-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900 text-sm">
-                            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                              {/* Left spacer (keeps center truly centered) */}
-                              <div />
-
-                              {/* Center text */}
-                              <div className="text-center">
-                                Payment pending — please complete your payment
-                                within{" "}
-                                <Countdown
-                                  expiresAt={t.expiresAt}
-                                  onExpire={() => refreshRoleLists(role)}
-                                />{" "}
-                                or this order will be automatically cancelled.
-                              </div>
-
-                              {/* Right button */}
-                              <div className="flex justify-end">
-                                <ActionButton
-                                  text="Continue Payment"
-                                  variant="outlineHover"
-                                  onClick={async (e) => {
-                                    e?.preventDefault?.();
-                                    e?.stopPropagation?.();
-
-                                    const res = await fetch("/api/checkout", {
-                                      method: "POST",
-                                      headers: {
-                                        "Content-Type": "application/json",
-                                      },
-                                      body: JSON.stringify({
-                                        transactionId: id,
-                                      }),
-                                    });
-
-                                    if (!res.ok) {
-                                      alert(await res.text());
-                                      return;
-                                    }
-
-                                    const { url } = await res.json();
-                                    window.open(
-                                      url,
-                                      "_blank",
-                                      "noopener,noreferrer",
-                                    );
-                                  }}
-                                />
-                              </div>
-                            </div>
+                          <div className="text-center mb-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900 text-sm">
+                            Payment pending — please click{" "}
+                            <span className="font-semibold">
+                              “Continue Payment”
+                            </span>{" "}
+                            and complete your payment within{" "}
+                            <Countdown
+                              expiresAt={t.expiresAt}
+                              onExpire={() => refreshRoleLists(role)}
+                            />{" "}
+                            or this order will be automatically cancelled.
                           </div>
                         )}
                     </summary>

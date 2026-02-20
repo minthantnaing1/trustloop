@@ -43,7 +43,7 @@ export default function AdminTxnRowActions({
     setErr("");
 
     let reason = "";
-    if (status === "REJECTED_BY_ADMIN" || status === "CANCELLED_BY_SELLER") {
+    if (status === "REJECTED_BY_ADMIN") {
       reason = window.prompt("Reason (required):")?.trim();
       if (!reason) {
         setBusy(false);

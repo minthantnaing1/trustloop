@@ -1,9 +1,12 @@
+// app/admin/AdminFinanceClient.js
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import StatusPill from "@/components/StatusPill";
 import ActionButton from "@/components/ActionButton";
 import SlipLink from "@/components/SlipLink";
+import ConfirmModal from "@/components/ConfirmModal";
+import { TrashIcon } from "@heroicons/react/24/solid";
 
 function thb(n) {
   return `฿${Number(n || 0).toLocaleString()}`;
@@ -73,7 +76,7 @@ function FinanceTabSwitch({ tab, setTab, compact = false }) {
 function Modal({ open, title, children, onClose }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-3">
+    <div className="fixed inset-0 z-[30000] flex items-center justify-center px-3">
       <div
         className="absolute inset-0 bg-black/40"
         onClick={onClose}
@@ -89,13 +92,60 @@ function Modal({ open, title, children, onClose }) {
   );
 }
 
+/** Replace alert() with small toast */
+function Toast({ toast, onClose }) {
+  if (!toast?.open) return null;
+
+  const tone =
+    toast.type === "success"
+      ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200"
+      : toast.type === "warning"
+        ? "bg-amber-50 text-amber-800 ring-1 ring-amber-200"
+        : "bg-red-50 text-red-800 ring-1 ring-red-200";
+
+  return (
+    <div className="fixed z-[30000] top-4 right-4 w-[92vw] max-w-[420px]">
+      <div className={`rounded-xl shadow-md px-4 py-3 ${tone}`}>
+        <div className="flex items-start gap-3">
+          <div className="flex-1 text-sm font-medium">{toast.message}</div>
+          <button
+            type="button"
+            className="text-xs font-semibold opacity-80 hover:opacity-100"
+            onClick={onClose}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Small helper under disabled buttons (no popups) */
+function DisabledHint({ show, text }) {
+  if (!show || !text) return null;
+  return <div className="mt-2 text-xs text-amber-700">{text}</div>;
+}
+
 export default function AdminFinanceClient() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [data, setData] = useState(null);
 
-  // ✅ Finance tabs
   const [tab, setTab] = useState("PLATFORM"); // PLATFORM | SETTLEMENT
+
+  // Toast state (replaces alert)
+  const [toast, setToast] = useState({
+    open: false,
+    type: "error",
+    message: "",
+  });
+  const showToast = useCallback((type, message) => {
+    setToast({ open: true, type, message: String(message || "") });
+  }, []);
+  const closeToast = useCallback(() => {
+    setToast((t) => ({ ...t, open: false }));
+  }, []);
 
   // Repayment modal state
   const [repayOpen, setRepayOpen] = useState(false);
@@ -104,6 +154,15 @@ export default function AdminFinanceClient() {
   const [repayReceiptUrl, setRepayReceiptUrl] = useState("");
   const [repayNote, setRepayNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // Receipt upload state
+  const [repayReceiptFile, setRepayReceiptFile] = useState(null);
+  const [repayUploading, setRepayUploading] = useState(false);
+
+  // Delete mode
+  const [settlementDeleteMode, setSettlementDeleteMode] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
 
   async function load() {
     setLoading(true);
@@ -130,27 +189,132 @@ export default function AdminFinanceClient() {
   const adminLedger = Array.isArray(data?.adminLedger) ? data.adminLedger : [];
   const settlements = Array.isArray(data?.settlements) ? data.settlements : [];
 
+  // ✅ permissions from API
+  const isDeveloper = Boolean(data?.permissions?.isDeveloper);
+
   const hasStripeFeeMissing = useMemo(() => {
     return rows.some(
       (r) => Number(r.incoming || 0) > 0 && Number(r.stripeFee || 0) === 0,
     );
   }, [rows]);
 
-  async function submitRepayment() {
+  // ----- MINIMAL FIX: compute totals for repayment rules -----
+  const myAdminId = String(data?.permissions?.adminId || "");
+  const totalOwedAllAdmins = useMemo(() => {
+    // sum of positive netOwed (including self)
+    return adminLedger.reduce((sum, a) => {
+      const v = Number(a?.netOwed || 0);
+      return v > 0 ? sum + v : sum;
+    }, 0);
+  }, [adminLedger]);
+
+  const isSelfRepay = useMemo(() => {
+    return Boolean(myAdminId && repayToAdminId && myAdminId === repayToAdminId);
+  }, [myAdminId, repayToAdminId]);
+
+  // Extra UI: show how much the selected admin is owed (prevents confusion)
+  const selectedNetOwed = useMemo(() => {
+    if (!repayToAdminId) return 0;
+    const row = adminLedger.find(
+      (a) => String(a?.adminId) === String(repayToAdminId),
+    );
+    return Number(row?.netOwed || 0);
+  }, [adminLedger, repayToAdminId]);
+
+  // Disable reason for "Record Repayment" button (instead of alert)
+  const recordRepayDisabledReason = useMemo(() => {
+    if (!isDeveloper) return "Only the Stripe owner can record repayments.";
+    if (!(Number(totalOwedAllAdmins) > 0))
+      return "No outstanding amount owed to admins.";
+    return "";
+  }, [isDeveloper, totalOwedAllAdmins]);
+
+  // Inline validation for modal (so user sees why Save is disabled)
+  const repayFormError = useMemo(() => {
+    if (!isDeveloper) return "Only the Stripe owner can record repayments.";
+    if (!(Number(totalOwedAllAdmins) > 0))
+      return "No outstanding amount owed to admins. Repayment is not allowed.";
+
     const amt = Number(repayAmount || 0);
 
-    if (!repayToAdminId) {
-      alert("Please choose an admin.");
+    if (!repayToAdminId) return "Please choose an admin.";
+    // optional but helpful: prevent paying admins who are not owed
+    if (!(Number(selectedNetOwed) > 0))
+      return "Selected admin is not owed any amount.";
+    if (!(amt > 0)) return "Amount must be greater than 0.";
+
+    // Rule 1: cannot repay more than total owed (including self)
+    if (amt > Number(totalOwedAllAdmins || 0))
+      return `Amount exceeds total owed to admins (max: ${thb(
+        totalOwedAllAdmins,
+      )}).`;
+
+    // Helpful guard: cannot repay more than selected admin net owed
+    if (amt > Number(selectedNetOwed || 0))
+      return `Amount exceeds selected admin net owed (max: ${thb(
+        selectedNetOwed,
+      )}).`;
+
+    // Rule 3: slip required only if NOT paying self
+    if (!isSelfRepay && !String(repayReceiptUrl || "").trim())
+      return "Receipt slip is required (upload or paste URL).";
+
+    return "";
+  }, [
+    isDeveloper,
+    totalOwedAllAdmins,
+    repayAmount,
+    repayToAdminId,
+    selectedNetOwed,
+    isSelfRepay,
+    repayReceiptUrl,
+  ]);
+  // ----- END MINIMAL FIX -----
+
+  async function uploadRepayReceipt(file) {
+    if (!file) return;
+
+    if (!String(file.type || "").startsWith("image/")) {
+      showToast("warning", "Please upload an image file.");
       return;
     }
-    if (!(amt > 0)) {
-      alert("Amount must be greater than 0.");
+    const maxMB = 8;
+    if (file.size > maxMB * 1024 * 1024) {
+      showToast("warning", `File too large. Max ${maxMB}MB.`);
       return;
     }
-    if (!repayReceiptUrl) {
-      alert("Receipt URL is required.");
+
+    setRepayUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(j?.error || (await res.text()));
+      if (!j?.url) throw new Error("Upload failed: no URL returned.");
+
+      setRepayReceiptUrl(j.url);
+      showToast("success", "Slip uploaded.");
+    } catch (e) {
+      showToast("error", e?.message || "Failed to upload slip.");
+    } finally {
+      setRepayUploading(false);
+    }
+  }
+
+  async function submitRepayment() {
+    // Replace all alerts with UI validation + toast
+    if (repayFormError) {
+      showToast("warning", repayFormError);
       return;
     }
+
+    const amt = Number(repayAmount || 0);
 
     setSubmitting(true);
     try {
@@ -160,27 +324,54 @@ export default function AdminFinanceClient() {
         body: JSON.stringify({
           toAdminId: repayToAdminId,
           amount: amt,
-          receiptUrl: repayReceiptUrl,
+          receiptUrl: isSelfRepay ? "" : repayReceiptUrl, // allow blank when self
           note: repayNote,
         }),
       });
       if (!r.ok) throw new Error(await r.text());
 
-      // reset + close + reload
       setRepayOpen(false);
       setRepayToAdminId("");
       setRepayAmount("");
       setRepayReceiptUrl("");
       setRepayNote("");
+      setRepayReceiptFile(null);
+
+      showToast("success", "Repayment recorded.");
       await load();
     } catch (e) {
-      alert(e?.message || "Failed to record repayment");
+      showToast("error", e?.message || "Failed to record repayment");
     } finally {
       setSubmitting(false);
     }
   }
 
-  // ✅ Outstanding amount display (not only label)
+  async function deleteSettlement(id) {
+    // ✅ extra client guard (toast instead of alert)
+    if (!isDeveloper) {
+      showToast("warning", "Only the Stripe owner can delete repayments.");
+      return;
+    }
+
+    try {
+      const r = await fetch(`/api/admin/finance/${id}`, { method: "DELETE" });
+      if (!r.ok) throw new Error(await r.text());
+      showToast("success", "Repayment deleted.");
+      await load();
+    } catch (e) {
+      showToast("error", e?.message || "Failed to delete repayment");
+    }
+  }
+
+  function askDelete(id) {
+    if (!isDeveloper) {
+      showToast("warning", "Only the Stripe owner can delete repayments.");
+      return;
+    }
+    setPendingDeleteId(id);
+    setConfirmOpen(true);
+  }
+
   function getOutstandingAmount(r) {
     const payoutAmt = Number(r.outstandingPayoutAmount ?? r.sellerNet ?? 0);
     const refundAmt = Number(
@@ -211,6 +402,8 @@ export default function AdminFinanceClient() {
 
   return (
     <>
+      <Toast toast={toast} onClose={closeToast} />
+
       <div className="flex items-center justify-between gap-3 mb-3">
         <h1 className="text-2xl font-bold text-[#325082]">Finance</h1>
         <div className="block sm:hidden">
@@ -221,7 +414,6 @@ export default function AdminFinanceClient() {
         </div>
       </div>
 
-      {/* ✅ SAME container as Transactions page */}
       <div className="bg-white p-5 rounded-xl shadow-md">
         {err && <p className="text-red-600 mb-2">Error: {String(err)}</p>}
         {loading && <p className="text-gray-500">Loading finance…</p>}
@@ -374,7 +566,6 @@ export default function AdminFinanceClient() {
                               )}
                             </td>
 
-                            {/* ✅ SLIP per-transaction (best place) */}
                             <td className="p-2 border-b">
                               {r.adminPayoutReceiptUrl ||
                               r.adminRefundReceiptUrl ? (
@@ -418,7 +609,7 @@ export default function AdminFinanceClient() {
 
             {tab === "SETTLEMENT" && (
               <>
-                <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="flex items-start gap-3 mb-3">
                   <div>
                     <div className="text-lg font-bold text-[#1f2f4c]">
                       Admin Ledger
@@ -427,13 +618,29 @@ export default function AdminFinanceClient() {
                       Tracks how much each admin advanced (payout/refund) and
                       how much has been reimbursed.
                     </div>
+
+                    {!isDeveloper && (
+                      <div className="mt-2 text-xs text-amber-700">
+                        Only the Stripe owner can record or delete repayments.
+                      </div>
+                    )}
                   </div>
 
-                  <ActionButton
-                    text="Record Repayment"
-                    variant="primaryClick"
-                    onClick={() => setRepayOpen(true)}
-                  />
+                  {isDeveloper && (
+                    <div className="ml-auto flex flex-col items-end">
+                      <ActionButton
+                        text="Record Repayment"
+                        variant="primaryClick"
+                        onClick={() => {
+                          if (recordRepayDisabledReason) {
+                            showToast("warning", recordRepayDisabledReason);
+                            return;
+                          }
+                          setRepayOpen(true);
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="overflow-x-auto mb-6">
@@ -502,8 +709,30 @@ export default function AdminFinanceClient() {
                   </table>
                 </div>
 
-                <div className="text-lg font-bold text-[#1f2f4c] mb-2">
-                  Repayment History
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-lg font-bold text-[#1f2f4c]">
+                    Repayment History
+                  </div>
+
+                  {isDeveloper ? (
+                    <ActionButton
+                      text="Delete"
+                      variant={
+                        settlementDeleteMode
+                          ? "dangerPrimaryClick"
+                          : "dangerOutlineHover"
+                      }
+                      onClick={() => {
+                        if (settlements.length === 0) {
+                          showToast("warning", "No repayments to delete.");
+                          return;
+                        }
+                        setSettlementDeleteMode((v) => !v);
+                      }}
+                      className="h-[32px] min-w-[70px] text-sm"
+                      disabled={settlements.length === 0}
+                    />
+                  ) : null}
                 </div>
 
                 <div className="overflow-x-auto">
@@ -516,52 +745,96 @@ export default function AdminFinanceClient() {
                         <th className="p-2 border-b font-medium">Amount</th>
                         <th className="p-2 border-b font-medium">Slip</th>
                         <th className="p-2 border-b font-medium">Note</th>
+                        <th className="p-2 border-b font-medium">Action</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {settlements.map((s) => (
-                        <tr key={s._id} className="hover:bg-gray-50">
-                          <td className="p-2 border-b whitespace-nowrap">
-                            {s.createdAt
-                              ? new Date(s.createdAt).toLocaleString()
-                              : "-"}
-                          </td>
-                          <td className="p-2 border-b">
-                            <div className="font-medium">
-                              {s.fromAdmin?.name || "—"}
-                            </div>
-                            <div className="text-sm text-gray-600">
-                              {s.fromAdmin?.email || ""}
-                            </div>
-                          </td>
-                          <td className="p-2 border-b">
-                            <div className="font-medium">
-                              {s.toAdmin?.name || "—"}
-                            </div>
-                            <div className="text-sm text-gray-600">
-                              {s.toAdmin?.email || ""}
-                            </div>
-                          </td>
-                          <td className="p-2 border-b font-semibold">
-                            {thb(s.amount)}
-                          </td>
-                          <td className="p-2 border-b">
-                            {s.receiptUrl ? (
-                              <SlipLink url={s.receiptUrl} label="Slip" />
-                            ) : (
-                              <span className="text-gray-400">—</span>
-                            )}
-                          </td>
-                          <td className="p-2 border-b">
-                            {s.note || <span className="text-gray-400">—</span>}
-                          </td>
-                        </tr>
-                      ))}
+                      {settlements.map((s) => {
+                        const sid = s._id?.toString?.() || s._id;
+
+                        return (
+                          <tr
+                            key={sid}
+                            className={`align-top ${
+                              settlementDeleteMode && isDeveloper
+                                ? "hover:bg-red-50 cursor-pointer"
+                                : "hover:bg-gray-50"
+                            }`}
+                            onClick={() => {
+                              if (settlementDeleteMode && isDeveloper)
+                                askDelete(sid);
+                            }}
+                          >
+                            <td className="p-2 border-b whitespace-nowrap">
+                              {s.createdAt
+                                ? new Date(s.createdAt).toLocaleString()
+                                : "-"}
+                            </td>
+
+                            <td className="p-2 border-b">
+                              <div className="font-medium">
+                                {s.fromAdmin?.name || "—"}
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                {s.fromAdmin?.email || ""}
+                              </div>
+                            </td>
+
+                            <td className="p-2 border-b">
+                              <div className="font-medium">
+                                {s.toAdmin?.name || "—"}
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                {s.toAdmin?.email || ""}
+                              </div>
+                            </td>
+
+                            <td className="p-2 border-b font-semibold">
+                              {thb(s.amount)}
+                            </td>
+
+                            <td className="p-2 border-b">
+                              {s.receiptUrl ? (
+                                <SlipLink url={s.receiptUrl} label="Slip" />
+                              ) : (
+                                <span className="text-gray-400">—</span>
+                              )}
+                            </td>
+
+                            <td className="p-2 border-b">
+                              {s.note || (
+                                <span className="text-gray-400">—</span>
+                              )}
+                            </td>
+
+                            <td className="p-2 border-b">
+                              {settlementDeleteMode && isDeveloper ? (
+                                <button
+                                  type="button"
+                                  className="flex items-center gap-1 text-red-600 hover:text-red-700 p-1"
+                                  title="Delete"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    askDelete(sid);
+                                  }}
+                                >
+                                  <TrashIcon className="w-5 h-5" />
+                                  <span className="text-sm font-semibold">
+                                    Delete
+                                  </span>
+                                </button>
+                              ) : (
+                                <span className="text-gray-400">—</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
 
                       {settlements.length === 0 && (
                         <tr>
                           <td
-                            colSpan={6}
+                            colSpan={7}
                             className="p-4 text-center text-gray-500"
                           >
                             No repayments recorded yet.
@@ -577,89 +850,300 @@ export default function AdminFinanceClient() {
         )}
       </div>
 
-      {/* ✅ FORM MODAL (no ConfirmModal) */}
+      {/* repayment modal */}
       <Modal
         open={repayOpen}
         title="Record Repayment"
-        onClose={() => (submitting ? null : setRepayOpen(false))}
+        onClose={() =>
+          submitting || repayUploading ? null : setRepayOpen(false)
+        }
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs text-gray-600 mb-1">
-              Pay to Admin
-            </label>
-            <select
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm shadow-sm
-                         focus:outline-none focus:ring-2 focus:ring-[#325082] focus:border-[#325082]"
-              value={repayToAdminId}
-              onChange={(e) => setRepayToAdminId(e.target.value)}
-            >
-              <option value="">— Select Admin —</option>
-              {admins.map((a) => (
-                <option key={a._id} value={a._id}>
-                  {a.name} ({a.email})
-                </option>
-              ))}
-            </select>
+        {!isDeveloper ? (
+          <div className="text-sm text-red-600">
+            You are not the Stripe owner.
           </div>
+        ) : (
+          <>
+            {/* Nice inline box showing why Save is disabled (instead of alert) */}
+            <div className="mb-3">
+              <div className="text-xs text-gray-600">
+                Total owed to admins:{" "}
+                <span className="font-semibold text-[#1f2f4c]">
+                  {thb(totalOwedAllAdmins)}
+                </span>
+              </div>
 
-          <div>
-            <label className="block text-xs text-gray-600 mb-1">
-              Amount (THB)
-            </label>
-            <input
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm shadow-sm
-                         focus:outline-none focus:ring-2 focus:ring-[#325082] focus:border-[#325082]"
-              value={repayAmount}
-              onChange={(e) => setRepayAmount(e.target.value)}
-              placeholder="e.g. 950"
-            />
-          </div>
+              {repayFormError ? (
+                <div className="mt-2 bg-amber-50 ring-1 ring-amber-200 text-amber-800 rounded-lg px-3 py-2 text-sm">
+                  {repayFormError}
+                </div>
+              ) : (
+                <div className="mt-2 bg-emerald-50 ring-1 ring-emerald-200 text-emerald-800 rounded-lg px-3 py-2 text-sm">
+                  Ready to save.
+                </div>
+              )}
+            </div>
 
-          <div className="md:col-span-2">
-            <label className="block text-xs text-gray-600 mb-1">
-              Receipt URL (Slip)
-            </label>
-            <input
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm shadow-sm
-                         focus:outline-none focus:ring-2 focus:ring-[#325082] focus:border-[#325082]"
-              value={repayReceiptUrl}
-              onChange={(e) => setRepayReceiptUrl(e.target.value)}
-              placeholder="Cloudinary URL"
-            />
-          </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">
+                  Pay to Admin
+                </label>
+                <select
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm shadow-sm
+                             focus:outline-none focus:ring-2 focus:ring-[#325082] focus:border-[#325082]"
+                  value={repayToAdminId}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setRepayToAdminId(v);
 
-          <div className="md:col-span-2">
-            <label className="block text-xs text-gray-600 mb-1">
-              Note (optional)
-            </label>
-            <input
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm shadow-sm
-                         focus:outline-none focus:ring-2 focus:ring-[#325082] focus:border-[#325082]"
-              value={repayNote}
-              onChange={(e) => setRepayNote(e.target.value)}
-              placeholder="e.g. Paid after Stripe payout"
-            />
-          </div>
-        </div>
+                    // Rule 3: if switching to self, clear slip
+                    if (myAdminId && v === myAdminId) {
+                      setRepayReceiptFile(null);
+                      setRepayReceiptUrl("");
+                    }
+                  }}
+                  disabled={submitting || repayUploading}
+                >
+                  <option value="">— Select Admin —</option>
+                  {admins.map((a) => (
+                    <option key={a._id} value={a._id}>
+                      {a.name} ({a.email})
+                    </option>
+                  ))}
+                </select>
 
-        <div className="flex justify-end gap-2 mt-5">
-          <ActionButton
-            text="Cancel"
-            variant="outlineClick"
-            onClick={() => setRepayOpen(false)}
-            className="h-[32px] min-w-[90px] text-sm"
-            disabled={submitting}
-          />
-          <ActionButton
-            text={submitting ? "Saving..." : "Save"}
-            variant="primaryClick"
-            onClick={submitRepayment}
-            className="h-[32px] min-w-[90px] text-sm"
-            disabled={submitting}
-          />
-        </div>
+                {/* Small helpful info */}
+                {repayToAdminId ? (
+                  <div className="mt-1 text-xs text-gray-500">
+                    Selected admin net owed:{" "}
+                    <span className="font-semibold">
+                      {thb(selectedNetOwed)}
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">
+                  Amount (THB)
+                </label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  step="1"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm shadow-sm
+               focus:outline-none focus:ring-2 focus:ring-[#325082] focus:border-[#325082]"
+                  value={repayAmount}
+                  onChange={(e) => {
+                    // allow only digits
+                    const v = e.target.value.replace(/\D/g, "");
+                    setRepayAmount(v);
+                  }}
+                  onKeyDown={(e) => {
+                    // block non-number keys commonly allowed by number input
+                    if (["e", "E", "+", "-", "."].includes(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                  placeholder={`e.g. 950 (max ${thb(totalOwedAllAdmins)})`}
+                  disabled={submitting || repayUploading}
+                />
+              </div>
+
+              {/* Rule 3: hide slip UI when paying self */}
+              {!isSelfRepay ? (
+                <div className="md:col-span-2">
+                  <label className="block text-xs text-gray-600 mb-1">
+                    Receipt Slip (upload)
+                  </label>
+
+                  <div className="rounded-xl border border-dashed border-[#325082]/50 bg-[#f6f8fc] p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-sm text-[#1f2f4c]">
+                        {repayReceiptFile ? (
+                          <>
+                            <div className="font-medium">
+                              {repayReceiptFile.name}
+                            </div>
+                            <div className="text-xs text-gray-600">
+                              {(repayReceiptFile.size / 1024 / 1024).toFixed(2)}{" "}
+                              MB
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-sm text-gray-700">
+                            Upload slip image (JPG/PNG)
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <label className="relative inline-flex">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="absolute inset-0 opacity-0 cursor-pointer"
+                            disabled={submitting || repayUploading}
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0] || null;
+                              if (!file) return;
+
+                              setRepayReceiptFile(file);
+                              setRepayReceiptUrl("");
+                              await uploadRepayReceipt(file);
+
+                              e.target.value = "";
+                            }}
+                          />
+                          <span
+                            className={`px-3 py-2 rounded-lg text-sm font-medium shadow-sm border
+                            ${
+                              submitting || repayUploading
+                                ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                                : "bg-white text-[#325082] border-[#cfdaf1] hover:bg-[#eef3fd]"
+                            }`}
+                          >
+                            Choose File
+                          </span>
+                        </label>
+
+                        {repayReceiptFile && (
+                          <button
+                            type="button"
+                            className={`px-3 py-2 rounded-lg text-sm font-medium shadow-sm border
+                            ${
+                              submitting || repayUploading
+                                ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                                : "bg-white text-red-600 border-red-200 hover:bg-red-50"
+                            }`}
+                            disabled={submitting || repayUploading}
+                            onClick={() => {
+                              setRepayReceiptFile(null);
+                              setRepayReceiptUrl("");
+                            }}
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex items-start gap-3">
+                      <div className="w-[120px] h-[90px] rounded-lg overflow-hidden bg-white border border-[#e7ecf8] flex items-center justify-center">
+                        {repayReceiptUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={repayReceiptUrl}
+                            alt="Slip preview"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : repayReceiptFile ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={URL.createObjectURL(repayReceiptFile)}
+                            alt="Slip preview"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-xs text-gray-400">No slip</span>
+                        )}
+                      </div>
+
+                      <div className="flex-1">
+                        {repayUploading ? (
+                          <div className="text-sm text-[#325082] font-medium">
+                            Uploading slip…
+                          </div>
+                        ) : repayReceiptUrl ? (
+                          <div className="text-sm text-emerald-700 font-medium">
+                            Uploaded ✅
+                          </div>
+                        ) : repayReceiptFile ? (
+                          <div className="text-sm text-amber-700 font-medium">
+                            Not uploaded yet (try another file)
+                          </div>
+                        ) : (
+                          <div className="text-sm text-gray-600">
+                            Upload is recommended.
+                          </div>
+                        )}
+
+                        <div className="mt-2">
+                          <label className="block text-xs text-gray-600 mb-1">
+                            Receipt URL (optional manual paste)
+                          </label>
+                          <input
+                            className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm shadow-sm
+                                     focus:outline-none focus:ring-2 focus:ring-[#325082] focus:border-[#325082]"
+                            value={repayReceiptUrl}
+                            onChange={(e) => setRepayReceiptUrl(e.target.value)}
+                            placeholder="Cloudinary URL"
+                            disabled={submitting || repayUploading}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="md:col-span-2 text-sm text-gray-600">
+                  Paying yourself does not require a slip.
+                </div>
+              )}
+
+              <div className="md:col-span-2">
+                <label className="block text-xs text-gray-600 mb-1">
+                  Note (optional)
+                </label>
+                <input
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm shadow-sm
+                             focus:outline-none focus:ring-2 focus:ring-[#325082] focus:border-[#325082]"
+                  value={repayNote}
+                  onChange={(e) => setRepayNote(e.target.value)}
+                  placeholder="e.g. Paid after Stripe payout"
+                  disabled={submitting || repayUploading}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 mt-5">
+              <ActionButton
+                text="Cancel"
+                variant="outlineClick"
+                onClick={() => setRepayOpen(false)}
+                className="h-[32px] min-w-[90px] text-sm"
+                disabled={submitting || repayUploading}
+              />
+              <ActionButton
+                text={submitting ? "Saving..." : "Save"}
+                variant="primaryClick"
+                onClick={submitRepayment}
+                className="h-[32px] min-w-[90px] text-sm"
+                disabled={
+                  submitting || repayUploading || Boolean(repayFormError)
+                }
+              />
+            </div>
+          </>
+        )}
       </Modal>
+
+      <ConfirmModal
+        isOpen={confirmOpen}
+        variant="danger"
+        message="Delete this repayment record? This will also delete the slip image from Cloudinary. This cannot be undone."
+        onCancel={() => {
+          setConfirmOpen(false);
+          setPendingDeleteId(null);
+        }}
+        onConfirm={async () => {
+          setConfirmOpen(false);
+          if (pendingDeleteId) await deleteSettlement(pendingDeleteId);
+          setPendingDeleteId(null);
+        }}
+      />
     </>
   );
 }
