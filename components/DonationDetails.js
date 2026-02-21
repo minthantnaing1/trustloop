@@ -4,7 +4,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import NavBar from "@/components/NavBar";
-import Image from "next/image";
 import Link from "next/link";
 import ActionButton from "@/components/ActionButton";
 import ProductDeleteButton from "@/components/ProductDeleteButton";
@@ -157,12 +156,15 @@ export default function DonationDetails({
                           key={r._id}
                           className="flex items-start gap-3 p-2 rounded border border-gray-200 bg-white"
                         >
-                          <Image
+                          <img
                             src={r.user?.image || "/default-profile.png"}
                             alt="Requester image"
                             width={44}
                             height={44}
                             className="rounded-full object-cover border-2 border-[#325082] w-[44px] h-[44px]"
+                            onError={(e) => {
+                              e.currentTarget.src = "/default-profile.png";
+                            }}
                           />
 
                           <div className="flex-1">
@@ -246,12 +248,15 @@ export default function DonationDetails({
                         key={r._id}
                         className="flex items-start gap-3 p-2 rounded border border-gray-200 bg-white"
                       >
-                        <Image
+                        <img
                           src={r.user?.image || "/default-profile.png"}
                           alt="Your image"
                           width={44}
                           height={44}
-                          className="rounded-full object-cover border-2 border-[#325082]"
+                          className="rounded-full object-cover border-2 border-[#325082] w-[44px] h-[44px]"
+                          onError={(e) => {
+                            e.currentTarget.src = "/default-profile.png";
+                          }}
                         />
                         <div className="flex-1">
                           {r.message && (
@@ -308,14 +313,6 @@ export default function DonationDetails({
                     : "Selective Donation (Chosen by donor)"}
                 </span>
               )}
-
-              {/* Meetup-only hint */}
-              <span
-                title="Only meetup delivery option is allowed for donation."
-                className="text-[12px] font-medium text-[#325082] bg-white/90 px-2 py-1 rounded border border-[#325082]/60 cursor-help"
-              >
-                Meetup Only
-              </span>
 
               {product.requestDeadline && (
                 <span className="text-[12px] font-medium text-[#b91c1c] bg-white/90 px-2 py-1 rounded border border-[#fca5a5]">
@@ -387,12 +384,15 @@ export default function DonationDetails({
 
             <div className="flex items-center gap-4 mt-3 p-3 rounded-md bg-[#f0f0f0] border border-[#ccc]">
               <Link href={`/profile/${product.owner?._id}`}>
-                <Image
+                <img
                   src={product.owner?.image || "/default-profile.png"}
                   alt="Donator Image"
                   width={60}
                   height={60}
                   className="rounded-full object-cover border-2 border-[#325082] w-[60px] h-[60px] transition-transform duration-500 hover:scale-105"
+                  onError={(e) => {
+                    e.currentTarget.src = "/default-profile.png";
+                  }}
                 />
               </Link>
               <div className="flex flex-col">

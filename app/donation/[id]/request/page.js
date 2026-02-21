@@ -20,7 +20,7 @@ export default async function DonationRequestPage({ params }) {
   // fetch product
   const prodRes = await fetch(
     `${process.env.NEXT_PUBLIC_BASE_URL}/api/products/${id}`,
-    { headers: { Cookie: cookieStore.toString() }, cache: "no-store" }
+    { headers: { Cookie: cookieStore.toString() }, cache: "no-store" },
   );
   if (!prodRes.ok) return redirect(`/donation/${id}`);
   const product = await prodRes.json();
@@ -102,7 +102,7 @@ export default async function DonationRequestPage({ params }) {
                       <span className="font-semibold">{product.condition}</span>
                     </div>
                     <div>
-                      Meetup Location:{" "}
+                      Product Location:{" "}
                       <span className="font-semibold">{product.location}</span>
                     </div>
                     {product.donationMode === "selective" &&
@@ -135,7 +135,7 @@ export default async function DonationRequestPage({ params }) {
                     </li>
                     <li>
                       An order is opened (no payment). You and donor can arrange
-                      meetup in the order page.
+                      delivery part in order details.
                     </li>
                   </ul>
                 ) : (
@@ -197,7 +197,7 @@ export default async function DonationRequestPage({ params }) {
 
                   <p className="text-xs text-center text-gray-600 -mt-1 leading-relaxed">
                     By submitting, you agree to contact the donor only for
-                    arranging a fair pickup/meetup. No money is involved.
+                    arranging a delivery part. No money is involved.
                   </p>
                 </form>
               </div>

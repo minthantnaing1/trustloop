@@ -1,6 +1,7 @@
 // components/ProductDetails.js
+"use client";
+
 import NavBar from "@/components/NavBar";
-import Image from "next/image";
 import Link from "next/link";
 import ActionButton from "@/components/ActionButton";
 import ProductDeleteButton from "@/components/ProductDeleteButton";
@@ -123,13 +124,15 @@ export default function ProductDetails({
 
             <div className="flex items-center gap-4 mt-3 p-3 rounded-md bg-[#f0f0f0] border border-[#ccc]">
               <Link href={`/profile/${product.owner?._id}`}>
-                <Image
+                <img
                   src={product.owner?.image || "/default-profile.png"}
                   alt="Seller Image"
                   width={60}
                   height={60}
-                  className="rounded-full object-cover border-2 border-[#325082] w-[60px] h-[60px] 
-               transition-transform duration-500 hover:scale-105"
+                  className="rounded-full object-cover border-2 border-[#325082] w-[60px] h-[60px] transition-transform duration-500 hover:scale-105"
+                  onError={(e) => {
+                    e.currentTarget.src = "/default-profile.png";
+                  }}
                 />
               </Link>
               <div className="flex flex-col">

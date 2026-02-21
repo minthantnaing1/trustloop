@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
 import Link from "next/link";
 import Image from "next/image";
+import { redirect } from "next/navigation";
 
 import NavBar from "@/components/NavBar";
 import ActionButton from "@/components/ActionButton";
@@ -35,9 +36,12 @@ function toPlainProduct(p) {
 
 export default async function ProfilePage() {
   const session = await auth();
+  if (!session?.user?.email) redirect("/");
+
   await connectDB();
 
   const user = await User.findOne({ email: session.user.email }).lean();
+  if (!user?._id) redirect("/");
 
   const [sellingProducts, boughtTxns, soldTxns] = await Promise.all([
     // Active listings you are currently selling
@@ -45,7 +49,7 @@ export default async function ProfilePage() {
       .sort({ createdAt: -1 })
       .limit(8)
       .select(
-        "title price images defaultImage category createdAt type kind requestDeadline isAvailable"
+        "title price images defaultImage category createdAt type kind requestDeadline isAvailable",
       )
       .lean(),
 
@@ -110,6 +114,11 @@ export default async function ProfilePage() {
     })
     .filter(Boolean);
 
+  // ✅ Cloudinary / remote image => use <img> (NO onError in Server Components)
+  const profileImg = user?.image || "";
+  const isRemoteProfileImg =
+    typeof profileImg === "string" && /^https?:\/\//.test(profileImg);
+
   return (
     <>
       <NavBar />
@@ -127,17 +136,28 @@ export default async function ProfilePage() {
           {/* Profile Box */}
           <div className="flex-1 min-w-[300px]">
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 bg-white rounded-[10px] p-4 max-w-[450px] sm:ml-[110px] mx-auto">
-              {user.image ? (
-                <Image
-                  src={user.image}
-                  width={120}
-                  height={120}
-                  alt="Profile"
-                  className="rounded-full object-cover w-[120px] h-[120px]"
-                />
+              {profileImg ? (
+                isRemoteProfileImg ? (
+                  <img
+                    src={profileImg}
+                    width={120}
+                    height={120}
+                    alt="Profile"
+                    className="rounded-full object-cover w-[120px] h-[120px]"
+                  />
+                ) : (
+                  <Image
+                    src={profileImg}
+                    width={120}
+                    height={120}
+                    alt="Profile"
+                    className="rounded-full object-cover w-[120px] h-[120px]"
+                  />
+                )
               ) : (
                 <div className="w-[120px] h-[120px] bg-[#ddd] rounded-full" />
               )}
+
               <div className="flex flex-col gap-2 text-center sm:text-left">
                 <p className="font-bold text-[18px]">{user.name}</p>
                 <p>{user.email.split("@")[0]}</p>

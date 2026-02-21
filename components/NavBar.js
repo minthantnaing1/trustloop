@@ -219,7 +219,6 @@ function NavBar() {
     // 2) authoritative fetch (unread only)
     fetch("/api/notifications?unread=1", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : []))
-
       .then((data) => {
         const n =
           (Array.isArray(data) ? data.length : 0) ||
@@ -228,7 +227,6 @@ function NavBar() {
         setNotifCount(n);
         writeNotifCount(n);
       })
-
       .catch(() => {});
 
     // 3) listen for optimistic updates from elsewhere in the app
@@ -335,8 +333,9 @@ function NavBar() {
     );
   };
 
-  const blurDataURL =
-    "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNmMmYyZjQiIC8+PC9zdmc+";
+  // ✅ for remote avatars (cloudinary) use <img> to avoid next/image host config errors
+  const isRemoteAvatar =
+    typeof avatarUrl === "string" && /^https?:\/\//.test(avatarUrl);
 
   return (
     <>
@@ -437,24 +436,32 @@ function NavBar() {
               className="cursor-pointer transition-transform duration-500 ease-in-out hover:scale-[1.05] active:scale-[0.9]"
             >
               <Link href="/profile" className="block">
-                <div className={`relative w-9 h-9`}>
+                <div className="relative w-9 h-9">
                   {avatarUrl ? (
-                    <Image
-                      src={avatarUrl}
-                      alt={me?.name || "Profile"}
-                      fill
-                      sizes="32px"
-                      priority
-                      placeholder="blur"
-                      blurDataURL={blurDataURL}
-                      className={`rounded-full ring-2 ring-white/70 shadow-sm object-cover ${
-                        hover.profile ? "scale-[1.02]" : ""
-                      }`}
-                      onError={() => {
-                        // Fallback to placeholder if remote image fails
-                        setAvatarUrl("");
-                      }}
-                    />
+                    isRemoteAvatar ? (
+                      // ✅ Remote avatar (Cloudinary) -> use <img> to avoid next/image host config errors
+                      <img
+                        src={avatarUrl}
+                        alt={me?.name || "Profile"}
+                        className={`w-9 h-9 rounded-full ring-2 ring-white/70 shadow-sm object-cover ${
+                          hover.profile ? "scale-[1.02]" : ""
+                        }`}
+                        onError={() => setAvatarUrl("")}
+                      />
+                    ) : (
+                      // Local/static avatar -> keep next/image
+                      <Image
+                        src={avatarUrl}
+                        alt={me?.name || "Profile"}
+                        fill
+                        sizes="32px"
+                        priority
+                        className={`rounded-full ring-2 ring-white/70 shadow-sm object-cover ${
+                          hover.profile ? "scale-[1.02]" : ""
+                        }`}
+                        onError={() => setAvatarUrl("")}
+                      />
+                    )
                   ) : (
                     // Circular placeholder (always a circle)
                     <div className="w-9 h-9 rounded-full ring-2 ring-white/70 shadow-sm bg-white/20 flex items-center justify-center">
@@ -478,6 +485,7 @@ function NavBar() {
             </div>
           </div>
         </div>
+
         {/* Notification slide-over */}
         <NotificationPanel
           open={showNotifPanel}
@@ -570,6 +578,7 @@ function NavBar() {
               All Notifications
             </div>
           </Link>
+
           {/* Customer Support (Always Show) */}
           <Link href="/support" onClick={() => setShowMenu(false)}>
             <div className="mb-4 hover:underline cursor-pointer">
