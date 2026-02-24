@@ -12,20 +12,6 @@ import {
 export default async function HomePage() {
   const session = await auth();
 
-  if (session) {
-    // Call API to ensure user exists in DB
-    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/users`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: session.user.name,
-        email: session.user.email,
-        image: session.user.image || "/default-profile.jpg",
-      }),
-      cache: "no-store",
-    });
-  }
-
   return (
     <>
       <main className="bg-white">

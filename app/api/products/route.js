@@ -1,3 +1,4 @@
+// app/api/products/route.js
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 import Product from "@/models/Product";
@@ -27,6 +28,7 @@ export async function POST(req) {
 
       // donations should be zero-price; don't override if client already set 0
       if (typeof body.price !== "number") body.price = 0;
+      body.price = 0;
 
       if (mode === "instant") {
         delete body.requestDeadline;
@@ -35,7 +37,7 @@ export async function POST(req) {
         if (!dl || Number.isNaN(dl.getTime())) {
           return new Response(
             "requestDeadline is required for selective donation",
-            { status: 400 }
+            { status: 400 },
           );
         }
         const now = new Date();
@@ -53,10 +55,82 @@ export async function POST(req) {
         }
         body.requestDeadline = dl;
       }
+
+      // donation-only cleanup / ignore auction fields if sent
+      delete body.startingPrice;
+      delete body.currentBid;
+      delete body.bidHistory;
+      delete body.auctionEndsAt;
     } else {
       // Non-donation: ignore donation-only fields if sent
       delete body.donationMode;
       delete body.requestDeadline;
+    }
+    // -------------------------------------------------------------------------------
+
+    // ---- Minimal auction normalization/validation (only when type === "auction") ----
+    if (body?.type === "auction") {
+      // keep schema happy (auction doesn't use `price`)
+      if (typeof body.price !== "number") body.price = 0;
+      body.price = 0;
+
+      const sp = Number(body.startingPrice);
+      if (!Number.isFinite(sp) || sp <= 0) {
+        return new Response("startingPrice is required and must be > 0", {
+          status: 400,
+        });
+      }
+      body.startingPrice = sp;
+
+      const ends = body.auctionEndsAt ? new Date(body.auctionEndsAt) : null;
+      if (!ends || Number.isNaN(ends.getTime())) {
+        return new Response("auctionEndsAt is required for auction", {
+          status: 400,
+        });
+      }
+
+      const now = new Date();
+      if (ends <= now) {
+        return new Response("auctionEndsAt must be in the future", {
+          status: 400,
+        });
+      }
+
+      // hard cap (match donation style): max 14 days
+      const max = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+      if (ends > max) {
+        return new Response("auctionEndsAt too far. Max 14 days.", {
+          status: 400,
+        });
+      }
+
+      body.auctionEndsAt = ends;
+
+      // initialize bid fields safely
+      if (body.currentBid && typeof body.currentBid === "object") {
+        // allow currentBid only if structure is valid-ish; otherwise clear
+        if (
+          typeof body.currentBid.amount !== "number" ||
+          !body.currentBid.bidder
+        ) {
+          delete body.currentBid;
+        }
+      } else {
+        delete body.currentBid;
+      }
+
+      if (!Array.isArray(body.bidHistory)) body.bidHistory = [];
+
+      // auction should not accept donation-only fields
+      delete body.donationMode;
+      delete body.requestDeadline;
+      delete body.acceptedBy;
+    } else {
+      // Non-auction: ignore auction-only fields if sent
+      delete body.startingPrice;
+      delete body.currentBid;
+      delete body.bidHistory;
+      delete body.auctionEndsAt;
     }
     // -------------------------------------------------------------------------------
 
@@ -85,7 +159,7 @@ export async function GET(req) {
     const maxPrice = parseFloat(searchParams.get("maxPrice")) || 999999999;
     const condition = searchParams.get("condition");
     const location = searchParams.get("location");
-    const type = searchParams.get("type"); // ← already supports type
+    const type = searchParams.get("type");
     const donationMode = searchParams.get("donationMode");
 
     const user = session?.user?.email
@@ -101,11 +175,13 @@ export async function GET(req) {
       ],
     };
 
-    // ✅ Apply price filter only for non-donation
-    if (type !== "donation") {
+    // ✅ Apply price filter only for sell/request (not donation, not auction)
+    if (type !== "donation" && type !== "auction") {
       filters.price = { $gte: minPrice, $lte: maxPrice };
-    } else {
+    } else if (type === "donation") {
       filters.price = 0; // donations are always free
+    } else if (type === "auction") {
+      // auctions use startingPrice/currentBid; no price filter
     }
 
     // ✅ Apply optional filters
@@ -114,17 +190,22 @@ export async function GET(req) {
     if (condition) filters.condition = condition;
     if (location) filters.location = { $regex: location, $options: "i" };
     if (type) filters.type = type;
-    if (donationMode) filters.donationMode = donationMode;
+    if (type === "donation" && donationMode)
+      filters.donationMode = donationMode;
 
-    // ✅ Sorting: newest first for everything.
-    // For donations/selective, break ties by earlier deadline.
+    // ✅ Sorting
     let sortQuery = { createdAt: -1 };
 
     if (type === "donation") {
       sortQuery =
         donationMode === "selective"
-          ? { createdAt: -1, requestDeadline: 1 } // newest first; among those, sooner deadline first
-          : { createdAt: -1 }; // instant donations: just newest first
+          ? { createdAt: -1, requestDeadline: 1 }
+          : { createdAt: -1 };
+    }
+
+    if (type === "auction") {
+      // ending soon first (so users see urgent auctions)
+      sortQuery = { auctionEndsAt: 1, createdAt: -1 };
     }
 
     const products = await Product.find(filters)
@@ -139,7 +220,6 @@ export async function GET(req) {
     let productsOut = products.map((p) => (p.toObject ? p.toObject() : p));
 
     if (reservedIds.length) {
-      // get the most recent txn per product and include status
       const txns = await Transaction.find({ product: { $in: reservedIds } })
         .populate({ path: "buyer", select: "name email" })
         .sort({ createdAt: -1 })
@@ -148,7 +228,7 @@ export async function GET(req) {
       const infoByProduct = {};
       for (const t of txns) {
         const pid = String(t.product);
-        if (infoByProduct[pid]) continue; // keep the most recent one only
+        if (infoByProduct[pid]) continue;
         infoByProduct[pid] = {
           buyerName: t?.buyer?.name || t?.buyer?.email || "",
           buyerEmail: t?.buyer?.email || "",
@@ -169,8 +249,9 @@ export async function GET(req) {
       });
     }
 
-    // ✅ Optional: Mark expired selective donations
+    // ✅ Optional: mark expired selective donations + ended auctions
     const now = new Date();
+
     productsOut = productsOut.map((p) => {
       if (
         p.type === "donation" &&
@@ -180,6 +261,14 @@ export async function GET(req) {
       ) {
         p.expired = true;
       }
+
+      if (p.type === "auction" && p.auctionEndsAt) {
+        const end = new Date(p.auctionEndsAt);
+        if (!Number.isNaN(end.getTime()) && end < now) {
+          p.ended = true; // helpful for UI filtering
+        }
+      }
+
       return p;
     });
 
@@ -188,7 +277,7 @@ export async function GET(req) {
         products: productsOut,
         userEmail: session?.user?.email || "",
       }),
-      { status: 200 }
+      { status: 200 },
     );
   } catch (err) {
     console.error("❌ Product GET error:", err);

@@ -23,6 +23,8 @@ export default function ActionButton({
       "h-[42px] w-[110px] border-[#325082] text-white bg-[#325082] text-sm hover:scale-[1.06] border-[2px]",
     outlineClick:
       "h-[42px] w-[110px] border-[#325082] text-[#325082] bg-transparent text-sm hover:scale-[1.06] border-[2px]",
+    disabledClick:
+      "h-[42px] w-[110px] border-gray-300 text-gray-400 bg-gray-200 text-sm border-[2px] cursor-not-allowed",
 
     cartPrimaryClick:
       "border-[#325082] text-white bg-[#325082] py-2.5 rounded-md hover:scale-[1.02] border-[2px]",

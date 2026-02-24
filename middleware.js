@@ -3,10 +3,10 @@ import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
 const protectedRoutes = [
-  /^\/admin(\/.*)?$/, // Protect /admin and its subroutes
+  /^\/admin(\/.*)?$/,
   /^\/home$/,
-  /^\/buy(\/.*)?$/, // Protect all buy subroutes
-  /^\/sell(\/.*)?$/, // Protect all sell subroutes
+  /^\/buy(\/.*)?$/,
+  /^\/sell(\/.*)?$/,
   /^\/donation(\/.*)?$/,
   /^\/my-orders(\/.*)?$/,
   /^\/profile(\/.*)?$/,
@@ -14,6 +14,7 @@ const protectedRoutes = [
   /^\/favorites$/,
   /^\/notifications$/,
   /^\/support(\/.*)?$/,
+  /^\/terms$/,
 ];
 
 const authPageRoutes = ["/"];
@@ -30,10 +31,11 @@ export default auth(async (req) => {
   );
   const isAuthPageRoute = authPageRoutes.includes(path);
 
-  // ✅ allow auth endpoints
   if (isApiAuthRoute) return NextResponse.next();
 
-  // ✅ Check banned + maintenance centrally
+  // ✅ keep check-access result
+  let access = null;
+
   try {
     const checkUrl = new URL("/api/auth/check-access", nextUrl);
     const r = await fetch(checkUrl, {
@@ -42,19 +44,29 @@ export default auth(async (req) => {
     });
 
     if (r.ok) {
-      const data = await r.json();
+      access = await r.json();
 
-      // ✅ If logged in and banned -> kick to "/"
-      if (isLoggedIn && data?.banned) {
+      // ✅ If logged in and banned -> force "/"
+      // BUT allow "/" to render to avoid redirect loop
+      if (isLoggedIn && access?.banned) {
+        if (path === "/") return NextResponse.next();
         return NextResponse.redirect(new URL("/", nextUrl));
       }
 
-      // ✅ Maintenance ON:
-      // - allow admins to access everything
-      // - everyone else (logged in or not) can only stay on "/"
-      if (data?.maintenance && !data?.isAdmin) {
-        if (path !== "/") {
-          return NextResponse.redirect(new URL("/", nextUrl));
+      // ✅ Maintenance ON (non-admin) -> keep on "/"
+      if (access?.maintenance && !access?.isAdmin) {
+        if (path !== "/") return NextResponse.redirect(new URL("/", nextUrl));
+      }
+
+      // ✅ Terms gate
+      if (isLoggedIn && !access?.termsAccepted) {
+        if (path !== "/terms") {
+          const dest = new URL("/terms", nextUrl);
+          dest.searchParams.set(
+            "callbackUrl",
+            nextUrl.pathname + nextUrl.search,
+          );
+          return NextResponse.redirect(dest);
         }
       }
     }
@@ -62,12 +74,15 @@ export default auth(async (req) => {
     // don't block if check fails
   }
 
-  // ✅ existing auth protection
   if (isProtectedRoute && !isLoggedIn) {
     return NextResponse.redirect(new URL("/", nextUrl));
   }
 
+  // ✅ logged-in users usually go to /home
+  // BUT if banned/maintenance, allow "/" to render (no redirect)
   if (isLoggedIn && isAuthPageRoute) {
+    if (access?.banned) return NextResponse.next();
+    if (access?.maintenance && !access?.isAdmin) return NextResponse.next();
     return NextResponse.redirect(new URL("/home", nextUrl));
   }
 
