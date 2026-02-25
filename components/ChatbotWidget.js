@@ -3,9 +3,6 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 
-/* ======================================================
-   Chatbot Logic (Rule-based, No AI, No API)
-====================================================== */
 
 function normalizeText(text) {
   return text
