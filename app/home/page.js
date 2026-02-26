@@ -3,6 +3,7 @@ import NavBar from "@/components/NavBar";
 import Link from "next/link";
 import HeroCarousel from "@/components/HeroCarousel";
 import ActionButton from "@/components/ActionButton";
+import TeamSection from "@/components/TeamSection";
 import {
   UserGroupIcon,
   BoltIcon,
@@ -91,6 +92,9 @@ export default async function HomePage() {
             ))}
           </div>
         </section>
+
+        {/* Team Section */}
+        <TeamSection />
 
         {/* Footer */}
         <footer className="bg-[#2b446a] text-white text-center py-4 text-sm">
