@@ -23,8 +23,7 @@ export async function POST(req) {
 
     // ---- Minimal donation normalization/validation (only when type === "donation") ----
     if (body?.type === "donation") {
-      const mode = body?.donationMode || "instant";
-      body.donationMode = mode;
+      body.donationMode = body.donationMode || "instant";
 
       // donations should be zero-price; don't override if client already set 0
       if (typeof body.price !== "number") body.price = 0;
@@ -75,10 +74,13 @@ export async function POST(req) {
       body.price = 0;
 
       const sp = Number(body.startingPrice);
-      if (!Number.isFinite(sp) || sp <= 0) {
-        return new Response("startingPrice is required and must be > 0", {
-          status: 400,
-        });
+      if (!Number.isFinite(sp) || sp < 1000) {
+        return new Response(
+          "startingPrice is required and must be at least 1000",
+          {
+            status: 400,
+          },
+        );
       }
       body.startingPrice = sp;
 

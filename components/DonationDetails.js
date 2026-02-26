@@ -133,10 +133,12 @@ export default function DonationDetails({
         <div className="flex gap-[30px] flex-col sm:flex-row">
           {/* LEFT: images + requests, tight spacing */}
           <div className="flex flex-col gap-3 w-full sm:w-[520px] lg:w-[560px] flex-none">
-            <ProductImages
-              images={product.images}
-              defaultImage={product.defaultImage}
-            />
+            <div className="mb-1">
+              <ProductImages
+                images={product.images}
+                defaultImage={product.defaultImage}
+              />
+            </div>
 
             {/* Owner view (selective only): requests right under image */}
             {isOwner && isSelective && (

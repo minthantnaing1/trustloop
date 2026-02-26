@@ -44,9 +44,9 @@ export default function AuctionPostClient({ initialLocation = "" }) {
   };
 
   // ✅ Auction timing rules (simple & safe)
-  // Min: now + 10 minutes (avoid instant close)
+  // Min: now + 3 minutes (avoid instant close)
   // Max: now + 14 days (consistent with donation cap)
-  const minEndsLocal = toLocalInputValue(new Date(Date.now() + 10 * 60 * 1000));
+  const minEndsLocal = toLocalInputValue(new Date(Date.now() + 3 * 60 * 1000));
   const maxEndsLocal = toLocalInputValue(
     new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
   );
@@ -273,7 +273,7 @@ export default function AuctionPostClient({ initialLocation = "" }) {
               value={form.startingPrice}
               onChange={handleChange}
               type="number"
-              min="10"
+              min="1000"
               step="1"
               placeholder="Starting Price (฿) *"
               className="bg-[#f1f1f1] p-3 rounded-[8px] outline-none w-full sm:w-1/2"

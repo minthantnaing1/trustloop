@@ -3,6 +3,7 @@ import { stripe } from "@/lib/stripe";
 import { connectDB } from "@/lib/db";
 import Product from "@/models/Product";
 import Transaction from "@/models/Transaction";
+import { advanceAuctionWinner } from "@/lib/auctionFlow";
 
 export const runtime = "nodejs";
 
@@ -250,10 +251,18 @@ export async function POST(req) {
       await txn.save();
 
       if (txn.product) {
-        await Product.updateOne(
-          { _id: txn.product },
-          { $set: { isAvailable: true } },
-        );
+        // ✅ AUCTION: advance winner queue instead of releasing product
+        if (txn.kind === "AUCTION") {
+          await advanceAuctionWinner(String(txn.product), String(txn._id), {
+            // webhook has no user; you can omit actor or leave null
+            actorUserId: null,
+          });
+        } else {
+          await Product.updateOne(
+            { _id: txn.product },
+            { $set: { isAvailable: true } },
+          );
+        }
       }
     }
   } catch (err) {

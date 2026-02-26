@@ -20,6 +20,17 @@ function extractPublicId(url = "") {
   }
 }
 
+function dataUrlToBuffer(dataUrl = "") {
+  // data:image/png;base64,AAA...
+  const match = String(dataUrl).match(/^data:(.+);base64,(.*)$/);
+  if (!match) return null;
+
+  const mime = match[1];
+  const base64 = match[2];
+  const buffer = Buffer.from(base64, "base64");
+  return { mime, buffer };
+}
+
 function isDataUrlImage(v = "") {
   return typeof v === "string" && v.startsWith("data:image/");
 }
@@ -104,11 +115,16 @@ export async function PATCH(req, { params }) {
     if (Object.prototype.hasOwnProperty.call(body, "image")) {
       const incoming = body.image;
 
-      // Replace with new upload
       if (isDataUrlImage(incoming)) {
         const oldUrl = user.image || "";
 
-        const result = await cloudinary.uploader.upload(incoming, {
+        const parsed = dataUrlToBuffer(incoming);
+        if (!parsed) return new Response("Invalid image", { status: 400 });
+
+        // Upload buffer as data URI or stream
+        const uploadStr = `data:${parsed.mime};base64,${parsed.buffer.toString("base64")}`;
+
+        const result = await cloudinary.uploader.upload(uploadStr, {
           folder: "trustloop/users/profile",
           resource_type: "image",
         });
@@ -131,7 +147,6 @@ export async function PATCH(req, { params }) {
         }
       }
 
-      // Reset to default -> delete old cloudinary asset
       if (incoming === "/default-profile.jpg") {
         const oldUrl = user.image || "";
         const oldPublicId = extractPublicId(oldUrl);
@@ -155,7 +170,12 @@ export async function PATCH(req, { params }) {
       if (isDataUrlImage(incoming)) {
         const oldUrl = user.defaultScanCode || "";
 
-        const result = await cloudinary.uploader.upload(incoming, {
+        const parsed = dataUrlToBuffer(incoming);
+        if (!parsed) return new Response("Invalid QR image", { status: 400 });
+
+        const uploadStr = `data:${parsed.mime};base64,${parsed.buffer.toString("base64")}`;
+
+        const result = await cloudinary.uploader.upload(uploadStr, {
           folder: "trustloop/users/scan_codes",
           resource_type: "image",
         });
@@ -178,7 +198,6 @@ export async function PATCH(req, { params }) {
         }
       }
 
-      // Cleared -> delete old cloudinary asset
       if (incoming === "" || incoming == null) {
         const oldUrl = user.defaultScanCode || "";
         const oldPublicId = extractPublicId(oldUrl);

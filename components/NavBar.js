@@ -310,16 +310,22 @@ function NavBar() {
     };
   }, [showNotifPanel, fetchUnread]);
 
-  const navLinks = useMemo(
-    () => [
+  const navLinks = useMemo(() => {
+    const links = [
       { label: "HOME", href: "/home" },
       { label: "BUY", href: "/buy" },
       { label: "SELL", href: "/sell" },
       { label: "DONATION", href: "/donation" },
-      { label: "MY ORDERS", href: myOrdersHref }, // ✅ changed
-    ],
-    [myOrdersHref],
-  );
+      { label: "MY ORDERS", href: myOrdersHref }, // ✅ keep your changed one
+    ];
+
+    // ✅ Only admin sees AUCTION for now
+    if (isAdmin) {
+      links.splice(4, 0, { label: "AUCTION", href: "/auction" }); // insert before MY ORDERS
+    }
+
+    return links;
+  }, [myOrdersHref, isAdmin]);
 
   const isActiveLink = (href) => {
     const baseHref = (href || "").split("?")[0];
@@ -329,6 +335,7 @@ function NavBar() {
       (baseHref === "/buy" && pathname.startsWith("/buy/")) ||
       (baseHref === "/sell" && pathname.startsWith("/sell/")) ||
       (baseHref === "/donation" && pathname.startsWith("/donation/")) ||
+      (baseHref === "/auction" && pathname.startsWith("/auction")) ||
       (baseHref === "/my-orders" && pathname.startsWith("/my-orders"))
     );
   };

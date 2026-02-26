@@ -10,6 +10,7 @@ import Product from "@/models/Product";
 import Transaction from "@/models/Transaction";
 import mongoose from "mongoose";
 import { notifyTxnEvent } from "@/lib/notify";
+import { advanceAuctionWinner } from "@/lib/auctionFlow";
 
 // GET /api/transactions/:id
 export async function GET(_req, { params }) {
@@ -81,10 +82,17 @@ export async function GET(_req, { params }) {
     );
 
     if (upd.modifiedCount > 0 && txn.product?._id) {
-      await Product.updateOne(
-        { _id: txn.product._id },
-        { $set: { isAvailable: true } },
-      );
+      // ✅ AUCTION: advance winner queue instead of releasing product
+      if (txn.kind === "AUCTION") {
+        await advanceAuctionWinner(String(txn.product._id), String(txn._id), {
+          actorUserId: me._id,
+        });
+      } else {
+        await Product.updateOne(
+          { _id: txn.product._id },
+          { $set: { isAvailable: true } },
+        );
+      }
 
       // Re-fetch to return the updated doc
       txn = await Transaction.findById(id)
@@ -104,7 +112,6 @@ export async function GET(_req, { params }) {
             "name email phone defaultScanCode bankAccountName bankAccountNumber",
         });
 
-      // AFTER re-fetching txn (right before leaving that block)
       await notifyTxnEvent({
         txn,
         actorId: me._id,
@@ -240,10 +247,17 @@ export async function PATCH(req, { params }) {
     );
 
     if (upd.modifiedCount > 0 && txn.product) {
-      await Product.updateOne(
-        { _id: txn.product },
-        { $set: { isAvailable: true } },
-      );
+      // ✅ AUCTION: advance winner queue instead of releasing product
+      if (txn.kind === "AUCTION") {
+        await advanceAuctionWinner(String(txn.product), String(txn._id), {
+          actorUserId: me._id,
+        });
+      } else {
+        await Product.updateOne(
+          { _id: txn.product },
+          { $set: { isAvailable: true } },
+        );
+      }
     }
     return new Response("Order expired", { status: 410 });
   }
