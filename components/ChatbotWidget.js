@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 
+/* ======================================================
+   Chatbot Logic (Rule-based, No AI, No API)
+====================================================== */
 
 function normalizeText(text) {
   return text
@@ -48,7 +51,7 @@ const INTENT_KEYWORDS = {
 function detectIntent(message) {
   const text = normalizeText(message);
 
-  // 1️⃣ Greeting first
+  // 1️⃣ Greeting
   for (const keyword of INTENT_KEYWORDS.GREETING) {
     if (text === keyword || text.startsWith(keyword)) {
       return "GREETING";
@@ -60,12 +63,12 @@ function detectIntent(message) {
     if (text.includes(keyword)) return "COMPLAINT";
   }
 
-  // 3️⃣ Score-based intent detection
+  // 3️⃣ Score-based detection
   let bestIntent = "UNKNOWN";
   let highestScore = 0;
 
   for (const intent in INTENT_KEYWORDS) {
-    if (intent === "COMPLAINT" || intent === "GREETING") continue;
+    if (intent === "GREETING" || intent === "COMPLAINT") continue;
 
     let score = 0;
     for (const keyword of INTENT_KEYWORDS[intent]) {
@@ -184,10 +187,30 @@ export default function ChatbotWidget() {
   if (pathname === "/" || pathname === "") return null;
 
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    { role: "bot", text: "Hi! I can guide you on how to use TrustLoop 😊" },
-  ]);
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
+
+  // 🔹 Load chat history
+  useEffect(() => {
+    const saved = localStorage.getItem("trustloop_chat_history");
+    if (saved) {
+      setMessages(JSON.parse(saved));
+    } else {
+      setMessages([
+        { role: "bot", text: "Hi! I can guide you on how to use TrustLoop 😊" },
+      ]);
+    }
+  }, []);
+
+  // 🔹 Save chat history
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem(
+        "trustloop_chat_history",
+        JSON.stringify(messages)
+      );
+    }
+  }, [messages]);
 
   function sendMessage() {
     if (!input.trim()) return;
