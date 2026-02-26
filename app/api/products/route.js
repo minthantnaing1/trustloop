@@ -24,9 +24,9 @@ export async function POST(req) {
     // ---- Minimal donation normalization/validation (only when type === "donation") ----
     if (body?.type === "donation") {
       body.donationMode = body.donationMode || "instant";
+      const mode = body.donationMode; // ✅ FIX: define mode
 
-      // donations should be zero-price; don't override if client already set 0
-      if (typeof body.price !== "number") body.price = 0;
+      // donations should be zero-price
       body.price = 0;
 
       if (mode === "instant") {
@@ -36,7 +36,9 @@ export async function POST(req) {
         if (!dl || Number.isNaN(dl.getTime())) {
           return new Response(
             "requestDeadline is required for selective donation",
-            { status: 400 },
+            {
+              status: 400,
+            },
           );
         }
         const now = new Date();
@@ -45,7 +47,7 @@ export async function POST(req) {
             status: 400,
           });
         }
-        // Optional hard cap (keep minimal but safe): max 14 days window
+        // Optional hard cap: max 14 days window
         const max = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
         if (dl > max) {
           return new Response("requestDeadline too far. Max 14 days.", {
@@ -53,6 +55,10 @@ export async function POST(req) {
           });
         }
         body.requestDeadline = dl;
+      } else {
+        // ✅ Safety: unknown donationMode -> force instant
+        body.donationMode = "instant";
+        delete body.requestDeadline;
       }
 
       // donation-only cleanup / ignore auction fields if sent
@@ -65,6 +71,7 @@ export async function POST(req) {
       delete body.donationMode;
       delete body.requestDeadline;
     }
+    // -------------------------------------------------------------------------------
     // -------------------------------------------------------------------------------
 
     // ---- Minimal auction normalization/validation (only when type === "auction") ----
