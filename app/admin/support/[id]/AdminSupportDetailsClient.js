@@ -60,10 +60,10 @@ function StatusPill({ value }) {
   );
 }
 
-export default function AdminSupportDetailsClient({ id }) {
+export default function AdminSupportDetailsClient({ id, initialTicket }) {
+  const [ticket, setTicket] = useState(initialTicket || null);
   const router = useRouter();
 
-  const [ticket, setTicket] = useState(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -109,20 +109,30 @@ export default function AdminSupportDetailsClient({ id }) {
       setErr("Invalid ticket id.");
       return;
     }
+
     let mounted = true;
+
     (async () => {
       try {
         setErr("");
+
+        // ✅ If we already have initialTicket from server, skip first load()
+        if (initialTicket) {
+          setDraftStatus(String(initialTicket?.status || "OPEN"));
+          return;
+        }
+
         await load();
       } catch (e) {
         if (mounted) setErr(e?.message || "Failed to load ticket");
       }
     })();
+
     return () => {
       mounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [id, initialTicket]);
 
   async function patch(payload) {
     if (busy) return;

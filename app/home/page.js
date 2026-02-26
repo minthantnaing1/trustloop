@@ -3,6 +3,7 @@ import NavBar from "@/components/NavBar";
 import Link from "next/link";
 import HeroCarousel from "@/components/HeroCarousel";
 import ActionButton from "@/components/ActionButton";
+import TeamSection from "@/components/TeamSection";
 import {
   UserGroupIcon,
   BoltIcon,
@@ -11,20 +12,6 @@ import {
 
 export default async function HomePage() {
   const session = await auth();
-
-  if (session) {
-    // Call API to ensure user exists in DB
-    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/users`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: session.user.name,
-        email: session.user.email,
-        image: session.user.image || "/default-profile.jpg",
-      }),
-      cache: "no-store",
-    });
-  }
 
   return (
     <>
@@ -105,6 +92,9 @@ export default async function HomePage() {
             ))}
           </div>
         </section>
+
+        {/* Team Section */}
+        <TeamSection />
 
         {/* Footer */}
         <footer className="bg-[#2b446a] text-white text-center py-4 text-sm">

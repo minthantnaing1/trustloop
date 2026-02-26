@@ -27,12 +27,15 @@ export async function GET() {
         banned: false,
         isAdmin: false,
         maintenance: maintenanceEnabled,
+        termsAccepted: false,
       },
       { status: 200 },
     );
   }
 
-  const u = await User.findOne({ email }).select("status role").lean();
+  const u = await User.findOne({ email })
+    .select("status role agreedToTerms")
+    .lean();
   const isAdmin = String(u?.role || "user") === "admin";
 
   return Response.json(
@@ -41,6 +44,7 @@ export async function GET() {
       banned: u?.status === "banned",
       isAdmin,
       maintenance: maintenanceEnabled,
+      termsAccepted: !!u?.agreedToTerms,
     },
     { status: 200 },
   );

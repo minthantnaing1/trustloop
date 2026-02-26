@@ -193,9 +193,9 @@ export async function POST(req, { params }) {
     },
   );
 
-  // ✅ FIRST MESSAGE → move state to DELIVERY_IN_PROGRESS (BUY_SELL only)
+  // ✅ FIRST MESSAGE → move state to DELIVERY_IN_PROGRESS
   let txnStatus = txn.status;
-  if (txn.kind === "BUY_SELL" && txn.status === "PAYMENT_SUCCESSFUL") {
+  if (txn.status === "PAYMENT_SUCCESSFUL" || txn.status === "SELLER_ACCEPTED") {
     txn.status = "DELIVERY_IN_PROGRESS";
     txn.timeline = Array.isArray(txn.timeline) ? txn.timeline : [];
     txn.timeline.push({ at: now, by: me._id, action: "CHAT_STARTED" });

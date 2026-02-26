@@ -49,12 +49,31 @@ const ProductSchema = new mongoose.Schema(
     donationMode: {
       type: String,
       enum: ["instant", "selective"],
-      default: "instant",
     },
     requestDeadline: { type: Date },
 
     // Auction timing
     auctionEndsAt: { type: Date },
+    // Auction resolution (winner payment + fallback)
+    auctionResolution: {
+      status: {
+        type: String,
+        enum: ["OPEN", "AWAITING_PAYMENT", "SOLD", "UNSUCCESSFUL"],
+        default: "OPEN",
+      },
+      // Highest -> lowest queue (unique bidders)
+      queue: [
+        {
+          bidder: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+          amount: { type: Number, default: 0 },
+          time: { type: Date }, // optional (from bidHistory)
+        },
+      ],
+      currentIndex: { type: Number, default: 0 },
+      currentTxn: { type: mongoose.Schema.Types.ObjectId, ref: "Transaction" },
+      paymentExpiresAt: { type: Date },
+      closedAt: { type: Date },
+    },
 
     // Lifecycle
     isAvailable: { type: Boolean, default: true },
@@ -78,7 +97,7 @@ const ProductSchema = new mongoose.Schema(
       },
     ],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export default mongoose.models.Product ||

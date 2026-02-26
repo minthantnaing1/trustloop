@@ -5,6 +5,8 @@ export const revalidate = 0;
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
+import Product from "@/models/Product";
+import Transaction from "@/models/Transaction";
 import SupportTicket from "@/models/SupportTicket";
 
 export async function GET() {

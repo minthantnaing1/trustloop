@@ -16,11 +16,16 @@ function isPendingPaymentActive(txn) {
   return exp > Date.now();
 }
 
-function formatMMSS(ms) {
+function formatHHMMSS(ms) {
   const total = Math.max(0, Math.floor(ms / 1000));
-  const m = Math.floor(total / 60);
+
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
   const s = total % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
+
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(
+    s,
+  ).padStart(2, "0")}`;
 }
 
 function Countdown({ expiresAt, onExpire }) {
@@ -43,7 +48,7 @@ function Countdown({ expiresAt, onExpire }) {
     return () => clearInterval(t);
   }, [expiresAt, onExpire]);
 
-  return <b className="font-mono tabular-nums">{formatMMSS(remainMs)}</b>;
+  return <b className="font-mono tabular-nums">{formatHHMMSS(remainMs)}</b>;
 }
 
 /** Animated sliding pill role switch (800ms) */
@@ -100,25 +105,29 @@ function KindSwitch({ kind, setKind }) {
   const options = [
     { v: "BUY_SELL", label: "Buy/Sell" },
     { v: "DONATION", label: "Donation" },
-    // { v: "AUCTION", label: "Auction" }, for later
+    { v: "AUCTION", label: "Auction" },
   ];
 
-  const activeIndex = options.findIndex((o) => o.v === kind);
+  const activeIndex = Math.max(
+    0,
+    options.findIndex((o) => o.v === kind),
+  );
 
   return (
-    <div className="relative inline-grid grid-cols-2 rounded-full bg-slate-100 p-1 shadow-sm w-[190px]">
-      {/* Sliding background */}
+    <div className="relative inline-grid grid-cols-3 rounded-full bg-slate-100 p-1 shadow-sm w-[270px]">
+      {/* Sliding background (1/3 width) */}
       <span
         aria-hidden="true"
-        className={`absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-[#325082]
-                    transition-transform duration-[800ms] ease-[cubic-bezier(.2,.8,.2,1)]
-                    transform-gpu will-change-transform
-                    ${
-                      activeIndex === 0 ? "translate-x-0" : "translate-x-full"
-                    }`}
+        className="absolute inset-y-1 left-1 rounded-full bg-[#325082]
+                   transition-transform duration-[800ms] ease-[cubic-bezier(.2,.8,.2,1)]
+                   transform-gpu will-change-transform"
+        style={{
+          width: "calc((100% - 0.5rem) / 3)", // subtract left+right padding (p-1 = 0.25rem*2)
+          transform: `translateX(${activeIndex * 100}%)`,
+        }}
       />
 
-      {options.map((o, i) => {
+      {options.map((o) => {
         const active = kind === o.v;
         return (
           <button
@@ -785,7 +794,7 @@ export default function MyOrdersClient() {
 
                           {/* ✅ Move Continue Payment into Order Details slot (BUY_SELL + PENDING_PAYMENT, buyer only) */}
                           {role === "buyer" &&
-                          t.kind === "BUY_SELL" &&
+                          ["BUY_SELL", "AUCTION"].includes(t.kind) &&
                           isPendingPaymentActive(t) ? (
                             <ActionButton
                               text="Continue Payment"

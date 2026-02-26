@@ -6,7 +6,6 @@ import NavBar from "@/components/NavBar";
 import BackButton from "@/components/BackButton";
 import MaskedUserId from "@/components/MaskedUserId";
 import PublicProfileKindClient from "./PublicProfileKindClient";
-import Image from "next/image";
 
 export const dynamic = "force-dynamic";
 
@@ -97,7 +96,7 @@ export default async function PublicProfilePage({ params }) {
               <div className="flex-1 min-w-[300px]">
                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 bg-white rounded-[10px] p-4 max-w-[450px] sm:ml-[110px] mx-auto">
                   {user.image ? (
-                    <Image
+                    <img
                       src={user.image}
                       width={120}
                       height={120}

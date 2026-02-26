@@ -39,6 +39,11 @@ const UserSchema = new mongoose.Schema({
   bannedAt: { type: Date },
   bannedUntil: { type: Date }, // only for TEMPORARY
 
+  // ✅ Terms & Conditions agreement
+  agreedToTerms: { type: Boolean, default: false, index: true },
+  agreedToTermsAt: { type: Date },
+  agreedToTermsVersion: { type: String, default: "v1" },
+
   // Trust & Reputation
   rating: { type: Number, default: 0 },
   reviewsCount: { type: Number, default: 0 },
