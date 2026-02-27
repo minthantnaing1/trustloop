@@ -41,7 +41,7 @@ export default function NotificationPanel({ open, onClose, onUnreadChange }) {
       window.dispatchEvent(
         new CustomEvent("notifications:updated", {
           detail: { delta: -1, id, op: "markRead" },
-        })
+        }),
       );
     } catch {
       load();
@@ -62,7 +62,7 @@ export default function NotificationPanel({ open, onClose, onUnreadChange }) {
       window.dispatchEvent(
         new CustomEvent("notifications:updated", {
           detail: { delta: -count, op: "markAllRead" },
-        })
+        }),
       );
     } catch {
       load();
@@ -129,25 +129,32 @@ export default function NotificationPanel({ open, onClose, onUnreadChange }) {
               return (
                 <li
                   key={n._id}
-                  className={`group flex gap-3 px-3 py-3 rounded-lg cursor-pointer
+                  className={`group relative flex gap-3 px-3 py-3 rounded-lg
     border border-gray-200 bg-white hover:bg-[#f5f8ff]
     ${isUnread ? "ring-1 ring-[#325082]/20" : ""}`}
-                  onClick={() => {
-                    if (n.link) {
-                      markOneRead(n._id);
-                      onClose?.();
-                    }
-                  }}
                 >
+                  {/* Make whole card navigate to details (NOT mark as read) */}
+                  {n.link && (
+                    <Link
+                      href={n.link}
+                      onClick={() => {
+                        // optional: close panel when going to detail
+                        onClose?.();
+                      }}
+                      className="absolute inset-0 rounded-lg"
+                      aria-label={`Open notification: ${n.title}`}
+                    />
+                  )}
+
                   {/* Unread dot */}
-                  <div className="pt-1">
+                  <div className="pt-1 relative z-10">
                     {isUnread && (
                       <span className="block w-2.5 h-2.5 rounded-full bg-[#325082]" />
                     )}
                   </div>
 
                   {/* Content */}
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 relative z-10">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="font-medium text-sm text-[#1f3b66] truncate">
@@ -164,7 +171,7 @@ export default function NotificationPanel({ open, onClose, onUnreadChange }) {
                       {/* Time */}
                       <span className="text-[11px] text-gray-400 shrink-0">
                         {new Date(
-                          n.updatedAt || n.createdAt
+                          n.updatedAt || n.createdAt,
                         ).toLocaleTimeString([], {
                           hour: "2-digit",
                           minute: "2-digit",
@@ -180,6 +187,7 @@ export default function NotificationPanel({ open, onClose, onUnreadChange }) {
                           data-suppress-overlay="true"
                           onClick={(e) => {
                             e.stopPropagation();
+                            // If you want: mark read when user explicitly clicks "View details"
                             markOneRead(n._id);
                             onClose?.();
                           }}
@@ -191,7 +199,9 @@ export default function NotificationPanel({ open, onClose, onUnreadChange }) {
 
                       {isUnread && (
                         <button
+                          type="button"
                           onClick={(e) => {
+                            e.preventDefault(); // prevents clicking underlying Link overlay
                             e.stopPropagation();
                             markOneRead(n._id);
                           }}

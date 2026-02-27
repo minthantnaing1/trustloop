@@ -2,7 +2,6 @@
 "use client";
 
 import Link from "next/link";
-import { fmtBKK } from "@/utils/timeAgo";
 import { useState, useEffect } from "react";
 
 export default function MyProductCard({
@@ -18,9 +17,11 @@ export default function MyProductCard({
   const rawType = (product?.type || product?.kind || "")
     .toString()
     .toLowerCase();
-  const isDonation = rawType === "donation";
 
-  // ---- countdown (minute-resolution) ----
+  const isDonation = rawType === "donation";
+  const isAuction = rawType === "auction";
+
+  // ---- countdown (second-resolution) ----
   function useCountdown(targetIso) {
     const [txt, setTxt] = useState(null);
 
@@ -37,40 +38,97 @@ export default function MyProductCard({
           return;
         }
 
-        const d = Math.floor(ms / 86_400_000); // days
-        const h = Math.floor((ms % 86_400_000) / 3_600_000); // hours
-        const m = Math.floor((ms % 3_600_000) / 60_000); // minutes
-        const s = Math.floor((ms % 60_000) / 1000); // seconds
+        const d = Math.floor(ms / 86_400_000);
+        const h = Math.floor((ms % 86_400_000) / 3_600_000);
+        const m = Math.floor((ms % 3_600_000) / 60_000);
+        const s = Math.floor((ms % 60_000) / 1000);
 
-        // Format like "2d 03h 45m 22s" or "03h 45m 22s"
         if (d > 0) {
           setTxt(
             `${d}d ${String(h).padStart(2, "0")}h ${String(m).padStart(
               2,
-              "0"
-            )}m ${String(s).padStart(2, "0")}s`
+              "0",
+            )}m ${String(s).padStart(2, "0")}s`,
           );
         } else {
           setTxt(
             `${String(h).padStart(2, "0")}h ${String(m).padStart(
               2,
-              "0"
-            )}m ${String(s).padStart(2, "0")}s`
+              "0",
+            )}m ${String(s).padStart(2, "0")}s`,
           );
         }
       };
 
       tick();
-      const id = setInterval(tick, 1000); // update every second
-
+      const id = setInterval(tick, 1000);
       return () => clearInterval(id);
     }, [targetIso]);
 
     return txt;
   }
 
-  const deadlineAt = isDonation ? product?.requestDeadline : null;
-  const deadlineCountdown = useCountdown(deadlineAt);
+  // Donation countdown
+  const donationDeadlineAt = isDonation ? product?.requestDeadline : null;
+  const donationDeadlineCountdown = useCountdown(donationDeadlineAt);
+
+  // Auction countdown (support multiple possible field names safely)
+  const auctionEndsAt =
+    product?.auctionEndsAt ||
+    product?.endsAt ||
+    product?.endAt ||
+    product?.auctionEndAt ||
+    null;
+
+  const auctionCountdown = useCountdown(isAuction ? auctionEndsAt : null);
+
+  // ---- Auction price logic (defensive) ----
+  const auctionCurrentBid =
+    product?.currentBid ??
+    product?.highestBid ??
+    product?.topBid ??
+    product?.currentPrice ??
+    null;
+
+  const auctionStartingBid =
+    product?.startingBid ??
+    product?.startBid ??
+    product?.minBid ??
+    product?.price ??
+    null;
+
+  const displayPrice = (() => {
+    if (isDonation) {
+      return product?.price != null
+        ? Number(product.price) === 0
+          ? "Free"
+          : `${Number(product.price).toLocaleString()} ฿`
+        : null;
+    }
+
+    if (isAuction) {
+      const v =
+        auctionCurrentBid != null
+          ? Number(auctionCurrentBid)
+          : auctionStartingBid != null
+            ? Number(auctionStartingBid)
+            : null;
+
+      if (v == null || Number.isNaN(v)) return null;
+      return `${v.toLocaleString()} ฿`;
+    }
+
+    if (product?.price == null) return null;
+    return Number(product.price) === 0
+      ? "Free"
+      : `${Number(product.price).toLocaleString()} ฿`;
+  })();
+
+  const displayPriceLabel = isAuction
+    ? auctionCurrentBid != null
+      ? "Current bid"
+      : "Starting bid"
+    : null;
 
   // ------- Route rules (updated) -------
   const orderId = product?.orderId || product?.buyerOrderId;
@@ -78,22 +136,23 @@ export default function MyProductCard({
   const role = product?.viewerRole; // "buyer" | "seller"
 
   let href;
+
   if (isOwner) {
-    // owner: donation → donation page, otherwise the normal sell page
-    href = isDonation ? `/donation/${product?._id}` : `/sell/${product?._id}`;
+    // owner routes depend on type
+    href = isAuction
+      ? `/auction/${product?._id}`
+      : isDonation
+        ? `/donation/${product?._id}`
+        : `/sell/${product?._id}`;
   } else if (orderId) {
-    // role-aware order routes
+    // order routes (from profile history sections)
     if (
       role === "buyer" &&
       (status === "BUYER_CONFIRMED" || status === "PAID_OUT")
     ) {
-      // final review page (keep your existing review route)
       href = `/review/${orderId}`;
     } else if (role === "seller") {
-      // seller (donor/seller) final page:
-      // - Buy&Sell: PAID_OUT -> payout
-      // - Donation: BUYER_CONFIRMED -> donor summary/review (same payout page variant)
-      if (!isDonation && status === "PAID_OUT") {
+      if (!isDonation && !isAuction && status === "PAID_OUT") {
         href = `/my-orders/${orderId}/payout`;
       } else if (isDonation && status === "BUYER_CONFIRMED") {
         href = `/my-orders/${orderId}/payout`;
@@ -101,20 +160,34 @@ export default function MyProductCard({
         href = `/my-orders/${orderId}`;
       }
     } else {
-      // any other order state
       href = `/my-orders/${orderId}`;
     }
   } else {
-    // browse routes
-    href = isDonation ? `/donation/${product?._id}` : `/buy/${product?._id}`;
+    // public/browse routes
+    href = isAuction
+      ? `/auction/${product?._id}`
+      : isDonation
+        ? `/donation/${product?._id}`
+        : `/buy/${product?._id}`;
   }
 
-  // ------- Shared bits -------
-  const TypePill = () => (
-    <span className="text-[10px] md:text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-600 text-white shadow-sm">
-      {isDonation ? "DONATION" : "SELL"}
-    </span>
-  );
+  // ------- UI bits -------
+  const TypePill = () => {
+    const label = isAuction ? "AUCTION" : isDonation ? "DONATION" : "SELL";
+    const cls = isAuction
+      ? "bg-violet-600"
+      : isDonation
+        ? "bg-emerald-600"
+        : "bg-[#325082]";
+
+    return (
+      <span
+        className={`text-[10px] md:text-[11px] font-semibold px-2 py-0.5 rounded text-white shadow-sm ${cls}`}
+      >
+        {label}
+      </span>
+    );
+  };
 
   const InfoContent = () => (
     <>
@@ -127,12 +200,17 @@ export default function MyProductCard({
           {product?.category ?? ""}
         </p>
 
-        {product?.price != null && (
-          <p className="text-[13px] text-[#153969] font-semibold shrink-0 max-sm:text-[12px]">
-            {Number(product.price) === 0
-              ? "Free"
-              : `${Number(product.price).toLocaleString()} ฿`}
-          </p>
+        {displayPrice && (
+          <div className="shrink-0 text-right">
+            {displayPriceLabel && (
+              <div className="text-[10px] md:text-[11px] text-gray-500 leading-none">
+                {displayPriceLabel}
+              </div>
+            )}
+            <p className="text-[13px] text-[#153969] font-semibold leading-tight max-sm:text-[12px]">
+              {displayPrice}
+            </p>
+          </div>
         )}
       </div>
     </>
@@ -146,18 +224,35 @@ export default function MyProductCard({
         className="absolute inset-0 w-full h-full object-cover"
       />
 
-      {/* Type pill and Deadline stacked vertically */}
+      {/* Type pill + countdown stack */}
       <div className="absolute top-1 left-1 flex flex-col gap-1 items-start">
         <TypePill />
-        {variant === "classic" && isDonation && deadlineCountdown && (
+
+        {/* Donation deadline pill */}
+        {variant === "classic" && isDonation && donationDeadlineCountdown && (
           <span
             className={`text-[10px] md:text-[11px] font-medium px-2 py-0.5 rounded bg-white/85 shadow ${
-              deadlineCountdown === "Closed" ? "text-gray-600" : "text-rose-700"
+              donationDeadlineCountdown === "Closed"
+                ? "text-gray-600"
+                : "text-rose-700"
             }`}
           >
-            {deadlineCountdown === "Closed"
+            {donationDeadlineCountdown === "Closed"
               ? "Requests closed"
-              : `Ends in ${deadlineCountdown}`}
+              : `Ends in ${donationDeadlineCountdown}`}
+          </span>
+        )}
+
+        {/* Auction countdown pill */}
+        {variant === "classic" && isAuction && auctionCountdown && (
+          <span
+            className={`text-[10px] md:text-[11px] font-medium px-2 py-0.5 rounded bg-white/85 shadow ${
+              auctionCountdown === "Closed" ? "text-gray-600" : "text-rose-700"
+            }`}
+          >
+            {auctionCountdown === "Closed"
+              ? "Auction ended"
+              : `Ends in ${auctionCountdown}`}
           </span>
         )}
       </div>
@@ -176,10 +271,8 @@ export default function MyProductCard({
             shadow-md hover:shadow-lg transition-all duration-500 cursor-pointer
             hover:-translate-y-1 active:scale-[0.98] ${className}`}
         >
-          {/* Image */}
           <TopImage className="h-[70%] bg-gray-100" />
 
-          {/* Blurred info bar */}
           <div className="relative h-[30%] overflow-hidden border-t border-gray-200">
             <div
               className="absolute inset-0"
@@ -201,7 +294,6 @@ export default function MyProductCard({
     );
   }
 
-  // classic
   return (
     <Link href={href} title={product?.title} className="block">
       <div
@@ -212,10 +304,8 @@ export default function MyProductCard({
           shadow-md hover:shadow-lg transition-all duration-500 cursor-pointer
           hover:-translate-y-1 active:scale-[0.98] ${className}`}
       >
-        {/* Image */}
         <TopImage className="h-[70%] bg-gray-100" />
 
-        {/* Info */}
         <div className="h-[30%] px-3 py-2 flex flex-col justify-center border-t border-gray-200 bg-white">
           <InfoContent />
         </div>

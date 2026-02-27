@@ -408,14 +408,14 @@ export async function PATCH(req, { params }) {
     const now = new Date();
 
     // ✅ Change countdown duration here
-    // const AUTO_CONFIRM_DAYS = 3;
-    // const autoConfirmAt = new Date(
-    //   now.getTime() + AUTO_CONFIRM_DAYS * 24 * 60 * 60 * 1000,
-    // );
+    const AUTO_CONFIRM_DAYS = 3;
+    const autoConfirmAt = new Date(
+      now.getTime() + AUTO_CONFIRM_DAYS * 24 * 60 * 60 * 1000,
+    );
 
-    // ✅ TEST MODE: 1 minute 30 seconds
-    const AUTO_CONFIRM_MS = 90 * 1000;
-    const autoConfirmAt = new Date(now.getTime() + AUTO_CONFIRM_MS);
+    // // ✅ TEST MODE: 1 minute 30 seconds
+    // const AUTO_CONFIRM_MS = 90 * 1000;
+    // const autoConfirmAt = new Date(now.getTime() + AUTO_CONFIRM_MS);
 
     // (If you want testing: 90 seconds)
     // const autoConfirmAt = new Date(now.getTime() + 90 * 1000);

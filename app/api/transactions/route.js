@@ -85,7 +85,7 @@ export async function POST(req) {
       fee,
       total,
       sellerNet,
-      expiresAt: new Date(Date.now() + 2 * 60 * 1000),
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
       buyerLocation: loc,
       timeline: [
         {

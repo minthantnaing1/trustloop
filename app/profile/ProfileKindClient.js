@@ -11,18 +11,23 @@ function KindSwitch({ kind, setKind }) {
   const options = [
     { v: "BUY_SELL", label: "Buy/Sell" },
     { v: "DONATION", label: "Donation" },
-    // { v: "AUCTION", label: "Auction" }, // for later
+    { v: "AUCTION", label: "Auction" },
   ];
+
   const activeIdx = options.findIndex((o) => o.v === kind);
 
   return (
-    <div className="relative inline-grid grid-cols-2 rounded-full bg-slate-100 p-1 shadow-sm w-[190px]">
+    <div className="relative inline-grid grid-cols-3 rounded-full bg-slate-100 p-1 shadow-sm w-[270px]">
       <span
         aria-hidden="true"
-        className={`absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-[#325082]
-                    transition-transform duration-[800ms] ease-[cubic-bezier(.2,.8,.2,1)]
-                    transform-gpu will-change-transform
-                    ${activeIdx === 0 ? "translate-x-0" : "translate-x-full"}`}
+        className="absolute inset-y-1 left-1 rounded-full bg-[#325082]
+                   transition-transform duration-[800ms]
+                   ease-[cubic-bezier(.2,.8,.2,1)]
+                   transform-gpu will-change-transform"
+        style={{
+          width: "calc((100% - 0.5rem) / 3)",
+          transform: `translateX(${Math.max(0, activeIdx) * 100}%)`,
+        }}
       />
       {options.map((o) => {
         const active = o.v === kind;
@@ -31,7 +36,8 @@ function KindSwitch({ kind, setKind }) {
             key={o.v}
             type="button"
             onClick={() => setKind(o.v)}
-            className={`relative z-10 h-9 px-3 text-sm font-medium rounded-full transition-colors duration-[800ms]
+            className={`relative z-10 h-9 px-3 text-sm font-medium rounded-full
+                        transition-colors duration-[800ms]
                         ${
                           active
                             ? "text-white"
@@ -60,8 +66,8 @@ export default function ProfileKindClient({
   const searchParams = useSearchParams();
 
   // Preserve "kind" state in URL
-  const initialKind = ["BUY_SELL", "DONATION"].includes(
-    searchParams.get("kind")
+  const initialKind = ["BUY_SELL", "DONATION", "AUCTION"].includes(
+    searchParams.get("kind"),
   )
     ? searchParams.get("kind")
     : "BUY_SELL";
@@ -77,39 +83,51 @@ export default function ProfileKindClient({
   // Keep state synced when user presses browser Back/Forward
   useEffect(() => {
     const newKind = searchParams.get("kind");
-    if (["BUY_SELL", "DONATION"].includes(newKind) && newKind !== kind) {
+    if (
+      ["BUY_SELL", "DONATION", "AUCTION"].includes(newKind) &&
+      newKind !== kind
+    ) {
       setKind(newKind);
     }
   }, [searchParams]);
 
   // ---------------- Filters ----------------
   const isDonation = (p) => (p?.type || "").toLowerCase() === "donation";
+  const isAuction = (p) => (p?.type || "").toLowerCase() === "auction";
+  const isBuySell = (p) => !isDonation(p) && !isAuction(p);
 
   const sellFiltered = useMemo(
     () =>
-      sellingPlain.filter((p) =>
-        kind === "DONATION" ? isDonation(p) : !isDonation(p)
-      ),
-    [sellingPlain, kind]
+      sellingPlain.filter((p) => {
+        if (kind === "DONATION") return isDonation(p);
+        if (kind === "AUCTION") return isAuction(p);
+        return isBuySell(p);
+      }),
+    [sellingPlain, kind],
   );
 
   const boughtFiltered = useMemo(
     () =>
-      boughtProducts.filter((p) =>
-        kind === "DONATION" ? isDonation(p) : !isDonation(p)
-      ),
-    [boughtProducts, kind]
+      boughtProducts.filter((p) => {
+        if (kind === "DONATION") return isDonation(p);
+        if (kind === "AUCTION") return isAuction(p);
+        return isBuySell(p);
+      }),
+    [boughtProducts, kind],
   );
 
   // ✅ FIX: show correct sold items depending on kind
   const soldFiltered = useMemo(() => {
     return soldProducts.filter((p) => {
-      const donation = isDonation(p);
       if (kind === "DONATION") {
-        return donation && p.orderStatus === "BUYER_CONFIRMED";
-      } else {
-        return !donation && p.orderStatus === "PAID_OUT";
+        return isDonation(p) && p.orderStatus === "BUYER_CONFIRMED";
       }
+
+      if (kind === "AUCTION") {
+        return isAuction(p) && p.orderStatus === "PAID_OUT";
+      }
+
+      return isBuySell(p) && p.orderStatus === "PAID_OUT";
     });
   }, [soldProducts, kind]);
 

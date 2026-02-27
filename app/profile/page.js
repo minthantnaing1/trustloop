@@ -169,10 +169,10 @@ export default async function ProfilePage() {
 
           {/* Stats Box */}
           <div className="flex-1 min-w-[300px] flex flex-wrap gap-3 items-start justify-end">
-            <div className="flex-1 min-w-[140px] bg-white p-4 rounded-[10px] text-center">
+            {/* <div className="flex-1 min-w-[140px] bg-white p-4 rounded-[10px] text-center">
               <p>Free Post</p>
               <strong>{user.postingCredits} Left</strong>
-            </div>
+            </div> */}
             <div className="flex-1 min-w-[140px] bg-white p-4 rounded-[10px] text-center">
               <p>Rating</p>
               <div className="text-[#ffcc00] text-[21px]">

@@ -552,6 +552,7 @@ export default function MyOrdersClient() {
                 kind={kindFilter}
                 value={statusFilter}
                 onChange={setStatusFilter}
+                className="w-[88px] shrink-0"
               />
               <KindSwitch kind={kindFilter} setKind={setKindAndReset} />
             </div>

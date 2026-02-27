@@ -39,9 +39,9 @@ export default function MyOrdersStatusFilter({
       <select
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
-        className="px-2 py-1.5 pr-6 rounded-lg border border-gray-300 bg-white text-sm shadow-sm
-                   focus:outline-none focus:ring-2 focus:ring-[#325082] focus:border-[#325082]
-                   hover:border-gray-400 transition-colors appearance-none"
+        className="w-full px-2 py-1.5 pr-6 rounded-lg border border-gray-300 bg-white text-sm shadow-sm
+                    focus:outline-none focus:ring-2 focus:ring-[#325082] focus:border-[#325082]
+                    hover:border-gray-400 transition-colors appearance-none"
         style={{ backgroundImage: "none" }}
       >
         <option value="ALL">All</option>
@@ -52,7 +52,7 @@ export default function MyOrdersStatusFilter({
         ))}
       </select>
       <svg
-        className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500"
+        className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"

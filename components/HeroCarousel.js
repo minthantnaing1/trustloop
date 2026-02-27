@@ -43,7 +43,7 @@ export default function HeroCarousel() {
         </h1>
         <p className="max-w-[800px] text-sm sm:text-lg mb-6 drop-shadow-lg">
           Assumption University&apos;s exclusive second-hand marketplace.
-          <br /> Buy, sell, and donate securely among AU students.
+          <br /> Buy, sell, donate, and auction securely among AU students.
         </p>
         <Link href="/buy">
           <ActionButton text="Start Exploring" variant="glassClick" />
