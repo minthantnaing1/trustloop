@@ -1,3 +1,4 @@
+// components/admin/TxnToolbar.js
 "use client";
 
 import ActionButton from "@/components/ActionButton";
@@ -23,32 +24,55 @@ const STATUSES_BY_KIND = {
     "BUYER_CONFIRMED",
     "CANCELLED_BY_SELLER",
   ],
+  // ✅ AUCTION uses the same admin lifecycle as buy/sell (payout/refund)
+  AUCTION: [
+    "PENDING_PAYMENT",
+    "PAYMENT_SUCCESSFUL",
+    "DELIVERY_IN_PROGRESS",
+    "SELLER_PROOF_UPLOADED",
+    "BUYER_CONFIRMED",
+    "PAID_OUT",
+    "CANCELLED_BY_BUYER",
+    "CANCELLED_BY_SELLER",
+    "REJECTED_BY_ADMIN",
+  ],
 };
 
 function KindSwitch({ kind, setKind, compact = false }) {
   const options = [
     { v: "BUY_SELL", label: "Buy/Sell" },
     { v: "DONATION", label: "Donation" },
+    { v: "AUCTION", label: "Auction" },
   ];
 
   const activeIndex = options.findIndex((o) => o.v === kind);
 
-  // ✅ desktop vs mobile sizes
-  const wrapW = compact ? "w-[150px]" : "w-[190px]";
+  // desktop vs mobile sizes
+  const wrapW = compact ? "w-[228px]" : "w-[270px]";
   const btnH = compact ? "h-8" : "h-9";
   const btnText = compact ? "text-xs" : "text-sm";
   const btnPad = compact ? "px-2" : "px-3";
 
+  const colCls = "grid-cols-3";
+  const knobW = "w-[calc(33.333%-0.25rem)]";
+
+  const knobTranslate =
+    activeIndex <= 0
+      ? "translate-x-0"
+      : activeIndex === 1
+        ? "translate-x-full"
+        : "translate-x-[200%]";
+
   return (
     <div
-      className={`relative inline-grid grid-cols-2 rounded-full bg-slate-100 p-1 shadow-sm ${wrapW}`}
+      className={`relative inline-grid ${colCls} rounded-full bg-slate-100 p-1 shadow-sm ${wrapW}`}
     >
       <span
         aria-hidden="true"
-        className={`absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-[#325082]
+        className={`absolute inset-y-1 left-1 ${knobW} rounded-full bg-[#325082]
                     transition-transform duration-[800ms] ease-[cubic-bezier(.2,.8,.2,1)]
                     transform-gpu will-change-transform
-                    ${activeIndex === 0 ? "translate-x-0" : "translate-x-full"}`}
+                    ${knobTranslate}`}
       />
 
       {options.map((o) => {
@@ -94,7 +118,7 @@ export default function TxnToolbar({
 
   return (
     <div className={`w-full ${className}`}>
-      {/* Desktop layout */}
+      {/* Desktop */}
       <div className="hidden sm:flex items-center justify-between">
         <div className="flex-1 min-w-0">
           {leftSlot ? (
@@ -167,17 +191,14 @@ export default function TxnToolbar({
         </div>
       </div>
 
-      {/* Mobile layout */}
+      {/* Mobile */}
       <div className="flex flex-col gap-2 sm:hidden">
         {leftSlot ? (
           <div className="w-full">{leftSlot}</div>
         ) : (
           <>
-            {/* ✅ ONE ROW: KindSwitch + Status select */}
             <div
-              className={`flex items-center gap-2 ${
-                showFilter ? "" : "hidden"
-              }`}
+              className={`flex items-center gap-2 ${showFilter ? "" : "hidden"}`}
             >
               <KindSwitch kind={kindFilter} setKind={onChangeKind} compact />
 
@@ -216,7 +237,7 @@ export default function TxnToolbar({
             </div>
           </>
         )}
-        {/* Buttons row */}
+
         <div className="flex justify-end gap-2">
           {showEdit && (
             <ActionButton

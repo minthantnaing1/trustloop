@@ -1,3 +1,4 @@
+// components/admin/AdminTxnRowActions.js
 "use client";
 
 import { useState } from "react";
@@ -24,6 +25,18 @@ const STATUSES_BY_KIND = {
     "BUYER_CONFIRMED",
     "CANCELLED_BY_SELLER",
   ],
+  // ✅ AUCTION uses buy/sell-like admin lifecycle
+  AUCTION: [
+    "PENDING_PAYMENT",
+    "PAYMENT_SUCCESSFUL",
+    "DELIVERY_IN_PROGRESS",
+    "SELLER_PROOF_UPLOADED",
+    "BUYER_CONFIRMED",
+    "PAID_OUT",
+    "CANCELLED_BY_BUYER",
+    "CANCELLED_BY_SELLER",
+    "REJECTED_BY_ADMIN",
+  ],
 };
 
 export default function AdminTxnRowActions({
@@ -32,11 +45,13 @@ export default function AdminTxnRowActions({
   kind = "BUY_SELL",
   onDone,
 }) {
+  const kindUp = String(kind || "BUY_SELL").toUpperCase();
+
   const [status, setStatus] = useState(currentStatus);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
-  const allowedStatuses = STATUSES_BY_KIND[kind] || [];
+  const allowedStatuses = STATUSES_BY_KIND[kindUp] || [];
 
   async function updateStatus() {
     setBusy(true);
@@ -75,7 +90,6 @@ export default function AdminTxnRowActions({
 
   return (
     <div className="flex flex-col gap-1 w-full">
-      {/* Small status selector */}
       <select
         value={status}
         onChange={(e) => setStatus(e.target.value)}
@@ -85,12 +99,11 @@ export default function AdminTxnRowActions({
       >
         {allowedStatuses.map((s) => (
           <option key={s} value={s}>
-            {getStatusLabel(s, kind)}
+            {getStatusLabel(s, kindUp)}
           </option>
         ))}
       </select>
 
-      {/* Right-aligned Update button */}
       <div className="flex justify-end">
         <ActionButton
           text="Update"

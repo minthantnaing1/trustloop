@@ -4,7 +4,6 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminTxnRowActions from "@/components/admin/AdminTxnRowActions";
-import SlipLink from "@/components/SlipLink";
 import ConfirmModal from "@/components/ConfirmModal";
 import TxnToolbar from "@/components/admin/TxnToolbar";
 import StatusPill from "@/components/StatusPill";
@@ -28,13 +27,22 @@ export default function AdminTransactionsClient({ initialTxns }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
 
+  function normalizeKind(t) {
+    // prefer txn.kind / txn.type
+    const raw = String(t?.kind || t?.type || "").trim();
+    if (raw) return raw.toUpperCase();
+
+    // fallback to product.type
+    const pType = String(t?.product?.type || "").toLowerCase();
+    if (pType === "donation") return "DONATION";
+    if (pType === "auction") return "AUCTION";
+    return "BUY_SELL";
+  }
+
   const filtered = useMemo(() => {
     if (!Array.isArray(txns)) return [];
 
-    const base = txns.filter((t) => {
-      const up = String(t?.kind || t?.type || "").toUpperCase();
-      return up === kindFilter;
-    });
+    const base = txns.filter((t) => normalizeKind(t) === kindFilter);
 
     if (statusFilter === "ALL") return base;
     return base.filter((t) => t.status === statusFilter);
@@ -42,7 +50,7 @@ export default function AdminTransactionsClient({ initialTxns }) {
 
   function changeKind(next) {
     setKindFilter(next);
-    setStatusFilter("ALL"); // so dropdown doesn’t keep invalid status
+    setStatusFilter("ALL"); // reset invalid status when kind changes
   }
 
   async function deleteTxn(id) {
@@ -67,11 +75,21 @@ export default function AdminTransactionsClient({ initialTxns }) {
   function TypeTag({ kind }) {
     if (!kind) return <span className="text-gray-400">—</span>;
     const up = String(kind).toUpperCase();
-    const label = up === "DONATION" ? "Donation" : "Buy/Sell";
+
+    const label =
+      up === "DONATION"
+        ? "Donation"
+        : up === "AUCTION"
+          ? "Auction"
+          : "Buy/Sell";
+
     const tone =
       up === "DONATION"
         ? "ring-pink-200/70 bg-pink-50/70 text-pink-700"
-        : "ring-sky-200/70 bg-sky-50/70 text-sky-700";
+        : up === "AUCTION"
+          ? "ring-violet-200/70 bg-violet-50/70 text-violet-700"
+          : "ring-sky-200/70 bg-sky-50/70 text-sky-700";
+
     return (
       <span
         className={`inline-flex items-center px-2 py-0.5 text-[11px] font-medium ring-1 rounded-full ${tone}`}
@@ -79,10 +97,6 @@ export default function AdminTransactionsClient({ initialTxns }) {
         {label}
       </span>
     );
-  }
-
-  function TypeOnly({ kind }) {
-    return <TypeTag kind={kind} />;
   }
 
   function Thumb({ product }) {
@@ -98,10 +112,20 @@ export default function AdminTransactionsClient({ initialTxns }) {
     );
   }
 
+  function fmtMoney(n) {
+    const v = Number(n || 0);
+    return `฿${v.toLocaleString()}`;
+  }
+
   function fmtTotal(t) {
-    const kind = String(t?.kind || t?.type || "").toUpperCase();
+    const kind = normalizeKind(t);
     if (kind === "DONATION") return "Free";
-    return `฿${Number(t.total || 0).toLocaleString()}`;
+
+    // Auction & Buy/Sell: prefer txn.total; fallback to finalPrice/amount if your schema differs
+    const total =
+      t?.total ?? t?.finalPrice ?? t?.amount ?? t?.grandTotal ?? t?.price ?? 0;
+
+    return fmtMoney(total);
   }
 
   return (
@@ -140,7 +164,6 @@ export default function AdminTransactionsClient({ initialTxns }) {
               <thead>
                 <tr>
                   <th className="p-2 border-b font-medium text-center">#</th>
-                  {/* NEW: Images */}
                   <th className="p-2 border-b font-medium">Images</th>
                   <th className="p-2 border-b font-medium">Product</th>
                   <th className="p-2 border-b font-medium">Buyer</th>
@@ -150,14 +173,17 @@ export default function AdminTransactionsClient({ initialTxns }) {
                   <th className="p-2 border-b font-medium">Actions</th>
                 </tr>
               </thead>
+
               <tbody>
                 {filtered.map((t, idx) => {
                   const txnId = t._id?.toString?.() || t._id;
+
+                  const kindUp = normalizeKind(t);
+                  const isDonation = kindUp === "DONATION";
+                  const isPaidFlow = kindUp !== "DONATION"; // ✅ Auction behaves like Buy/Sell
+
                   const hasPaid = Boolean(t?.hasPaymentSucceeded);
                   const showActions = editMode;
-
-                  const kindUp = String(t?.kind || t?.type || "").toUpperCase();
-                  const isDonation = kindUp === "DONATION";
 
                   return (
                     <tr
@@ -175,14 +201,20 @@ export default function AdminTransactionsClient({ initialTxns }) {
                         {idx + 1}
                       </td>
 
-                      {/* NEW: Images cell */}
                       <td className="p-2">
                         <Thumb product={t.product} />
                       </td>
 
                       <td className="p-2">
-                        <div className="font-medium">
-                          {t.product?.title || "-"}
+                        <div className="flex items-start gap-2">
+                          <div className="min-w-0">
+                            <div className="font-medium">
+                              {t.product?.title || "-"}
+                            </div>
+                            <div className="mt-1">
+                              <TypeTag kind={kindUp} />
+                            </div>
+                          </div>
                         </div>
                       </td>
 
@@ -192,6 +224,7 @@ export default function AdminTransactionsClient({ initialTxns }) {
                           <div className="text-sm text-gray-600">
                             {t.buyer?.email}
                           </div>
+
                           {t.buyer?.phone &&
                             (deleteMode ? (
                               <span className="flex items-center gap-1 text-sm text-[#325082]/40 mt-0.5">
@@ -216,6 +249,7 @@ export default function AdminTransactionsClient({ initialTxns }) {
                           <div className="text-sm text-gray-600">
                             {t.seller?.email}
                           </div>
+
                           {t.seller?.phone &&
                             (deleteMode ? (
                               <span className="flex items-center gap-1 text-sm text-[#325082]/40 mt-0.5">
@@ -247,10 +281,7 @@ export default function AdminTransactionsClient({ initialTxns }) {
                       <td className="p-2">
                         <div className="leading-tight">
                           <div className="font-medium">
-                            <StatusPill
-                              status={t.status}
-                              kind={String(t.kind || t.type).toUpperCase()}
-                            />
+                            <StatusPill status={t.status} kind={kindUp} />
                           </div>
 
                           <div className="text-xs text-gray-600 mt-2">
@@ -281,9 +312,7 @@ export default function AdminTransactionsClient({ initialTxns }) {
                           <AdminTxnRowActions
                             txnId={txnId}
                             currentStatus={t.status}
-                            kind={
-                              kindUp === "DONATION" ? "DONATION" : "BUY_SELL"
-                            }
+                            kind={kindUp}
                             onDone={({ id, newStatus }) => {
                               setTxns((prev) =>
                                 prev.map((row) => {
@@ -291,7 +320,6 @@ export default function AdminTransactionsClient({ initialTxns }) {
                                     row._id?.toString?.() || row._id;
                                   if (rowId !== id) return row;
 
-                                  // ✅ "counter" behavior: once paid success happens, keep it true forever
                                   const already = Boolean(
                                     row?.hasPaymentSucceeded,
                                   );
@@ -311,7 +339,7 @@ export default function AdminTransactionsClient({ initialTxns }) {
                               if (editMode) setEditMode(false);
                             }}
                           />
-                        ) : !isDonation && t.status === "BUYER_CONFIRMED" ? (
+                        ) : isPaidFlow && t.status === "BUYER_CONFIRMED" ? (
                           <ActionButton
                             text="Payout"
                             variant="primaryClick"
@@ -323,7 +351,7 @@ export default function AdminTransactionsClient({ initialTxns }) {
                               );
                             }}
                           />
-                        ) : !isDonation && t.status === "PAID_OUT" ? (
+                        ) : isPaidFlow && t.status === "PAID_OUT" ? (
                           <a
                             href={`/admin/transactions/${txnId}/payout`}
                             className="text-sm underline text-[#325082] underline-offset-2"
@@ -331,7 +359,7 @@ export default function AdminTransactionsClient({ initialTxns }) {
                           >
                             View Payout
                           </a>
-                        ) : !isDonation &&
+                        ) : isPaidFlow &&
                           hasPaid &&
                           (t.status === "CANCELLED_BY_BUYER" ||
                             t.status === "CANCELLED_BY_SELLER") ? (
@@ -366,7 +394,6 @@ export default function AdminTransactionsClient({ initialTxns }) {
 
                 {filtered.length === 0 && (
                   <tr>
-                    {/* updated colspan: 10 columns total */}
                     <td colSpan={9} className="p-4 text-center text-gray-500">
                       No transactions found.
                     </td>

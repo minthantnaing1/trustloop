@@ -51,6 +51,21 @@ export async function PATCH(req, { params }) {
     const txn = await Transaction.findById(id).populate("product");
     if (!txn) return new Response("Not found", { status: 404 });
 
+    const kindUp = String(txn?.kind || txn?.type || "").toUpperCase();
+    const productType = String(txn?.product?.type || "").toLowerCase();
+
+    // infer kind if txn.kind not set
+    const effectiveKind =
+      kindUp ||
+      (productType === "donation"
+        ? "DONATION"
+        : productType === "auction"
+          ? "AUCTION"
+          : "BUY_SELL");
+
+    const isPaidFlow =
+      effectiveKind === "BUY_SELL" || effectiveKind === "AUCTION";
+
     const now = new Date();
 
     // 🔁 GENERIC STATUS CHANGE (admin override)
@@ -110,9 +125,10 @@ export async function PATCH(req, { params }) {
       if (!refundUrl)
         return new Response("refundUrl required", { status: 400 });
 
-      const kindUp = String(txn?.kind || "").toUpperCase();
-      if (kindUp !== "BUY_SELL") {
-        return new Response("Refund only for BUY_SELL", { status: 409 });
+      if (!isPaidFlow) {
+        return new Response("Refund only for BUY_SELL/AUCTION", {
+          status: 409,
+        });
       }
 
       const isCancelled =
@@ -181,9 +197,11 @@ export async function PATCH(req, { params }) {
         meta: { payoutUrl },
       });
 
+      const sellerRevenue = Number(txn.sellerNet ?? 0);
+
       await User.updateOne(
         { _id: txn.seller },
-        { $inc: { revenue: Number(txn.total || 0) } },
+        { $inc: { revenue: sellerRevenue } },
       );
 
       txn.updatedAt = now;

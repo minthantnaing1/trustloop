@@ -37,9 +37,9 @@ export async function GET() {
 
   const isDeveloper = String(me.adminRank || "NORMAL") === "DEVELOPER";
 
-  // Only BUY_SELL transactions that have had payment success at least once
+  // BUY_SELL + AUCTION transactions that have had payment success at least once
   const txns = await Transaction.find({
-    kind: "BUY_SELL",
+    kind: { $in: ["BUY_SELL", "AUCTION"] },
     hasPaymentSucceeded: true,
   })
     .populate("buyer", "name email")
@@ -70,7 +70,7 @@ export async function GET() {
   let outstandingRefundTotal = 0;
 
   const rows = txns.map((t) => {
-    const total = money(t.total);
+    const total = money(t.total ?? t.finalPrice);
     const fee5 = money(t.fee); // your 5%
     const stripeFee = money(t.stripeFee);
     const leftAfterStripe = total - stripeFee;
@@ -273,7 +273,7 @@ export async function POST(req) {
 
   // Rebuild owed map (admin advances - reimbursed), same logic as GET, but minimal & local.
   const txns = await Transaction.find({
-    kind: "BUY_SELL",
+    kind: { $in: ["BUY_SELL", "AUCTION"] },
     hasPaymentSucceeded: true,
   })
     .select(
@@ -316,7 +316,7 @@ export async function POST(req) {
       const a = ensureAdmin(refundAdminId);
       if (a)
         a.refundAdvance += money(
-          t.buyerRefundNet || money(t.total) - money(t.fee),
+          t.buyerRefundNet || money(t.total ?? t.finalPrice) - money(t.fee),
         );
     }
   }
