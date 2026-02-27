@@ -27,53 +27,22 @@ const ProductSchema = new mongoose.Schema(
       required: true,
     },
 
-    // Pricing
-    price: { type: Number, required: true }, // sell or request
-    startingPrice: { type: Number }, // auction
-    currentBid: {
-      amount: Number,
-      bidder: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    // Pricing (sell/request)
+    price: { type: Number, required: true },
+
+    // Auction posting info only
+    startingPrice: { type: Number }, // base price (only for auction)
+    auctionEndsAt: { type: Date }, // deadline (only for auction)
+    auctionStatus: {
+      type: String,
+      enum: ["OPEN", "ENDED", "SOLD", "CANCELLED"],
+      default: "OPEN",
     },
-    bidHistory: [
-      {
-        bidder: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-        amount: Number,
-        time: { type: Date, default: Date.now },
-      },
-    ],
 
     // Donation
     acceptedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-
-    // NEW: Donation mode & optional deadline (for selective)
-    donationMode: {
-      type: String,
-      enum: ["instant", "selective"],
-    },
+    donationMode: { type: String, enum: ["instant", "selective"] },
     requestDeadline: { type: Date },
-
-    // Auction timing
-    auctionEndsAt: { type: Date },
-    // Auction resolution (winner payment + fallback)
-    auctionResolution: {
-      status: {
-        type: String,
-        enum: ["OPEN", "AWAITING_PAYMENT", "SOLD", "UNSUCCESSFUL"],
-        default: "OPEN",
-      },
-      // Highest -> lowest queue (unique bidders)
-      queue: [
-        {
-          bidder: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-          amount: { type: Number, default: 0 },
-          time: { type: Date }, // optional (from bidHistory)
-        },
-      ],
-      currentIndex: { type: Number, default: 0 },
-      currentTxn: { type: mongoose.Schema.Types.ObjectId, ref: "Transaction" },
-      paymentExpiresAt: { type: Date },
-      closedAt: { type: Date },
-    },
 
     // Lifecycle
     isAvailable: { type: Boolean, default: true },

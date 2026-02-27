@@ -1,8 +1,8 @@
-// app/api/products/route.js
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 import Product from "@/models/Product";
 import Transaction from "@/models/Transaction";
+import Auction from "@/models/Auction"; // ✅ NEW
 import { auth } from "@/auth";
 
 // ✅ CREATE PRODUCT
@@ -21,13 +21,12 @@ export async function POST(req) {
       return new Response("User not found", { status: 404 });
     }
 
-    // ---- Minimal donation normalization/validation (only when type === "donation") ----
+    // ---- Donation normalization/validation (only when type === "donation") ----
     if (body?.type === "donation") {
       body.donationMode = body.donationMode || "instant";
-      const mode = body.donationMode; // ✅ FIX: define mode
+      const mode = body.donationMode;
 
-      // donations should be zero-price
-      body.price = 0;
+      body.price = 0; // donations are free
 
       if (mode === "instant") {
         delete body.requestDeadline;
@@ -36,9 +35,7 @@ export async function POST(req) {
         if (!dl || Number.isNaN(dl.getTime())) {
           return new Response(
             "requestDeadline is required for selective donation",
-            {
-              status: 400,
-            },
+            { status: 400 },
           );
         }
         const now = new Date();
@@ -47,7 +44,6 @@ export async function POST(req) {
             status: 400,
           });
         }
-        // Optional hard cap: max 14 days window
         const max = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
         if (dl > max) {
           return new Response("requestDeadline too far. Max 14 days.", {
@@ -56,37 +52,33 @@ export async function POST(req) {
         }
         body.requestDeadline = dl;
       } else {
-        // ✅ Safety: unknown donationMode -> force instant
         body.donationMode = "instant";
         delete body.requestDeadline;
       }
 
-      // donation-only cleanup / ignore auction fields if sent
+      // ✅ donation cleanup: remove auction fields if sent
       delete body.startingPrice;
-      delete body.currentBid;
-      delete body.bidHistory;
       delete body.auctionEndsAt;
+      delete body.auctionStatus;
     } else {
       // Non-donation: ignore donation-only fields if sent
       delete body.donationMode;
       delete body.requestDeadline;
     }
-    // -------------------------------------------------------------------------------
-    // -------------------------------------------------------------------------------
+    // ------------------------------------------------------------------------
 
-    // ---- Minimal auction normalization/validation (only when type === "auction") ----
+    // ---- Auction normalization/validation (only when type === "auction") ----
+    let auctionCreatePayload = null;
+
     if (body?.type === "auction") {
-      // keep schema happy (auction doesn't use `price`)
-      if (typeof body.price !== "number") body.price = 0;
+      // keep Product schema happy
       body.price = 0;
 
       const sp = Number(body.startingPrice);
-      if (!Number.isFinite(sp) || sp < 1000) {
+      if (!Number.isFinite(sp) || sp < 10) {
         return new Response(
-          "startingPrice is required and must be at least 1000",
-          {
-            status: 400,
-          },
+          "startingPrice is required and must be at least 10",
+          { status: 400 },
         );
       }
       body.startingPrice = sp;
@@ -105,7 +97,6 @@ export async function POST(req) {
         });
       }
 
-      // hard cap (match donation style): max 14 days
       const max = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
       if (ends > max) {
         return new Response("auctionEndsAt too far. Max 14 days.", {
@@ -115,40 +106,55 @@ export async function POST(req) {
 
       body.auctionEndsAt = ends;
 
-      // initialize bid fields safely
-      if (body.currentBid && typeof body.currentBid === "object") {
-        // allow currentBid only if structure is valid-ish; otherwise clear
-        if (
-          typeof body.currentBid.amount !== "number" ||
-          !body.currentBid.bidder
-        ) {
-          delete body.currentBid;
-        }
-      } else {
-        delete body.currentBid;
-      }
+      // ✅ Product stores only posting info
+      body.auctionStatus = body.auctionStatus || "OPEN";
 
-      if (!Array.isArray(body.bidHistory)) body.bidHistory = [];
-
-      // auction should not accept donation-only fields
+      // ✅ Ensure auction does not accept donation-only fields
       delete body.donationMode;
       delete body.requestDeadline;
       delete body.acceptedBy;
+
+      // ✅ Prepare Auction engine doc payload (created after product)
+      auctionCreatePayload = {
+        seller: user._id,
+        startingPrice: sp,
+        endsAt: ends,
+        status: "OPEN",
+        currentBid: { amount: 0 }, // no bidder yet
+        bidHistory: [],
+        queue: [],
+        currentIndex: 0,
+      };
     } else {
       // Non-auction: ignore auction-only fields if sent
       delete body.startingPrice;
-      delete body.currentBid;
-      delete body.bidHistory;
       delete body.auctionEndsAt;
+      delete body.auctionStatus;
     }
-    // -------------------------------------------------------------------------------
+    // ------------------------------------------------------------------------
 
-    const created = await Product.create({
+    // ✅ Create Product first
+    const createdProduct = await Product.create({
       ...body,
       owner: user._id,
     });
 
-    return new Response(JSON.stringify(created), { status: 201 });
+    // ✅ If it's an auction, create the Auction engine record too
+    if (auctionCreatePayload) {
+      try {
+        await Auction.create({
+          ...auctionCreatePayload,
+          product: createdProduct._id,
+        });
+      } catch (e) {
+        // rollback product to avoid "broken auction posts"
+        await Product.deleteOne({ _id: createdProduct._id });
+        console.error("❌ Auction create failed (rollback product):", e);
+        return new Response("Failed to create auction engine", { status: 500 });
+      }
+    }
+
+    return new Response(JSON.stringify(createdProduct), { status: 201 });
   } catch (err) {
     console.error("❌ Product POST error:", err);
     return new Response("Server Error", { status: 500 });
@@ -188,9 +194,9 @@ export async function GET(req) {
     if (type !== "donation" && type !== "auction") {
       filters.price = { $gte: minPrice, $lte: maxPrice };
     } else if (type === "donation") {
-      filters.price = 0; // donations are always free
+      filters.price = 0;
     } else if (type === "auction") {
-      // auctions use startingPrice/currentBid; no price filter
+      // auctions use startingPrice + endsAt; no price filter here
     }
 
     // ✅ Apply optional filters
@@ -213,7 +219,7 @@ export async function GET(req) {
     }
 
     if (type === "auction") {
-      // ending soon first (so users see urgent auctions)
+      // ending soon first
       sortQuery = { auctionEndsAt: 1, createdAt: -1 };
     }
 
@@ -221,7 +227,7 @@ export async function GET(req) {
       .populate("owner")
       .sort(sortQuery);
 
-    // attach buyer/info for reserved products (and include the order status)
+    // attach buyer/info for reserved products
     const reservedIds = products
       .filter((p) => p.isAvailable === false)
       .map((p) => p._id);
@@ -260,7 +266,6 @@ export async function GET(req) {
 
     // ✅ Optional: mark expired selective donations + ended auctions
     const now = new Date();
-
     productsOut = productsOut.map((p) => {
       if (
         p.type === "donation" &&
@@ -274,7 +279,7 @@ export async function GET(req) {
       if (p.type === "auction" && p.auctionEndsAt) {
         const end = new Date(p.auctionEndsAt);
         if (!Number.isNaN(end.getTime()) && end < now) {
-          p.ended = true; // helpful for UI filtering
+          p.ended = true;
         }
       }
 

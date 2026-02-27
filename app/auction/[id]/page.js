@@ -1,9 +1,10 @@
 // app/auction/[id]/page.js
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
+import Product from "@/models/Product";
+import Auction from "@/models/Auction";
 import NavBar from "@/components/NavBar";
 import BackButton from "@/components/BackButton";
 import Link from "next/link";
@@ -15,17 +16,14 @@ export const dynamic = "force-dynamic";
 
 export default async function AuctionProductPage({ params }) {
   const { id } = await params;
-  const cookieStore = await cookies();
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_BASE_URL}/api/products/${id}`,
-    {
-      headers: { Cookie: cookieStore.toString() },
-      cache: "no-store",
-    },
-  );
+  const session = await auth();
+  const sessionEmail = session?.user?.email || "";
 
-  if (!res.ok) {
+  await connectDB();
+
+  const product = await Product.findById(id).populate("owner").lean();
+  if (!product) {
     return (
       <>
         <NavBar />
@@ -54,30 +52,76 @@ export default async function AuctionProductPage({ params }) {
     );
   }
 
-  let product = await res.json();
-
-  // 🚨 redirect if type mismatch
   if (product.type && product.type !== "auction") {
     return redirect(`/${product.type}/${product._id}`);
   }
 
-  const session = await auth();
-  const sessionEmail = session?.user?.email || "";
+  const isOwner = sessionEmail && sessionEmail === product.owner?.email;
 
-  // ✅ auto-accept highest when deadline passed (if seller didn't accept)
-  // Actor can be null, but we can also pass seller id. Keep minimal:
+  if (product.isHidden && !isOwner) {
+    return (
+      <>
+        <NavBar />
+        <main className="max-w-[1200px] mx-auto px-3">
+          <div className="min-h-[calc(100vh-210px)] flex items-center justify-center">
+            <div className="max-w-xl w-full bg-white border border-slate-200 rounded-2xl p-6 shadow-sm text-center">
+              <div className="text-4xl mb-2">🙈</div>
+              <h1 className="text-xl font-semibold text-[#1f2d4d]">
+                This Auction is hidden.
+              </h1>
+              <p className="mt-1 text-slate-600">
+                The owner has hidden this auction from public view.
+              </p>
+
+              <div className="mt-5 flex justify-between">
+                <BackButton text="Go back" />
+                <Link href="/auction">
+                  <ActionButton text="Browse Auctions" variant="primaryClick" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </main>
+      </>
+    );
+  }
+
+  // ✅ auto finalize after deadline (creates txn + locks auction if needed)
   await autoAcceptIfDeadlinePassed(product._id, { actorUserId: null });
 
-  // re-fetch product so UI shows latest auctionResolution / isAvailable
-  const res2 = await fetch(
-    `${process.env.NEXT_PUBLIC_BASE_URL}/api/products/${id}`,
-    {
-      headers: { Cookie: cookieStore.toString() },
-      cache: "no-store",
-    },
-  );
-  if (res2.ok) product = await res2.json();
-  await connectDB();
+  const auction = await Auction.findOne({ product: product._id })
+    .populate({ path: "currentBid.bidder", select: "name email image" })
+    .populate({ path: "bidHistory.bidder", select: "name email image" })
+    .populate({ path: "winner", select: "name email image" }) // ✅ NEW
+    .lean();
+
+  if (!auction) {
+    return (
+      <>
+        <NavBar />
+        <main className="max-w-[1200px] mx-auto px-3">
+          <div className="min-h-[calc(100vh-210px)] flex items-center justify-center">
+            <div className="max-w-xl w-full bg-white border border-slate-200 rounded-2xl p-6 shadow-sm text-center">
+              <div className="text-4xl mb-2">⚠️</div>
+              <h1 className="text-xl font-semibold text-[#1f2d4d]">
+                Auction engine data missing
+              </h1>
+              <p className="mt-1 text-slate-600">
+                This auction post exists, but bidding data was not found.
+              </p>
+
+              <div className="mt-5 flex justify-between">
+                <BackButton text="Go back" />
+                <Link href="/auction">
+                  <ActionButton text="Browse Auctions" variant="primaryClick" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </main>
+      </>
+    );
+  }
 
   let me = null;
   if (sessionEmail) {
@@ -91,17 +135,18 @@ export default async function AuctionProductPage({ params }) {
     me?.favorites?.some((fid) => String(fid) === String(product._id)),
   );
 
-  const isOwner = sessionEmail === product.owner?.email;
-
-  // ✅ Bid guard (Phone + Location only)
   const missing = [];
   if (!me?.phone) missing.push("Phone");
   if (!me?.location) missing.push("Location");
   const bidGuard = { ok: missing.length === 0, missing };
 
+  const productPlain = JSON.parse(JSON.stringify(product));
+  const auctionPlain = JSON.parse(JSON.stringify(auction));
+
   return (
     <AuctionDetails
-      product={product}
+      product={productPlain}
+      auction={auctionPlain}
       sessionEmail={sessionEmail}
       initialIsFav={initialIsFav}
       isOwner={isOwner}

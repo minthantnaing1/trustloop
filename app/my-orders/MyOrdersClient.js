@@ -840,23 +840,34 @@ export default function MyOrdersClient() {
                           )}
                         </div>
                       </div>
-                      {/* ⚠️ Warning note — same visibility logic as the Pay button */}
-                      {role === "buyer" &&
-                        isPendingPaymentActive(t) &&
-                        t.expiresAt && (
-                          <div className="text-center mb-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900 text-sm">
-                            Payment pending — please click{" "}
-                            <span className="font-semibold">
-                              “Continue Payment”
-                            </span>{" "}
-                            and complete your payment within{" "}
-                            <Countdown
-                              expiresAt={t.expiresAt}
-                              onExpire={() => refreshRoleLists(role)}
-                            />{" "}
-                            or this order will be automatically cancelled.
-                          </div>
-                        )}
+                      {isPendingPaymentActive(t) && t.expiresAt && (
+                        <div className="text-center mb-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900 text-sm">
+                          {role === "buyer" ? (
+                            <>
+                              Payment pending — please click{" "}
+                              <span className="font-semibold">
+                                “Continue Payment”
+                              </span>{" "}
+                              and complete your payment within{" "}
+                              <Countdown
+                                expiresAt={t.expiresAt}
+                                onExpire={() => refreshRoleLists(role)}
+                              />{" "}
+                              or this order will be automatically cancelled.
+                            </>
+                          ) : (
+                            <>
+                              Payment pending — waiting for buyer to complete
+                              payment within{" "}
+                              <Countdown
+                                expiresAt={t.expiresAt}
+                                onExpire={() => refreshRoleLists(role)}
+                              />{" "}
+                              or this order will be automatically cancelled.
+                            </>
+                          )}
+                        </div>
+                      )}
                     </summary>
 
                     <Timeline

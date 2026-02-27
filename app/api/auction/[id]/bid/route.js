@@ -2,6 +2,7 @@
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
 import Product from "@/models/Product";
+import Auction from "@/models/Auction";
 import User from "@/models/User";
 
 function ceilBaht(n) {
@@ -30,10 +31,8 @@ export async function POST(req, { params }) {
 
     const product = await Product.findById(id).populate("owner");
     if (!product) return new Response("Product not found", { status: 404 });
-
-    if (product.type !== "auction") {
+    if (product.type !== "auction")
       return new Response("Not an auction product.", { status: 400 });
-    }
 
     if (String(product.owner?._id) === String(me._id)) {
       return new Response("You cannot bid on your own auction.", {
@@ -64,18 +63,29 @@ export async function POST(req, { params }) {
     }
 
     const base = Number(product.startingPrice) || 0;
-    if (base < 1000) {
+    if (base < 10) {
       return new Response("Auction base price must be at least ฿1,000.", {
         status: 409,
       });
     }
 
-    const lastAmount = Number(product.currentBid?.amount) || 0;
-    const lastBidderId = product.currentBid?.bidder
-      ? String(product.currentBid.bidder)
-      : "";
+    // Ensure Auction exists (created when posting)
+    const auction = await Auction.findOne({ product: product._id }).select(
+      "status currentBid bidHistory endsAt startingPrice seller",
+    );
+    if (!auction)
+      return new Response("Auction record not found.", { status: 409 });
 
-    // ✅ Fix #3: block same bidder twice in a row
+    if (auction.status !== "OPEN") {
+      return new Response("This auction is not accepting bids right now.", {
+        status: 409,
+      });
+    }
+
+    // Prevent same bidder twice in a row
+    const lastBidderId = auction.currentBid?.bidder
+      ? String(auction.currentBid.bidder)
+      : "";
     if (lastBidderId && String(me._id) === lastBidderId) {
       return new Response(
         "You are already the highest bidder. Wait for another bidder before bidding again.",
@@ -83,7 +93,8 @@ export async function POST(req, { params }) {
       );
     }
 
-    // ✅ Fix #4: increment is ALWAYS 5% of base
+    // min increment ALWAYS 5% of base
+    const lastAmount = Number(auction.currentBid?.amount) || 0;
     const inc = ceilBaht(base * 0.05);
     const ref = lastAmount > 0 ? lastAmount : base;
     const minAllowed = ceilBaht(ref + inc);
@@ -101,34 +112,35 @@ export async function POST(req, { params }) {
       });
     }
 
-    // ✅ atomic update: also ensure currentBidder isn't me (prevents race)
-    const updated = await Product.findOneAndUpdate(
+    // ✅ atomic update against races
+    const updated = await Auction.findOneAndUpdate(
       {
-        _id: product._id,
-        type: "auction",
-        isAvailable: true,
-        isHidden: { $ne: true },
-        auctionEndsAt: { $gt: new Date() },
-
-        // ensure bid is still valid at DB time
-        $or: [
-          { "currentBid.amount": { $exists: false } },
-          { "currentBid.amount": { $lt: bidAmount } },
-        ],
-
-        // ensure not same bidder at DB time
-        $or: [
-          { "currentBid.bidder": { $exists: false } },
-          { "currentBid.bidder": { $ne: me._id } },
+        product: product._id,
+        status: "OPEN",
+        endsAt: { $gt: new Date() },
+        $and: [
+          {
+            $or: [
+              { "currentBid.amount": { $exists: false } },
+              { "currentBid.amount": { $lt: bidAmount } },
+            ],
+          },
+          {
+            $or: [
+              { "currentBid.bidder": { $exists: false } },
+              { "currentBid.bidder": { $ne: me._id } },
+            ],
+          },
         ],
       },
       {
         $set: {
-          currentBid: { amount: bidAmount, bidder: me._id },
+          currentBid: { amount: bidAmount, bidder: me._id, time: new Date() },
         },
         $push: {
           bidHistory: { bidder: me._id, amount: bidAmount, time: new Date() },
         },
+        $inc: { version: 1 },
       },
       { new: true },
     );

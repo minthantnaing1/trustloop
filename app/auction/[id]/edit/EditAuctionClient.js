@@ -1,15 +1,35 @@
-// app/donation/[id]/edit/EditDonationClient.js
+// app/auction/[id]/edit/EditAuctionClient.js
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import NavBar from "@/components/NavBar";
 import ActionButton from "@/components/ActionButton";
-import { toLocalInputValue } from "@/utils/timeAgo";
+import { toLocalInputValue, fmtBKK } from "@/utils/timeAgo";
 
-export default function EditDonationClient({ initialProduct }) {
+export default function EditAuctionClient({ initialProduct }) {
   const router = useRouter();
   const id = initialProduct?._id;
+
+  // ---- timing rules (match your auction post + server hard max) ----
+  const createdAt = useMemo(
+    () => new Date(initialProduct?.createdAt),
+    [initialProduct?.createdAt],
+  );
+  const HARD_MAX_DATE = useMemo(
+    () => new Date(createdAt.getTime() + 14 * 24 * 60 * 60 * 1000),
+    [createdAt],
+  );
+
+  // Min: now + 3 minutes (same as post)
+  const minEndsLocal = useMemo(
+    () => toLocalInputValue(new Date(Date.now() + 3 * 60 * 1000)),
+    [],
+  );
+  const maxEndsLocal = useMemo(
+    () => toLocalInputValue(HARD_MAX_DATE),
+    [HARD_MAX_DATE],
+  );
 
   const [form, setForm] = useState({
     title: initialProduct?.title || "",
@@ -17,45 +37,31 @@ export default function EditDonationClient({ initialProduct }) {
     category: initialProduct?.category || "",
     condition: initialProduct?.condition || "",
     location: initialProduct?.location || "",
-    donationMode: initialProduct?.donationMode || "instant",
-    requestDeadlineLocal: initialProduct?.requestDeadline
-      ? toLocalInputValue(initialProduct.requestDeadline)
+    startingPrice:
+      initialProduct?.startingPrice != null
+        ? String(initialProduct.startingPrice)
+        : "",
+    auctionEndsAtLocal: initialProduct?.auctionEndsAt
+      ? toLocalInputValue(initialProduct.auctionEndsAt)
       : "",
   });
 
+  // same image editing approach as Donation Edit
   const [images, setImages] = useState(
     (initialProduct?.images || []).map((url) => ({ url })),
   );
-  const def =
+
+  const defIdx =
     (initialProduct?.images || []).findIndex(
       (u) => u === initialProduct?.defaultImage,
     ) ?? -1;
-  const [defaultIndex, setDefaultIndex] = useState(def >= 0 ? def : 0);
+  const [defaultIndex, setDefaultIndex] = useState(defIdx >= 0 ? defIdx : 0);
+
   const [loading, setLoading] = useState(false);
 
-  // --- Handlers ---
+  // ---- handlers ----
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    if (name === "donationMode") {
-      setForm((prev) => {
-        let nextDeadline = prev.requestDeadlineLocal;
-        if (value === "instant") {
-          nextDeadline = "";
-        } else if (value === "selective" && nextDeadline) {
-          // clamp if user had a too-far date
-          const chosen = new Date(nextDeadline);
-          if (chosen > HARD_MAX_DATE) nextDeadline = "";
-        }
-        return {
-          ...prev,
-          donationMode: value,
-          requestDeadlineLocal: nextDeadline,
-        };
-      });
-      return;
-    }
-
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -70,45 +76,79 @@ export default function EditDonationClient({ initialProduct }) {
     if (images.length === 0) setDefaultIndex(0);
   };
 
-  const handleUpdate = async () => {
-    // ✅ Early client-side guard: stop BEFORE any uploads
-    const deadlinePassed =
-      initialProduct?.donationMode === "selective" &&
-      initialProduct?.requestDeadline &&
-      new Date(initialProduct.requestDeadline) <= new Date();
+  function removeImage(index) {
+    const next = [...images];
+    next.splice(index, 1);
+    setImages(next);
 
-    if (deadlinePassed) {
-      alert("Editing is closed after the request deadline.");
+    // keep defaultIndex valid
+    if (defaultIndex === index) setDefaultIndex(0);
+    else if (index < defaultIndex) setDefaultIndex((prev) => prev - 1);
+  }
+
+  async function handleUpdate() {
+    // client-side guard: ended auctions cannot be edited
+    if (
+      initialProduct?.auctionEndsAt &&
+      new Date(initialProduct.auctionEndsAt) <= new Date()
+    ) {
+      alert("Editing is closed after the auction ends.");
       return;
     }
 
-    const { title, category, condition, donationMode, requestDeadlineLocal } =
+    const { title, category, condition, startingPrice, auctionEndsAtLocal } =
       form;
+
     if (!title || !category || !condition) {
       alert("Please fill in all required fields.");
       return;
     }
+
     if (images.length === 0) {
       alert("Please select at least one image.");
       return;
     }
-    if (donationMode === "selective" && !requestDeadlineLocal) {
-      alert("Please set a request deadline for selective donation.");
+
+    const sp = Number(startingPrice);
+    // IMPORTANT: match your API rule (>= 10)
+    if (!Number.isFinite(sp) || sp < 10) {
+      alert("Starting price must be at least ฿10.");
+      return;
+    }
+
+    if (!auctionEndsAtLocal) {
+      alert("Please set an auction deadline.");
+      return;
+    }
+
+    // validate deadline range: min now+3m, max createdAt+14d
+    const chosen = new Date(auctionEndsAtLocal);
+    const min = new Date(minEndsLocal);
+    const max = new Date(maxEndsLocal);
+
+    if (Number.isNaN(chosen.getTime()) || chosen < min || chosen > max) {
+      alert(
+        `Please choose an auction deadline between ${fmtBKK(min)} and ${fmtBKK(max)}.`,
+      );
       return;
     }
 
     try {
       setLoading(true);
 
+      // upload only NEW files
       const finalImages = await Promise.all(
         images.map(async (img) => {
           if (img.url) return img.url;
+
           const formData = new FormData();
           formData.append("file", img.file);
+
           const res = await fetch("/api/upload", {
             method: "POST",
             body: formData,
           });
+
           const data = await res.json();
           if (!data.url) throw new Error("Upload failed");
           return data.url;
@@ -117,37 +157,19 @@ export default function EditDonationClient({ initialProduct }) {
 
       const defaultImage = finalImages[defaultIndex] ?? finalImages[0];
 
-      if (donationMode === "selective" && form.requestDeadlineLocal) {
-        const chosen = new Date(form.requestDeadlineLocal);
-        if (chosen > HARD_MAX_DATE) {
-          alert(
-            "The request deadline cannot be later than 14 days from when the item was first posted.",
-          );
-          setLoading(false);
-          return;
-        }
-      }
-
       const payload = {
         title: form.title,
         description: form.description,
         category: form.category,
         condition: form.condition,
         location: form.location,
-        type: "donation",
-        price: 0,
-        donationMode,
+        type: "auction",
+        price: 0, // keep schema happy
+        startingPrice: sp,
+        auctionEndsAt: new Date(form.auctionEndsAtLocal).toISOString(),
         images: finalImages,
         defaultImage,
       };
-
-      if (donationMode === "selective") {
-        payload.requestDeadline = new Date(
-          form.requestDeadlineLocal,
-        ).toISOString();
-      } else {
-        payload.requestDeadline = null;
-      }
 
       const res = await fetch(`/api/products/${id}`, {
         method: "PATCH",
@@ -156,46 +178,35 @@ export default function EditDonationClient({ initialProduct }) {
       });
 
       if (res.ok) {
-        router.replace(`/donation/${id}`);
+        router.replace(`/auction/${id}`);
         router.refresh();
         return;
       }
 
       const msg = await res.text();
-      alert(msg || "Error updating donation.");
+      alert(msg || "Error updating auction.");
       setLoading(false);
     } catch (err) {
       console.error(err);
       alert("Something went wrong while updating.");
       setLoading(false);
     }
-  };
-
-  // limit deadline (1h min, hard max = createdAt + 14 days)
-  const createdAt = new Date(initialProduct?.createdAt);
-  const HARD_MAX_DATE = new Date(
-    createdAt.getTime() + 14 * 24 * 60 * 60 * 1000,
-  );
-
-  const minDeadlineLocal = toLocalInputValue(
-    new Date(Date.now() + 60 * 60 * 1000),
-  );
-  const maxDeadlineLocal = toLocalInputValue(HARD_MAX_DATE);
+  }
 
   return (
     <>
       <NavBar />
-      <main className="max-w-[1200px] mx-auto mb-6 px-5">
-        {/* Top Bar */}
+
+      <main className="max-w-[1200px] mx-auto mb-6 px-3">
         <div className="flex justify-start items-center mb-6">
-          <h1 className="text-2xl font-bold text-[#325082]">Edit Donation</h1>
+          <h1 className="text-2xl font-bold text-[#325082]">Edit Auction</h1>
         </div>
 
         <div className="flex flex-col lg:flex-row flex-wrap gap-[30px] items-start">
           {/* Upload Section */}
           <div className="flex-1 w-full sm:h-[364px] min-w-[250px] bg-[#f1f1f1] rounded-[12px] p-4 flex flex-col justify-start">
             <label className="block text-[#325082] font-semibold mb-3">
-              Change Images (max 5)
+              Change Product Images (max 5)
             </label>
 
             <div className="relative w-full mb-4">
@@ -206,7 +217,7 @@ export default function EditDonationClient({ initialProduct }) {
                 onChange={handleImageSelect}
                 className="absolute inset-0 opacity-0 cursor-pointer z-10"
               />
-              <div className="border border-dashed border-[#325082] rounded-md h-[80px] flex items-center justify-center text-[#325082] hover:bg-[#e6ecf5] transition text-sm">
+              <div className="border border-dashed border-[#325082] rounded-md h-[80px] flex items-center justify-center text-[#325082] hover:bg-[#e6ecf5] transition duration-200 text-sm">
                 <span>Click to upload or drag files</span>
               </div>
             </div>
@@ -237,14 +248,7 @@ export default function EditDonationClient({ initialProduct }) {
                     )}
 
                     <button
-                      onClick={() => {
-                        const next = [...images];
-                        next.splice(index, 1);
-                        setImages(next);
-                        if (defaultIndex === index) setDefaultIndex(0);
-                        else if (index < defaultIndex)
-                          setDefaultIndex((prev) => prev - 1);
-                      }}
+                      onClick={() => removeImage(index)}
                       className="absolute top-1 right-1 bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-700 z-10"
                       title="Remove"
                       type="button"
@@ -274,25 +278,56 @@ export default function EditDonationClient({ initialProduct }) {
           <div className="flex-1 w-full lg:min-w-[600px] flex flex-col gap-[15px]">
             <input
               name="title"
-              placeholder="Donation Title *"
+              placeholder="Product Name *"
               value={form.title}
               onChange={handleChange}
               className="bg-[#f1f1f1] p-3 rounded-[8px] outline-none"
             />
+
             <textarea
               name="description"
               value={form.description}
               onChange={handleChange}
-              placeholder="Description"
+              placeholder="Product Description"
               className="bg-[#f1f1f1] p-3 rounded-[8px] min-h-[80px] outline-none"
             />
+
+            {/* Starting price + deadline */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
+                name="startingPrice"
+                value={form.startingPrice}
+                onChange={handleChange}
+                type="number"
+                min="10"
+                step="1"
+                placeholder="Starting Price (฿) *"
+                className="bg-[#f1f1f1] p-3 rounded-[8px] outline-none w-full sm:w-1/2"
+              />
+
+              <input
+                type="datetime-local"
+                name="auctionEndsAtLocal"
+                value={form.auctionEndsAtLocal || ""}
+                onChange={handleChange}
+                min={minEndsLocal}
+                max={maxEndsLocal}
+                className="bg-[#f1f1f1] p-3 rounded-[8px] outline-none w-full sm:w-1/2"
+                placeholder="Auction deadline *"
+              />
+            </div>
+
+            <p className="text-xs text-gray-500 -mt-2 ml-1">
+              Allowed deadline range: {fmtBKK(new Date(minEndsLocal))} →{" "}
+              {fmtBKK(new Date(maxEndsLocal))}
+            </p>
 
             <div className="flex gap-3">
               <select
                 name="category"
                 value={form.category}
                 onChange={handleChange}
-                className="bg-[#f1f1f1] p-3 rounded-[8px] outline-none w-1/2"
+                className="bg-[#f1f1f1] p-3 max-sm:px-1 rounded-[8px] outline-none w-1/2"
               >
                 <option value="" disabled>
                   Select Category *
@@ -309,7 +344,7 @@ export default function EditDonationClient({ initialProduct }) {
                 name="condition"
                 value={form.condition}
                 onChange={handleChange}
-                className="bg-[#f1f1f1] p-3 rounded-[8px] outline-none w-1/2"
+                className="bg-[#f1f1f1] p-3 max-sm:px-1 rounded-[8px] outline-none w-1/2"
               >
                 <option value="" disabled>
                   Select Condition *
@@ -319,62 +354,6 @@ export default function EditDonationClient({ initialProduct }) {
                 <option value="used">Used</option>
                 <option value="poor">Poor</option>
               </select>
-            </div>
-
-            {/* Donation mode + deadline */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <select
-                name="donationMode"
-                value={form.donationMode}
-                onChange={handleChange}
-                className="bg-[#f1f1f1] p-3 rounded-[8px] outline-none w-full sm:w-1/2"
-              >
-                <option value="instant">Instant (first-come)</option>
-                <option value="selective">
-                  Selective (you choose recipient)
-                </option>
-              </select>
-
-              {/* Deadline Section - moves below dropdown on mobile */}
-              <div className="flex flex-col w-full sm:w-1/2">
-                <div className="flex items-start justify-between gap-2">
-                  {form.donationMode === "selective" ? (
-                    <input
-                      type="datetime-local"
-                      name="requestDeadlineLocal"
-                      value={form.requestDeadlineLocal || ""}
-                      onChange={handleChange}
-                      min={minDeadlineLocal}
-                      max={maxDeadlineLocal}
-                      className="bg-[#f1f1f1] p-3 rounded-[8px] outline-none flex-1"
-                      placeholder="Request deadline"
-                    />
-                  ) : (
-                    <input
-                      type="text"
-                      value=""
-                      readOnly
-                      aria-disabled="true"
-                      placeholder="Request deadline (selective only)"
-                      className="bg-[#f1f1f1] p-3 rounded-[8px] outline-none flex-1 text-gray-500 cursor-not-allowed"
-                    />
-                  )}
-
-                  {form.donationMode === "selective" && (
-                    <p className="text-xs text-gray-500 text-right leading-tight whitespace-nowrap mt-1 sm:mt-0">
-                      Max allowed:
-                      <br />
-                      {maxDeadlineLocal.split("T")[0]}
-                      <br />
-                      {new Date(maxDeadlineLocal).toLocaleTimeString("en-US", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: true,
-                      })}
-                    </p>
-                  )}
-                </div>
-              </div>
             </div>
 
             <textarea
@@ -391,11 +370,11 @@ export default function EditDonationClient({ initialProduct }) {
           <ActionButton
             text="Cancel"
             variant="outlineClick"
-            onClick={() => router.push(`/donation/${id}`)}
+            onClick={() => router.push(`/auction/${id}`)}
             disabled={loading}
           />
           <ActionButton
-            text={loading ? "Saving..." : "Update Donation"}
+            text={loading ? "Saving..." : "Update Auction"}
             variant="primaryClick"
             onClick={handleUpdate}
             disabled={loading}

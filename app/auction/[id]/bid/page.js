@@ -1,5 +1,4 @@
 // app/auction/[id]/bid/page.js
-import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import NavBar from "@/components/NavBar";
@@ -8,16 +7,18 @@ import Stepper from "@/components/Stepper";
 import ConfirmBidButton from "./ConfirmBidButton";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
+import Product from "@/models/Product";
+import Auction from "@/models/Auction";
 import { fmtBKK } from "@/utils/timeAgo";
 
 function ceilBaht(n) {
   return Math.ceil(Number(n) || 0);
 }
 
-function minNextBid(product) {
+function minNextBid(product, auction) {
   const base = Number(product?.startingPrice) || 0;
-  const last = Number(product?.currentBid?.amount) || 0;
-  const inc = ceilBaht(base * 0.05); // ✅ fixed: always base increment
+  const last = Number(auction?.currentBid?.amount) || 0;
+  const inc = ceilBaht(base * 0.05);
   const ref = last > 0 ? last : base;
   return ceilBaht(ref + inc);
 }
@@ -26,42 +27,57 @@ export const dynamic = "force-dynamic";
 
 export default async function AuctionBidPage({ params }) {
   const { id } = await params;
-  const cookieStore = await cookies();
   const session = await auth();
   const sessionEmail = session?.user?.email || "";
 
   if (!sessionEmail) redirect(`/auction/${id}`);
 
-  // fetch product
-  const prodRes = await fetch(
-    `${process.env.NEXT_PUBLIC_BASE_URL}/api/products/${id}`,
-    { headers: { Cookie: cookieStore.toString() }, cache: "no-store" },
-  );
-  if (!prodRes.ok) return redirect(`/auction/${id}`);
-  const product = await prodRes.json();
+  await connectDB();
+
+  const product = await Product.findById(id).populate("owner").lean();
+  if (!product) return redirect(`/auction`);
 
   // guards
   if (product.type !== "auction") return redirect(`/${product.type}/${id}`);
   if (product.owner?.email === sessionEmail) return redirect(`/auction/${id}`);
   if (product.isAvailable === false) return redirect(`/auction/${id}`);
+  if (product.isHidden) return redirect(`/auction/${id}`);
+
+  const auction = await Auction.findOne({ product: product._id })
+    .populate({ path: "currentBid.bidder", select: "name email image" })
+    .lean();
+
+  if (!auction) return redirect(`/auction/${id}`);
+  if (auction.status !== "OPEN") return redirect(`/auction/${id}`);
 
   const endsAt = product?.auctionEndsAt
     ? new Date(product.auctionEndsAt)
-    : null;
+    : auction?.endsAt
+      ? new Date(auction.endsAt)
+      : null;
+
   if (endsAt && endsAt.getTime() <= Date.now())
     return redirect(`/auction/${id}`);
 
-  // ✅ Require Phone + Location
-  await connectDB();
+  // Require Phone + Location
   const me = await User.findOne({ email: sessionEmail })
     .select("phone location")
     .lean();
 
   if (!me?.phone || !me?.location) {
-    return redirect(`/auction/${id}`); // product page button will trigger the modal
+    return redirect(`/auction/${id}`);
   }
 
-  const minBid = minNextBid(product);
+  // block same bidder twice in a row (server route also checks)
+  const lastBidderEmail = auction?.currentBid?.bidder?.email || "";
+  if (lastBidderEmail && lastBidderEmail === sessionEmail) {
+    return redirect(`/auction/${id}`);
+  }
+
+  const minBid = minNextBid(product, auction);
+
+  const currentHighest =
+    Number(auction?.currentBid?.amount) || Number(product.startingPrice || 0);
 
   return (
     <>
@@ -113,12 +129,7 @@ export default async function AuctionBidPage({ params }) {
                     <div>
                       Current highest:{" "}
                       <span className="font-semibold">
-                        ฿
-                        {Number(
-                          product.currentBid?.amount ||
-                            product.startingPrice ||
-                            0,
-                        ).toLocaleString()}
+                        ฿{currentHighest.toLocaleString()}
                       </span>
                     </div>
 
@@ -129,12 +140,10 @@ export default async function AuctionBidPage({ params }) {
                       </span>
                     </div>
 
-                    {product.auctionEndsAt && (
+                    {endsAt && (
                       <div className="text-rose-700">
                         Ends at:&nbsp;
-                        <span className="font-semibold">
-                          {fmtBKK(product.auctionEndsAt)}
-                        </span>
+                        <span className="font-semibold">{fmtBKK(endsAt)}</span>
                       </div>
                     )}
                   </div>
@@ -150,6 +159,7 @@ export default async function AuctionBidPage({ params }) {
                   <li>First valid bid must be ≥ base + 5% of base.</li>
                   <li>Next bids must be ≥ last bid + 5% of base price.</li>
                   <li>Bids after the deadline are rejected.</li>
+                  <li>You can't bid twice in a row as the highest bidder.</li>
                 </ul>
               </div>
             </div>
@@ -184,7 +194,7 @@ export default async function AuctionBidPage({ params }) {
 
                   <div className="mt-2">
                     <ConfirmBidButton
-                      productId={product._id}
+                      productId={String(product._id)}
                       formId="auctionBidForm"
                       minBid={minBid}
                     />
@@ -192,7 +202,7 @@ export default async function AuctionBidPage({ params }) {
 
                   <p className="text-xs text-center text-gray-600 -mt-1 leading-relaxed">
                     By placing a bid, you agree to proceed with payment later if
-                    you win. (Transaction step will be added next.)
+                    you win.
                   </p>
                 </form>
               </div>

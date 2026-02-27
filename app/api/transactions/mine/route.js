@@ -48,25 +48,41 @@ export async function GET(req) {
           meta: { source: "mine_list" },
         },
       },
-    }
+    },
   );
 
-  // 2) Free products from those expired transactions (recent flips)
-  const expiredIds = await Transaction.find({
+  // 2) Handle products from those expired transactions (recent flips)
+  const expired = await Transaction.find({
     status: "CANCELLED_BY_BUYER",
     cancelReason: "timeout",
     updatedAt: { $gte: new Date(now.getTime() - 60_000) },
     $or: [{ buyer: me._id }, { seller: me._id }],
   })
-    .select("_id product")
+    .select("_id product kind")
     .lean();
 
-  const productIds = expiredIds.map((x) => x.product).filter(Boolean);
-  if (productIds.length) {
+  const normalProductIds = expired
+    .filter((t) => t.kind !== "AUCTION")
+    .map((t) => t.product)
+    .filter(Boolean);
+
+  if (normalProductIds.length) {
     await Product.updateMany(
-      { _id: { $in: productIds } },
-      { $set: { isAvailable: true } }
+      { _id: { $in: normalProductIds } },
+      { $set: { isAvailable: true } },
     );
+  }
+
+  // ✅ auctions: advance queue
+  const auctionExpired = expired.filter(
+    (t) => t.kind === "AUCTION" && t.product,
+  );
+  for (const t of auctionExpired) {
+    // dynamic import to avoid circular import issues if any
+    const { advanceAuctionWinner } = await import("@/lib/auctionFlow");
+    await advanceAuctionWinner(String(t.product), String(t._id), {
+      actorUserId: me._id,
+    });
   }
   // 🔵 END sweep
 

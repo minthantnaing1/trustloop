@@ -310,22 +310,34 @@ function NavBar() {
     };
   }, [showNotifPanel, fetchUnread]);
 
-  const navLinks = useMemo(() => {
-    const links = [
+  const navLinks = useMemo(
+    () => [
       { label: "HOME", href: "/home" },
       { label: "BUY", href: "/buy" },
       { label: "SELL", href: "/sell" },
       { label: "DONATION", href: "/donation" },
-      { label: "MY ORDERS", href: myOrdersHref }, // ✅ keep your changed one
-    ];
+      { label: "AUCTION", href: "/auction" },
+      { label: "MY ORDERS", href: myOrdersHref }, // ✅ changed
+    ],
+    [myOrdersHref],
+  );
 
-    // ✅ Only admin sees AUCTION for now
-    if (isAdmin) {
-      links.splice(4, 0, { label: "AUCTION", href: "/auction" }); // insert before MY ORDERS
-    }
+  // const navLinks = useMemo(() => {
+  //   const links = [
+  //     { label: "HOME", href: "/home" },
+  //     { label: "BUY", href: "/buy" },
+  //     { label: "SELL", href: "/sell" },
+  //     { label: "DONATION", href: "/donation" },
+  //     { label: "MY ORDERS", href: myOrdersHref }, // ✅ keep your changed one
+  //   ];
 
-    return links;
-  }, [myOrdersHref, isAdmin]);
+  //   // ✅ Only admin sees AUCTION for now
+  //   if (isAdmin) {
+  //     links.splice(4, 0, { label: "AUCTION", href: "/auction" }); // insert before MY ORDERS
+  //   }
+
+  //   return links;
+  // }, [myOrdersHref, isAdmin]);
 
   const isActiveLink = (href) => {
     const baseHref = (href || "").split("?")[0];

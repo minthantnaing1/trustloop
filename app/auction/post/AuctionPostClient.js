@@ -61,8 +61,8 @@ export default function AuctionPostClient({ initialLocation = "" }) {
     }
 
     const sp = Number(startingPrice);
-    if (!Number.isFinite(sp) || sp <= 0) {
-      alert("Please enter a valid starting price (must be > 0).");
+    if (!Number.isFinite(sp) || sp < 10) {
+      alert("Please enter a valid starting price must be at least 10.");
       return;
     }
 
@@ -117,7 +117,7 @@ export default function AuctionPostClient({ initialLocation = "" }) {
         condition: form.condition,
         location: form.location,
         type: "auction",
-        price: 0, // ✅ keep schema happy, auction uses startingPrice/currentBid
+        price: 0, // keep schema happy
         startingPrice: sp,
         auctionEndsAt: new Date(form.auctionEndsAtLocal).toISOString(),
         images: uploadedUrls,
@@ -273,7 +273,7 @@ export default function AuctionPostClient({ initialLocation = "" }) {
               value={form.startingPrice}
               onChange={handleChange}
               type="number"
-              min="1000"
+              min="10"
               step="1"
               placeholder="Starting Price (฿) *"
               className="bg-[#f1f1f1] p-3 rounded-[8px] outline-none w-full sm:w-1/2"

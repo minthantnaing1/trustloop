@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 import Product from "@/models/Product";
 import Transaction from "@/models/Transaction";
+import Auction from "@/models/Auction";
 import { auth } from "@/auth";
 import cloudinary from "@/lib/cloudinary";
 import DonationRequest from "@/models/DonationRequest";
@@ -15,24 +16,18 @@ export async function GET(_req, { params }) {
     await connectDB();
     const session = await auth();
 
-    // ✅ Populate owner + auction bidder info
-    const product = await Product.findById(id)
-      .populate("owner")
-      .populate({ path: "currentBid.bidder", select: "name email image" })
-      .populate({ path: "bidHistory.bidder", select: "name email image" });
+    // ✅ Only populate owner on Product (auction bid fields are NOT on Product anymore)
+    const product = await Product.findById(id).populate("owner");
+    if (!product) return new Response("Product not found", { status: 404 });
 
-    if (!product) {
-      return new Response("Product not found", { status: 404 });
-    }
-
-    const isOwner = session?.user?.email === product.owner.email;
+    const isOwner = session?.user?.email === product.owner?.email;
 
     // Hidden items: only owner can view
     if (product.isHidden && !isOwner) {
       return new Response("Product not found", { status: 404 });
     }
 
-    // Reserved/unavailable items: only owner OR the actual buyer can view
+    // Reserved/unavailable items: only owner OR actual buyer can view
     if (product.isAvailable === false) {
       const viewerEmail = session?.user?.email || null;
       const viewer = viewerEmail
@@ -43,15 +38,39 @@ export async function GET(_req, { params }) {
         viewer &&
         String(product.owner?._id || product.owner) === String(viewer?._id);
 
-      const txn = await Transaction.findOne({ product: product._id })
-        .sort({ createdAt: -1 })
-        .select("buyer");
+      let isBuyerView = false;
 
-      const isBuyerView =
-        viewer && txn && String(txn.buyer) === String(viewer._id);
+      if (viewer) {
+        // For AUCTION: prefer current Auction txn buyer (not old cancelled ones)
+        if (product.type === "auction") {
+          const a = await Auction.findOne({ product: product._id })
+            .select("currentTxn")
+            .lean();
+
+          if (a?.currentTxn) {
+            const currentTxn = await Transaction.findById(a.currentTxn)
+              .select("buyer")
+              .lean();
+            isBuyerView =
+              currentTxn && String(currentTxn.buyer) === String(viewer._id);
+          } else {
+            // fallback
+            const txn = await Transaction.findOne({ product: product._id })
+              .sort({ createdAt: -1 })
+              .select("buyer")
+              .lean();
+            isBuyerView = txn && String(txn.buyer) === String(viewer._id);
+          }
+        } else {
+          const txn = await Transaction.findOne({ product: product._id })
+            .sort({ createdAt: -1 })
+            .select("buyer")
+            .lean();
+          isBuyerView = txn && String(txn.buyer) === String(viewer._id);
+        }
+      }
 
       if (!isOwnerView && !isBuyerView) {
-        // Let /buy/[id] render your "listing isn’t available" UI
         return new Response("Unavailable", { status: 403 });
       }
     }
@@ -65,9 +84,8 @@ export async function GET(_req, { params }) {
     let viewerRequestsOut = undefined;
 
     if (product.type === "donation" && product.donationMode === "selective") {
-      const viewerEmail2 = session?.user?.email || null;
-      const viewer2 = viewerEmail2
-        ? await User.findOne({ email: viewerEmail2 }).select("_id email")
+      const viewer2 = viewerEmail
+        ? await User.findOne({ email: viewerEmail }).select("_id email")
         : null;
 
       if (viewer2) {
@@ -77,7 +95,6 @@ export async function GET(_req, { params }) {
           status: "pending",
         }));
 
-        // 🔹 Always get viewer’s own requests (for non-owner UI)
         const viewerReqs = await DonationRequest.find({
           product: product._id,
           requester: viewer2._id,
@@ -100,7 +117,6 @@ export async function GET(_req, { params }) {
         }));
       }
 
-      // 🔹 Owner sees all requests
       if (isOwner) {
         const reqs = await DonationRequest.find({ product: product._id })
           .populate({ path: "requester", select: "name email image" })
@@ -133,50 +149,81 @@ export async function GET(_req, { params }) {
       }
     }
 
-    // --- Auction hydration (bidder info like donation style) ---
-    let currentBidOut = undefined;
-    let bidHistoryOut = undefined;
-    let ended = false;
+    // --- Auction hydration (from Auction model) ---
+    let auctionOut = undefined;
 
     if (product.type === "auction") {
-      const endsAt = product.auctionEndsAt
-        ? new Date(product.auctionEndsAt)
-        : null;
-      if (endsAt && !Number.isNaN(endsAt.getTime())) {
-        ended = endsAt.getTime() <= Date.now();
-      }
+      const a = await Auction.findOne({ product: product._id })
+        .populate({ path: "currentBid.bidder", select: "name email image" })
+        .populate({ path: "bidHistory.bidder", select: "name email image" })
+        .populate({ path: "winner", select: "name email image" })
+        .select(
+          "status endsAt startingPrice currentBid bidHistory winner finalPrice paymentExpiresAt currentTxn currentIndex queue",
+        );
 
-      if (product.currentBid && typeof product.currentBid === "object") {
-        const b = product.currentBid;
-        currentBidOut = {
-          amount: Number(b.amount || 0),
-          bidder: b.bidder
+      if (a) {
+        const endsAt = a.endsAt ? new Date(a.endsAt) : null;
+        const ended =
+          endsAt && !Number.isNaN(endsAt.getTime())
+            ? endsAt.getTime() <= Date.now()
+            : false;
+
+        const currentBidOut = a.currentBid
+          ? {
+              amount: Number(a.currentBid.amount || 0),
+              bidder: a.currentBid.bidder
+                ? {
+                    _id: String(a.currentBid.bidder?._id || ""),
+                    name:
+                      a.currentBid.bidder?.name ||
+                      a.currentBid.bidder?.email ||
+                      "",
+                    email: a.currentBid.bidder?.email || "",
+                    image: a.currentBid.bidder?.image || "",
+                  }
+                : null,
+            }
+          : { amount: 0, bidder: null };
+
+        const list = Array.isArray(a.bidHistory) ? a.bidHistory : [];
+        const bidHistoryOut = [...list]
+          .sort((x, y) => new Date(y.time) - new Date(x.time))
+          .map((h) => ({
+            bidder: h.bidder
+              ? {
+                  _id: String(h.bidder?._id || ""),
+                  name: h.bidder?.name || h.bidder?.email || "",
+                  email: h.bidder?.email || "",
+                  image: h.bidder?.image || "",
+                }
+              : null,
+            amount: Number(h.amount || 0),
+            time: h.time,
+          }));
+
+        auctionOut = {
+          _id: String(a._id),
+          status: a.status,
+          endsAt: a.endsAt,
+          startingPrice: Number(a.startingPrice || 0),
+          currentBid: currentBidOut,
+          bidHistory: bidHistoryOut,
+          ended,
+
+          // winner/payment UI
+          winner: a.winner
             ? {
-                _id: String(b.bidder?._id || ""),
-                name: b.bidder?.name || b.bidder?.email || "",
-                email: b.bidder?.email || "",
-                image: b.bidder?.image || "",
+                _id: String(a.winner?._id || ""),
+                name: a.winner?.name || a.winner?.email || "",
+                email: a.winner?.email || "",
+                image: a.winner?.image || "",
               }
             : null,
+          finalPrice: Number(a.finalPrice || 0),
+          paymentExpiresAt: a.paymentExpiresAt || null,
+          currentTxn: a.currentTxn ? String(a.currentTxn) : null,
         };
       }
-
-      // sort newest first for UI
-      const list = Array.isArray(product.bidHistory) ? product.bidHistory : [];
-      bidHistoryOut = [...list]
-        .sort((a, b) => new Date(b.time) - new Date(a.time))
-        .map((h) => ({
-          bidder: h.bidder
-            ? {
-                _id: String(h.bidder?._id || ""),
-                name: h.bidder?.name || h.bidder?.email || "",
-                email: h.bidder?.email || "",
-                image: h.bidder?.image || "",
-              }
-            : null,
-          amount: Number(h.amount || 0),
-          time: h.time,
-        }));
     }
 
     const out = {
@@ -188,14 +235,8 @@ export async function GET(_req, { params }) {
       ...(requestsOut ? { requests: requestsOut } : {}),
       ...(viewerRequestsOut ? { viewerRequests: viewerRequestsOut } : {}),
 
-      // ✅ auction fields for UI
-      ...(product.type === "auction"
-        ? {
-            currentBid: currentBidOut || null,
-            bidHistory: bidHistoryOut || [],
-            ended,
-          }
-        : {}),
+      // ✅ for auction UI: send the auction engine object
+      ...(product.type === "auction" ? { auction: auctionOut || null } : {}),
     };
 
     return new Response(JSON.stringify(out), { status: 200 });
@@ -218,11 +259,9 @@ export async function DELETE(_req, { params }) {
     await connectDB();
 
     const product = await Product.findById(id).populate("owner");
-    if (!product) {
-      return new Response("Product not found", { status: 404 });
-    }
+    if (!product) return new Response("Product not found", { status: 404 });
 
-    if (product.owner.email !== session.user.email) {
+    if (product.owner?.email !== session.user.email) {
       return new Response("Unauthorized - Not your product", { status: 403 });
     }
 
@@ -241,6 +280,11 @@ export async function DELETE(_req, { params }) {
           console.warn("⚠️ Cloudinary deletion failed for:", publicId);
         }
       }
+    }
+
+    // ✅ If auction: delete engine doc too
+    if (product.type === "auction") {
+      await Auction.deleteOne({ product: product._id }).catch(() => {});
     }
 
     await Product.findByIdAndDelete(id);
@@ -266,11 +310,9 @@ export async function PATCH(req, { params }) {
     await connectDB();
 
     const product = await Product.findById(id).populate("owner");
-    if (!product) {
-      return new Response("Product not found", { status: 404 });
-    }
+    if (!product) return new Response("Product not found", { status: 404 });
 
-    if (product.owner.email !== session.user.email) {
+    if (product.owner?.email !== session.user.email) {
       return new Response("Unauthorized - Not your product", { status: 403 });
     }
 
@@ -320,8 +362,7 @@ export async function PATCH(req, { params }) {
       }
     }
 
-    // ✅ Whitelist fields to prevent mass-assignment
-    // NOTE: we intentionally do NOT allow editing bidHistory/currentBid
+    // ✅ Whitelist fields
     const allowed = [
       "title",
       "description",
@@ -345,7 +386,7 @@ export async function PATCH(req, { params }) {
       if (k in body) product[k] = body[k];
     }
 
-    // ✅ Donation-specific enforcement
+    // ✅ Donation enforcement
     if (product.type === "donation") {
       product.price = 0;
 
@@ -374,15 +415,13 @@ export async function PATCH(req, { params }) {
       }
     }
 
-    // ✅ Auction-specific enforcement (minimal + safe)
+    // ✅ Auction enforcement + sync engine doc
     if (product.type === "auction") {
-      // keep schema happy
       product.price = 0;
 
-      // minimum base 1000
       const sp = Number(product.startingPrice);
-      if (!Number.isFinite(sp) || sp < 1000) {
-        return new Response("startingPrice must be at least ฿1,000.", {
+      if (!Number.isFinite(sp) || sp < 10) {
+        return new Response("startingPrice must be at least ฿10.", {
           status: 400,
         });
       }
@@ -399,13 +438,45 @@ export async function PATCH(req, { params }) {
         return new Response("Invalid auctionEndsAt.", { status: 400 });
       }
 
-      // keep deadline not too far: createdAt + 14 days
       const MS_14D = 14 * 24 * 60 * 60 * 1000;
       const createdAt = new Date(product.createdAt);
       const hardMax = new Date(createdAt.getTime() + MS_14D);
-
       if (ends > hardMax) {
         product.auctionEndsAt = hardMax.toISOString();
+      }
+
+      // ✅ Sync Auction engine (only if still OPEN and no bids yet)
+      const a = await Auction.findOne({ product: product._id }).select(
+        "status currentBid bidHistory",
+      );
+
+      if (a) {
+        const hasAnyBid =
+          Number(a?.currentBid?.amount || 0) > 0 ||
+          (Array.isArray(a.bidHistory) && a.bidHistory.length > 0);
+
+        // keep it safe: don’t let seller change base/end if bids already exist
+        if (hasAnyBid) {
+          // allow normal edits (title/desc/images), but block changes to auction params
+          if ("startingPrice" in body || "auctionEndsAt" in body) {
+            return new Response(
+              "Cannot edit startingPrice/auctionEndsAt after bids have been placed.",
+              { status: 409 },
+            );
+          }
+        } else {
+          // no bids yet → safe to sync
+          await Auction.updateOne(
+            { _id: a._id },
+            {
+              $set: {
+                startingPrice: Number(product.startingPrice || 0),
+                endsAt: new Date(product.auctionEndsAt),
+              },
+              $inc: { version: 1 },
+            },
+          );
+        }
       }
     }
 

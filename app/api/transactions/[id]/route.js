@@ -327,10 +327,16 @@ export async function PATCH(req, { params }) {
     });
 
     if (txn.product) {
-      await Product.updateOne(
-        { _id: txn.product },
-        { $set: { isAvailable: true } },
-      );
+      if (txn.kind === "AUCTION") {
+        await advanceAuctionWinner(String(txn.product), String(txn._id), {
+          actorUserId: me._id,
+        });
+      } else {
+        await Product.updateOne(
+          { _id: txn.product },
+          { $set: { isAvailable: true } },
+        );
+      }
     }
 
     return Response.json({ success: true, status: txn.status });
