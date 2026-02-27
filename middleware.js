@@ -8,6 +8,7 @@ const protectedRoutes = [
   /^\/buy(\/.*)?$/,
   /^\/sell(\/.*)?$/,
   /^\/donation(\/.*)?$/,
+  /^\/auction(\/.*)?$/,
   /^\/my-orders(\/.*)?$/,
   /^\/profile(\/.*)?$/,
   /^\/review(\/.*)?$/,

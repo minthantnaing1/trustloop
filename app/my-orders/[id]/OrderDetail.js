@@ -20,18 +20,19 @@ import UploadProofModal from "@/components/UploadProofModal";
 
 function labelParty(kind, isSellerView) {
   if (kind === "DONATION") return isSellerView ? "Recipient" : "Donor";
+  if (kind === "AUCTION") return isSellerView ? "Winner" : "Seller";
   return isSellerView ? "Buyer" : "Seller";
 }
 
 function productHref(kind, isSellerView, productId) {
   if (kind === "DONATION") return `/donation/${productId}`;
+  if (kind === "AUCTION") return `/auction/${productId}`;
   return isSellerView ? `/sell/${productId}` : `/buy/${productId}`;
 }
 
 function totalText(kind, total) {
-  return kind === "DONATION"
-    ? "Free"
-    : `฿${Number(total || 0).toLocaleString()}`;
+  if (kind === "DONATION") return "Free";
+  return `฿${Number(total || 0).toLocaleString()}`;
 }
 
 export default function OrderDetail({ id }) {
@@ -54,7 +55,13 @@ export default function OrderDetail({ id }) {
     }
   }, [remainMs]);
 
-  const kind = txn?.kind || "BUY_SELL";
+  const kind =
+    txn?.kind ||
+    (String(txn?.product?.type || "").toLowerCase() === "auction"
+      ? "AUCTION"
+      : String(txn?.product?.type || "").toLowerCase() === "donation"
+        ? "DONATION"
+        : "BUY_SELL");
   const isBuyer = me && txn && String(txn.buyer?._id) === String(me._id);
   const isSeller = me && txn && String(txn.seller?._id) === String(me._id);
 
@@ -218,9 +225,13 @@ export default function OrderDetail({ id }) {
               ? isSeller
                 ? "donor"
                 : "recipient"
-              : isBuyer
-                ? "buyer"
-                : "seller"
+              : kind === "AUCTION"
+                ? isBuyer
+                  ? "auctionBuyer"
+                  : "auctionSeller"
+                : isBuyer
+                  ? "buyer"
+                  : "seller"
           }
         />
       )}
@@ -230,7 +241,11 @@ export default function OrderDetail({ id }) {
         <div className="flex flex-wrap gap-4 items-start justify-between">
           <div>
             <div className="text-lg font-bold text-[#325082]">
-              {kind === "DONATION" ? "Donation" : "Buy & Sell"}
+              {kind === "DONATION"
+                ? "Donation"
+                : kind === "AUCTION"
+                  ? "Auction"
+                  : "Buy & Sell"}
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -291,9 +306,13 @@ export default function OrderDetail({ id }) {
                 ? isSeller
                   ? "My Donation:"
                   : "Donation Item:"
-                : isSeller
-                  ? "My Product:"
-                  : "Product:"}
+                : kind === "AUCTION"
+                  ? isSeller
+                    ? "My Auction Item:"
+                    : "Auction Item:"
+                  : isSeller
+                    ? "My Product:"
+                    : "Product:"}
             </div>
             <h3 className="text-lg font-semibold text-[#325082]">
               {txn.product?.title || "-"}
@@ -348,9 +367,11 @@ export default function OrderDetail({ id }) {
                 ? isSeller
                   ? "My Donation Details"
                   : "Donation Details"
-                : isSeller
-                  ? "My Product Details"
-                  : "Product Details"}
+                : kind === "AUCTION"
+                  ? "Auction Details"
+                  : isSeller
+                    ? "My Product Details"
+                    : "Product Details"}
             </Link>
 
             {/* Buyer: Confirm Received */}

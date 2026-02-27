@@ -89,7 +89,7 @@ export default async function AuctionBidPage({ params }) {
         </div>
 
         <div className="mb-5">
-          <Stepper current={1} variant="buyer" className="px-1" />
+          <Stepper current={1} variant="auctionBuyer" className="px-1" />
         </div>
 
         <div className="bg-white border border-gray-300 rounded-[5px] shadow-xl p-6">

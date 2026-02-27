@@ -152,7 +152,7 @@ export default function AuctionPostClient({ initialLocation = "" }) {
       </div>
 
       <div className="mb-5">
-        <Stepper current={1} variant="seller" className="px-1" />
+        <Stepper current={1} variant="auctionSeller" className="px-1" />
       </div>
 
       <div className="flex flex-col lg:flex-row flex-wrap gap-[30px] items-start">

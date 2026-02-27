@@ -566,7 +566,7 @@ export default function MyOrdersClient() {
             className="mb-4"
             style={{ animation: "fadeSlide 800ms ease-out" }}
           >
-            {/* <Stepper current={2} variant="recipient" className="px-1" /> */}
+            <Stepper current={2} variant="recipient" className="px-1" />
           </div>
         )}
 

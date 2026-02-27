@@ -15,6 +15,15 @@ const PRESETS = {
   // Donation (unchanged)
   donor: ["Donate", "Accept / Review", "Meetup", "Complete"],
   recipient: ["Request", "Await Donor Response", "Meetup", "Thanks / Review"],
+
+  // Auction ✅ NEW
+  auctionBuyer: ["Bid Auction & Pay", "Chat", "Receive Item", "Review"],
+  auctionSeller: [
+    "List Auction",
+    "Chat",
+    "Product Delivered (upload evidence)",
+    "Payout & Review",
+  ],
 };
 
 /**
