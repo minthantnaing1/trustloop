@@ -80,7 +80,7 @@ export default function DonationPostClient({ initialLocation = "" }) {
       // if invalid or outside [min, max], stop before any upload happens
       if (Number.isNaN(chosen.getTime()) || chosen < min || chosen > max) {
         alert(
-          `Please choose a deadline between ${fmtBKK(min)} and ${fmtBKK(max)}.`
+          `Please choose a deadline between ${fmtBKK(min)} and ${fmtBKK(max)}.`,
         );
         return; // <-- prevents Cloudinary uploads
       }
@@ -103,7 +103,7 @@ export default function DonationPostClient({ initialLocation = "" }) {
           const data = await res.json();
           if (!data.url) throw new Error("Upload failed");
           return data.url;
-        })
+        }),
       );
 
       const defaultImage = uploadedUrls[defaultIndex];
@@ -155,7 +155,7 @@ export default function DonationPostClient({ initialLocation = "" }) {
   // );
   const minDeadlineLocal = toLocalInputValue(new Date(Date.now()));
   const maxDeadlineLocal = toLocalInputValue(
-    new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+    new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
   );
 
   return (
@@ -166,9 +166,9 @@ export default function DonationPostClient({ initialLocation = "" }) {
       </div>
 
       {/* Progress Stepper (seller-style for posting) */}
-      <div className="mb-5">
+      {/* <div className="mb-5">
         <Stepper current={1} variant="donor" className="px-1" />
-      </div>
+      </div> */}
 
       <div className="flex flex-col lg:flex-row flex-wrap gap-[30px] items-start">
         {/* Upload Section */}

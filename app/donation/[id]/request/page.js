@@ -6,6 +6,7 @@ import NavBar from "@/components/NavBar";
 import BackButton from "@/components/BackButton";
 import Stepper from "@/components/Stepper";
 import ConfirmDonationRequestButton from "./ConfirmDonationRequestButton";
+import DeadlineCountdown from "@/components/DeadlineCountdown";
 import { connectDB } from "@/lib/db"; // ← add
 import User from "@/models/User";
 
@@ -62,9 +63,9 @@ export default async function DonationRequestPage({ params }) {
           <BackButton />
         </div>
 
-        <div className="mb-5">
+        {/* <div className="mb-5">
           <Stepper current={1} variant="recipient" className="px-1" />
-        </div>
+        </div> */}
 
         <div className="bg-white border border-gray-300 rounded-[5px] shadow-xl p-6">
           <div className="flex flex-col lg:flex-row gap-6">
@@ -117,6 +118,15 @@ export default async function DonationRequestPage({ params }) {
                               timeZone: "Asia/Bangkok",
                             }).format(new Date(product.requestDeadline))}
                           </span>
+                          &nbsp;
+                          <span className="font-semibold">
+                            (
+                            <DeadlineCountdown
+                              target={product.requestDeadline}
+                              prefix=""
+                            />{" "}
+                            left)
+                          </span>
                         </div>
                       )}
                   </div>
@@ -137,6 +147,14 @@ export default async function DonationRequestPage({ params }) {
                       An order is opened (no payment). You and donor can arrange
                       delivery part in order details.
                     </li>
+                    <li>
+                      After donor accepted, arrange delivery via fulfillment
+                      chat in Order Details.
+                    </li>
+                    <li>
+                      Donor delivers or meets you; you confirm you&apos;ve
+                      received the item.
+                    </li>
                   </ul>
                 ) : (
                   <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
@@ -147,6 +165,14 @@ export default async function DonationRequestPage({ params }) {
                     <li>
                       If the donor accepts you, the item will be reserved and an
                       order will open (no payment).
+                    </li>
+                    <li>
+                      After donor accepted, arrange delivery via fulfillment
+                      chat in Order Details.
+                    </li>
+                    <li>
+                      Donor delivers or meets you; you confirm you&apos;ve
+                      received the item.
                     </li>
                   </ul>
                 )}

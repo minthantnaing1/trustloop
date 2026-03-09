@@ -1,3 +1,4 @@
+// app/my-orders/[id]/payout/page.js
 import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import Link from "next/link";
@@ -96,6 +97,7 @@ export default async function SellerPayoutPage({ params }) {
   // Kind + guards
   const kind = (txn?.kind || txn?.type || "").toUpperCase();
   const isDonation = kind === "DONATION";
+  const isAuction = kind === "AUCTION";
 
   // Buy & Sell guard (unchanged): allow only in final phases
   const SELL_ALLOWED = new Set([
@@ -150,10 +152,11 @@ export default async function SellerPayoutPage({ params }) {
   const buyer = txn?.buyer || {};
 
   // Amounts (use backend if present; else compute a fallback)
-  const price = Number(txn?.price || 0);
   const fee = Number(txn?.fee || 0);
   const total = Number(txn?.total || 0);
   const sellerNet = Number(txn?.sellerNet || 0);
+
+  const displayBaseAmount = isAuction ? total : Number(txn?.price || 0);
 
   // Payout artifacts from admin
   const payout = txn?.payout || {}; // { status, reference, paidAt, receiptUrl? }
@@ -202,13 +205,13 @@ export default async function SellerPayoutPage({ params }) {
         </div>
 
         {/* Stepper */}
-        <div className="mb-5">
+        {/* <div className="mb-5">
           <Stepper
             current={4}
             variant={isDonation ? "donor" : "seller"}
             className="px-1"
           />
-        </div>
+        </div> */}
 
         {/* Donation (donor) view */}
         {isDonation ? (
@@ -359,7 +362,7 @@ export default async function SellerPayoutPage({ params }) {
                         <div className="mt-1 space-y-1">
                           <p className="text-[13px] text-gray-700">
                             <span className="font-medium text-[#325082]">
-                              Total:
+                              {isAuction ? "Winning Bid:" : "Total:"}
                             </span>{" "}
                             {fmtTHB(total)}
                           </p>
@@ -492,10 +495,10 @@ export default async function SellerPayoutPage({ params }) {
                     <tbody className="divide-y divide-[#eef4ff]">
                       <tr>
                         <td className="px-4 py-2 text-gray-600">
-                          Product Price
+                          {isAuction ? "Winning Bid" : "Product Price"}
                         </td>
                         <td className="px-4 py-2 text-right font-medium">
-                          {fmtTHB(price)}
+                          {fmtTHB(displayBaseAmount)}
                         </td>
                       </tr>
 

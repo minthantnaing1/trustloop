@@ -58,11 +58,8 @@ export async function POST(req) {
       fee: 0,
       total: 0,
       sellerNet: 0,
-      fulfillment: {
-        method: "MEETUP",
-        meetupLocation: product.location || "",
-        notes: "", // reserved for meetup arrangement
-      },
+      buyerLocation:
+        String(me.location || "").trim() || "Assumption University",
       requestReason: reason.trim(), // 👈 store requester’s reason properly
       timeline: [
         {
@@ -82,7 +79,7 @@ export async function POST(req) {
 
     return new Response(
       JSON.stringify({ ok: true, orderId: String(txn._id) }),
-      { status: 200 }
+      { status: 200 },
     );
   } catch (e) {
     console.error("instant-claim POST error:", e);

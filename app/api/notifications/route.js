@@ -1,3 +1,4 @@
+// api/notifications/route.js
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
 import Notification from "@/models/Notification";
@@ -60,7 +61,7 @@ export async function GET(req) {
   if (cached !== unreadCount) {
     await User.updateOne(
       { _id: me._id },
-      { $set: { unreadNotifications: unreadCount } }
+      { $set: { unreadNotifications: unreadCount } },
     );
   }
 
@@ -86,7 +87,7 @@ export async function PATCH(req) {
   await Notification.updateMany(
     { recipient: me._id, isRead: false },
     { $set: { isRead: true, readAt: new Date() } },
-    { timestamps: false } // ← keep updatedAt unchanged
+    { timestamps: false }, // ← keep updatedAt unchanged
   );
 
   await User.updateOne({ _id: me._id }, { $set: { unreadNotifications: 0 } });

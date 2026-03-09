@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import TxnToolbar from "@/components/admin/TxnToolbar";
+import Link from "next/link";
 import SlipLink from "@/components/SlipLink";
 import ConfirmModal from "@/components/ConfirmModal";
 import { TrashIcon, PencilSquareIcon } from "@heroicons/react/24/solid";
@@ -281,13 +282,7 @@ export default function AdminUsersClient({ initialUsers }) {
 
   return (
     <>
-      <div className="sm:hidden mb-3">
-        <h1 className="text-2xl font-bold text-[#325082]">Users</h1>
-      </div>
-
-      <h1 className="hidden sm:block text-2xl font-bold text-[#325082] mb-3">
-        Users
-      </h1>
+      <h1 className="text-2xl font-bold text-[#325082] mb-4">Users</h1>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
         <StatCard label="Total" value={stats.total} />
@@ -744,7 +739,13 @@ export default function AdminUsersClient({ initialUsers }) {
                           <span className="text-gray-400">Select row</span>
                         )
                       ) : (
-                        <span className="text-gray-400">—</span>
+                        <Link
+                          href={`/admin/users/${id}`}
+                          className="text-sm underline text-[#325082] underline-offset-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          User Details
+                        </Link>
                       )}
                     </td>
                   </tr>

@@ -1,3 +1,4 @@
+// api/notifications/[id]/route.js
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
 import Notification from "@/models/Notification";
@@ -36,12 +37,12 @@ export async function PATCH(_req, { params }) {
     await Notification.updateOne(
       { _id: id },
       { $set: { isRead: true, readAt: new Date() } },
-      { timestamps: false }
+      { timestamps: false },
     );
 
     await User.updateOne(
       { _id: me._id, unreadNotifications: { $gt: 0 } },
-      { $inc: { unreadNotifications: -1 } }
+      { $inc: { unreadNotifications: -1 } },
     );
   }
 

@@ -1,7 +1,6 @@
-// components/DonationDetails.js
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import NavBar from "@/components/NavBar";
 import Link from "next/link";
@@ -18,6 +17,20 @@ import MaskedUserId from "@/components/MaskedUserId";
 import { fmtBKK } from "@/utils/timeAgo";
 import BuyRequestGuard from "@/components/BuyRequestGuard";
 
+function formatCountdown(target, nowTs) {
+  if (!target) return "";
+  const diff = new Date(target).getTime() - nowTs;
+  if (diff <= 0) return "0d 0h 0m 0s";
+
+  const totalSeconds = Math.floor(diff / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+}
+
 export default function DonationDetails({
   product,
   sessionEmail,
@@ -27,28 +40,49 @@ export default function DonationDetails({
 }) {
   const router = useRouter();
   const [busyId, setBusyId] = useState(null);
+  const [nowTs, setNowTs] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNowTs(Date.now());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   const isAvailable = product.isAvailable === true;
   const isSelective = product.donationMode === "selective";
   const isInstant = product.donationMode === "instant";
   const hasPendingMyRequest = Boolean(product.viewerHasPendingRequest);
 
-  const deadlinePassed =
+  const anyAccepted =
+    Boolean(product?.acceptedBy) ||
+    product?.requests?.some((r) => r.status === "accepted") ||
+    product?.viewerRequests?.some((r) => r.status === "accepted");
+
+  const timeDeadlinePassed =
     product?.donationMode === "selective" &&
     product?.requestDeadline &&
-    new Date(product.requestDeadline) <= new Date();
+    new Date(product.requestDeadline).getTime() <= nowTs;
+
+  // request phase closes either because donor selected someone
+  // or because the deadline really passed
+  const requestClosed = anyAccepted || Boolean(timeDeadlinePassed);
+
+  const countdownText =
+    isSelective && product?.requestDeadline && !requestClosed
+      ? formatCountdown(product.requestDeadline, nowTs)
+      : "";
 
   // Only non-owners of available item can interact — and for selective,
   // they must NOT already have a pending request.
   const canReceiverRequest =
     !isOwner &&
     isAvailable &&
-    !deadlinePassed &&
+    !requestClosed &&
     ((isInstant && true) || (isSelective && !hasPendingMyRequest));
 
-  const canDonatorManage = isOwner && isAvailable;
-
-  const anyAccepted = product.requests?.some((r) => r.status === "accepted");
+  const canDonatorManage = isOwner && isAvailable && !requestClosed;
 
   async function decide(requestId, action) {
     if (!requestId || !["accept", "reject"].includes(action)) return;
@@ -195,7 +229,9 @@ export default function DonationDetails({
                           </div>
 
                           {/* No "Pending" badge for owner; buttons only while pending */}
-                          {isAvailable && r.status === "pending" ? (
+                          {isAvailable &&
+                          !anyAccepted &&
+                          r.status === "pending" ? (
                             <div className="flex flex-col gap-1">
                               <ActionButton
                                 text="Accept"
@@ -318,7 +354,9 @@ export default function DonationDetails({
 
               {product.requestDeadline && (
                 <span className="text-[12px] font-medium text-[#b91c1c] bg-white/90 px-2 py-1 rounded border border-[#fca5a5]">
-                  Deadline: {fmtBKK(product.requestDeadline)}
+                  {anyAccepted ? "Closed" : "Deadline"}:{" "}
+                  {fmtBKK(product.requestDeadline)}
+                  {!requestClosed && countdownText ? ` • ${countdownText}` : ""}
                 </span>
               )}
             </div>
@@ -326,15 +364,14 @@ export default function DonationDetails({
             {/* Receiver Buttons / State */}
             {!isOwner && (
               <div className="flex flex-wrap justify-center gap-2 w-full">
-                {isSelective && hasPendingMyRequest && !deadlinePassed && (
+                {isSelective && hasPendingMyRequest && !requestClosed && (
                   <div className="w-full text-center text-xs sm:text-sm px-3 py-2 rounded bg-yellow-50 border border-yellow-200 text-yellow-800">
                     You&apos;ve already requested this item. Please wait for the
                     donor&apos;s decision.
                   </div>
                 )}
 
-                {/* After deadline hits, disable interactions and show info */}
-                {deadlinePassed && (
+                {!anyAccepted && timeDeadlinePassed && (
                   <div className="w-full text-center text-xs sm:text-sm px-3 py-2 rounded bg-red-50 border border-red-200 text-red-700">
                     ⏰ You cannot request this item anymore — the request
                     deadline has passed.
@@ -384,30 +421,56 @@ export default function DonationDetails({
               <span className="font-semibold">{product.location || "-"}</span>
             </div>
 
-            <div className="flex items-center gap-4 mt-3 p-3 rounded-md bg-[#f0f0f0] border border-[#ccc]">
-              <Link href={`/profile/${product.owner?._id}`}>
-                <img
-                  src={product.owner?.image || "/default-profile.png"}
-                  alt="Donator Image"
-                  width={60}
-                  height={60}
-                  className="rounded-full object-cover border-2 border-[#325082] w-[60px] h-[60px] transition-transform duration-500 hover:scale-105"
-                  onError={(e) => {
-                    e.currentTarget.src = "/default-profile.png";
-                  }}
-                />
-              </Link>
-              <div className="flex flex-col">
-                <h3 className="font-semibold">
-                  {isOwner ? "Donor (Me):" : "Donor:"}
-                </h3>
-                <p className="font-semibold text-[#222]">
-                  {product.owner?.name}
-                </p>
-                <p className="text-[14px] text-[#222]">
-                  <MaskedUserId email={product.owner?.email} reveal={isOwner} />
-                </p>
+            {/* Seller */}
+            <div className="flex items-center justify-between gap-3 mt-3 p-3 rounded-md bg-[#f0f0f0] border border-[#ccc]">
+              <div className="flex items-center gap-3 min-w-0">
+                <Link href={`/profile/${product.owner?._id}`}>
+                  <img
+                    src={product.owner?.image || "/default-profile.png"}
+                    alt="Seller Image"
+                    width={60}
+                    height={60}
+                    className="rounded-full object-cover border-2 border-[#325082] w-[60px] h-[60px] transition-transform duration-500 hover:scale-105"
+                    onError={(e) => {
+                      e.currentTarget.src = "/default-profile.png";
+                    }}
+                  />
+                </Link>
+
+                <div className="flex flex-col leading-tight">
+                  <h3 className="font-semibold text-[14px]">
+                    {isOwner ? "Seller (Me):" : "Seller:"}
+                  </h3>
+                  <p className="font-semibold text-[#222] text-[14px] leading-tight">
+                    {product.owner?.name}
+                  </p>
+                  <p className="text-[12px] text-[#222]">
+                    <MaskedUserId
+                      email={product.owner?.email}
+                      reveal={isOwner}
+                    />
+                  </p>
+                </div>
               </div>
+
+              {!isOwner && (
+                <div className="flex flex-col items-end text-right leading-tight">
+                  {/* rating */}
+                  <div className="text-[#ffcc00] text-[20px]">
+                    {"★".repeat(Math.round(product.owner?.rating || 0)) +
+                      "☆".repeat(5 - Math.round(product.owner?.rating || 0))}
+                  </div>
+
+                  <div className="text-[13px] text-gray-600">
+                    {Number(product.owner?.rating || 0).toFixed(1)}/5 rating
+                  </div>
+
+                  {/* sold count */}
+                  <div className="text-[13px] text-[#325082] font-semibold mt-[2px]">
+                    {product.owner?.soldCount || 0} sold
+                  </div>
+                </div>
+              )}
             </div>
 
             <CommentSection

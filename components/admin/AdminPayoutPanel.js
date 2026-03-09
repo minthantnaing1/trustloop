@@ -1,3 +1,4 @@
+// components/admin/AdminPayoutPanel.js
 "use client";
 
 import { useRef, useState, useEffect } from "react";
@@ -21,12 +22,22 @@ export default function AdminPayoutPanel({ txn }) {
     txn?.adminPayoutReceiptUrl || "",
   );
 
-  const canPay = txn?.status === "BUYER_CONFIRMED";
-  const alreadyPaid = txn?.status === "PAID_OUT";
+  const kindUp = String(txn?.kind || "").toUpperCase();
+  const isAuction = kindUp === "AUCTION";
+
+  const canPay = status === "BUYER_CONFIRMED";
+  const alreadyPaid = status === "PAID_OUT";
 
   const seller = txn?.seller || {};
   const product = txn?.product || {};
   const scanUrl = seller?.defaultScanCode || "";
+
+  const paidAmount = isAuction
+    ? Number(txn?.total || 0) // auction buyer pays total / winning amount
+    : Number(txn?.price || 0); // buy-sell uses price normally
+
+  const feeAmount = Number(txn?.fee || 0);
+  const payoutAmount = Number(txn?.sellerNet || 0);
 
   function pick() {
     fileRef.current?.click();
@@ -101,7 +112,7 @@ export default function AdminPayoutPanel({ txn }) {
           Payout to Seller
         </h2>
         <span className="text-sm text-gray-500">
-          Status: <StatusPill status={txn.status} />
+          Status: <StatusPill status={status} />
         </span>
       </div>
 
@@ -177,26 +188,27 @@ export default function AdminPayoutPanel({ txn }) {
             <div className="font-semibold text-[#1f2f4c] truncate">
               {product?.title || "-"}
             </div>
+
             <div className="mt-3 space-y-1 text-sm">
               <div className="flex justify-between text-gray-600">
-                <span>Price</span>
+                <span>{isAuction ? "Winning Bid" : "Price"}</span>
                 <span className="font-medium">
-                  ฿{Number(txn?.price || 0).toLocaleString()}
+                  ฿{paidAmount.toLocaleString()}
                 </span>
               </div>
 
               <div className="flex justify-between text-gray-600">
                 <span>Fee (5%)</span>
                 <span className="font-medium">
-                  -฿{Number(txn?.fee || 0).toLocaleString()}
+                  -฿{feeAmount.toLocaleString()}
                 </span>
               </div>
 
               <div className="border-t border-gray-300 my-1" />
 
               <div className="flex justify-between text-[#1f2f4c] font-semibold">
-                <span>Total</span>
-                <span>฿{Number(txn?.sellerNet || 0).toLocaleString()}</span>
+                <span>Seller Receives</span>
+                <span>฿{payoutAmount.toLocaleString()}</span>
               </div>
             </div>
           </Card>
@@ -221,7 +233,7 @@ export default function AdminPayoutPanel({ txn }) {
           <Card>
             <div className="text-sm text-gray-500">Amount to Pay</div>
             <div className="text-2xl font-bold text-[#1f2f4c]">
-              ฿{Number(txn?.sellerNet || 0).toLocaleString()}
+              ฿{payoutAmount.toLocaleString()}
             </div>
           </Card>
 

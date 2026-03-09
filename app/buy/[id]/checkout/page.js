@@ -67,9 +67,9 @@ export default async function CheckoutPage({ params }) {
         </div>
 
         {/* Progress Stepper (buyer, step 1) */}
-        <div className="mb-5">
+        {/* <div className="mb-5">
           <Stepper current={1} variant="buyer" className="px-1" />
-        </div>
+        </div> */}
 
         {/* Content */}
         <div className="bg-white border border-gray-300 rounded-[5px] shadow-xl p-6">
@@ -149,15 +149,28 @@ export default async function CheckoutPage({ params }) {
                     We&apos;ll create the order and open Stripe Checkout for
                     payment.
                   </li>
+
                   <li>Your payment is held securely in TrustLoop escrow.</li>
+
+                  <li>
+                    If you cancel the order after payment,
+                    <span className="font-medium text-[#325082]">
+                      {" "}
+                      5% of the payment{" "}
+                    </span>
+                    will be charged as a platform fee.
+                  </li>
+
                   <li>
                     After payment, arrange delivery via fulfillment chat in
                     Order Details.
                   </li>
+
                   <li>
                     Seller delivers or meets you; you confirm you&apos;ve
                     received the item.
                   </li>
+
                   <li>
                     After confirmation, TrustLoop releases the payout to the
                     seller.

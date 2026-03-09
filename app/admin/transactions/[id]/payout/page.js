@@ -1,3 +1,4 @@
+// app/admin/transactions/[id]/payout/page.js
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
@@ -41,7 +42,7 @@ export default async function AdminPayoutPage({ params }) {
 
   if (!res.ok) {
     return (
-      <main className="max-w-[1200px] mx-auto px-4">
+      <main className="max-w-[1200px] mx-auto">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-[#325082]">Payout</h1>
           <BackButton />
@@ -61,7 +62,7 @@ export default async function AdminPayoutPage({ params }) {
   }
 
   return (
-    <main className="max-w-[1200px] mx-auto px-4">
+    <main className="max-w-[1200px] mx-auto">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold text-[#325082]">Payout</h1>
         <BackButton />

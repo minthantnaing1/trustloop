@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
+import Transaction from "@/models/Transaction";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import NavBar from "@/components/NavBar";
@@ -21,7 +22,7 @@ export default async function BuyProductPage({ params }) {
         Cookie: cookieStore.toString(),
       },
       cache: "no-store",
-    }
+    },
   );
 
   if (!res.ok) {
@@ -29,7 +30,6 @@ export default async function BuyProductPage({ params }) {
       <>
         <NavBar />
         <main className="max-w-[1200px] mx-auto px-3">
-          {/* center the card within the viewport area */}
           <div className="min-h-[calc(100vh-210px)] flex items-center justify-center">
             <div className="max-w-xl w-full bg-white border border-slate-200 rounded-2xl p-6 shadow-sm text-center">
               <div className="text-4xl mb-2">🔒</div>
@@ -78,9 +78,22 @@ export default async function BuyProductPage({ params }) {
       .lean();
   }
 
+  let sellerSoldCount = 0;
+  if (product?.owner?._id) {
+    sellerSoldCount = await Transaction.countDocuments({
+      seller: product.owner._id,
+      status: "PAID_OUT",
+      kind: { $in: ["BUY_SELL", "AUCTION"] },
+    });
+  }
+
+  if (product?.owner) {
+    product.owner.soldCount = sellerSoldCount;
+  }
+
   const initialIsFav = Boolean(
     product.isFav ??
-      me?.favorites?.some((fid) => String(fid) === String(product._id))
+    me?.favorites?.some((fid) => String(fid) === String(product._id)),
   );
   const isOwner = sessionEmail === product.owner?.email;
 

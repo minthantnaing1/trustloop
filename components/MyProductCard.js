@@ -1,4 +1,3 @@
-// components/MyProductCard.js
 "use client";
 
 import Link from "next/link";
@@ -13,22 +12,26 @@ export default function MyProductCard({
   const img =
     product?.defaultImage || product?.images?.[0] || "/placeholder.png";
 
-  // Normalize type/kind
   const rawType = (product?.type || product?.kind || "")
     .toString()
     .toLowerCase();
-
   const isDonation = rawType === "donation";
   const isAuction = rawType === "auction";
 
-  // ---- countdown (second-resolution) ----
   function useCountdown(targetIso) {
     const [txt, setTxt] = useState(null);
 
     useEffect(() => {
-      if (!targetIso) return;
+      if (!targetIso) {
+        setTxt(null);
+        return;
+      }
 
       const target = new Date(targetIso).getTime();
+      if (Number.isNaN(target)) {
+        setTxt(null);
+        return;
+      }
 
       const tick = () => {
         const ms = target - Date.now();
@@ -68,34 +71,16 @@ export default function MyProductCard({
     return txt;
   }
 
-  // Donation countdown
-  const donationDeadlineAt = isDonation ? product?.requestDeadline : null;
+  const donationAccepted = isDonation && Boolean(product?.acceptedBy);
+  const donationDeadlineAt =
+    isDonation && !donationAccepted ? product?.requestDeadline : null;
   const donationDeadlineCountdown = useCountdown(donationDeadlineAt);
 
-  // Auction countdown (support multiple possible field names safely)
-  const auctionEndsAt =
-    product?.auctionEndsAt ||
-    product?.endsAt ||
-    product?.endAt ||
-    product?.auctionEndAt ||
-    null;
-
-  const auctionCountdown = useCountdown(isAuction ? auctionEndsAt : null);
-
-  // ---- Auction price logic (defensive) ----
-  const auctionCurrentBid =
-    product?.currentBid ??
-    product?.highestBid ??
-    product?.topBid ??
-    product?.currentPrice ??
-    null;
-
-  const auctionStartingBid =
-    product?.startingBid ??
-    product?.startBid ??
-    product?.minBid ??
-    product?.price ??
-    null;
+  const auctionEndsAt = isAuction ? product?.auctionEndsAt : null;
+  const auctionCountdown = useCountdown(auctionEndsAt);
+  const auctionClosed =
+    isAuction &&
+    (auctionCountdown === "Closed" || product?.auctionStatus !== "OPEN");
 
   const displayPrice = (() => {
     if (isDonation) {
@@ -107,15 +92,8 @@ export default function MyProductCard({
     }
 
     if (isAuction) {
-      const v =
-        auctionCurrentBid != null
-          ? Number(auctionCurrentBid)
-          : auctionStartingBid != null
-            ? Number(auctionStartingBid)
-            : null;
-
-      if (v == null || Number.isNaN(v)) return null;
-      return `${v.toLocaleString()} ฿`;
+      if (product?.startingPrice == null) return null;
+      return `${Number(product.startingPrice).toLocaleString()} ฿`;
     }
 
     if (product?.price == null) return null;
@@ -124,28 +102,21 @@ export default function MyProductCard({
       : `${Number(product.price).toLocaleString()} ฿`;
   })();
 
-  const displayPriceLabel = isAuction
-    ? auctionCurrentBid != null
-      ? "Current bid"
-      : "Starting bid"
-    : null;
+  const displayPriceLabel = isAuction ? "Starting price" : null;
 
-  // ------- Route rules (updated) -------
   const orderId = product?.orderId || product?.buyerOrderId;
   const status = product?.orderStatus;
-  const role = product?.viewerRole; // "buyer" | "seller"
+  const role = product?.viewerRole;
 
   let href;
 
   if (isOwner) {
-    // owner routes depend on type
     href = isAuction
       ? `/auction/${product?._id}`
       : isDonation
         ? `/donation/${product?._id}`
         : `/sell/${product?._id}`;
   } else if (orderId) {
-    // order routes (from profile history sections)
     if (
       role === "buyer" &&
       (status === "BUYER_CONFIRMED" || status === "PAID_OUT")
@@ -163,7 +134,6 @@ export default function MyProductCard({
       href = `/my-orders/${orderId}`;
     }
   } else {
-    // public/browse routes
     href = isAuction
       ? `/auction/${product?._id}`
       : isDonation
@@ -171,7 +141,6 @@ export default function MyProductCard({
         : `/buy/${product?._id}`;
   }
 
-  // ------- UI bits -------
   const TypePill = () => {
     const label = isAuction ? "AUCTION" : isDonation ? "DONATION" : "SELL";
     const cls = isAuction
@@ -224,11 +193,9 @@ export default function MyProductCard({
         className="absolute inset-0 w-full h-full object-cover"
       />
 
-      {/* Type pill + countdown stack */}
       <div className="absolute top-1 left-1 flex flex-col gap-1 items-start">
         <TypePill />
 
-        {/* Donation deadline pill */}
         {variant === "classic" && isDonation && donationDeadlineCountdown && (
           <span
             className={`text-[10px] md:text-[11px] font-medium px-2 py-0.5 rounded bg-white/85 shadow ${
@@ -243,23 +210,19 @@ export default function MyProductCard({
           </span>
         )}
 
-        {/* Auction countdown pill */}
         {variant === "classic" && isAuction && auctionCountdown && (
           <span
             className={`text-[10px] md:text-[11px] font-medium px-2 py-0.5 rounded bg-white/85 shadow ${
-              auctionCountdown === "Closed" ? "text-gray-600" : "text-rose-700"
+              auctionClosed ? "text-gray-600" : "text-rose-700"
             }`}
           >
-            {auctionCountdown === "Closed"
-              ? "Auction ended"
-              : `Ends in ${auctionCountdown}`}
+            {auctionClosed ? "Auction ended" : `Ends in ${auctionCountdown}`}
           </span>
         )}
       </div>
     </div>
   );
 
-  // ------- Variants -------
   if (variant === "classicBlur") {
     return (
       <Link href={href} title={product?.title} className="block">

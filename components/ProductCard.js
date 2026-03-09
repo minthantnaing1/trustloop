@@ -16,28 +16,31 @@ export default function ProductCard({
   currentUserEmail,
 }) {
   const isHidden = Boolean(product.isHidden);
-
-  // For sell/donation cards you used isAvailable to mark reserved/unavailable.
-  // Auction may not use isAvailable in the same way, so we keep sell/donation logic,
-  // and handle auction availability separately.
   const isAuction = product?.type === "auction";
   const isDonation = product?.type === "donation";
 
-  const reserved = isAuction ? false : !Boolean(product.isAvailable);
+  // sell / donation use isAvailable
+  const reserved = !isAuction && !Boolean(product.isAvailable);
 
   const isMe =
     !!product.buyerEmail &&
     !!currentUserEmail &&
     product.buyerEmail === currentUserEmail;
 
-  // ---- countdown (second-resolution) ----
   function useCountdown(targetIso) {
     const [txt, setTxt] = useState(null);
 
     useEffect(() => {
-      if (!targetIso) return;
+      if (!targetIso) {
+        setTxt(null);
+        return;
+      }
 
       const target = new Date(targetIso).getTime();
+      if (Number.isNaN(target)) {
+        setTxt(null);
+        return;
+      }
 
       const tick = () => {
         const ms = target - Date.now();
@@ -77,28 +80,19 @@ export default function ProductCard({
     return txt;
   }
 
-  // Donation countdown
-  const donationDeadlineAt = isDonation ? product?.requestDeadline : null;
+  const donationAccepted = isDonation && Boolean(product?.acceptedBy);
+
+  const donationDeadlineAt =
+    isDonation && !donationAccepted ? product?.requestDeadline : null;
+
   const donationDeadlineCountdown = useCountdown(donationDeadlineAt);
 
-  // Auction countdown (support multiple possible field names safely)
-  const auctionEndsAt =
-    product?.auctionEndsAt ||
-    product?.endsAt ||
-    product?.endAt ||
-    product?.auctionEndAt ||
-    null;
+  const auctionEndsAt = isAuction ? product?.auctionEndsAt : null;
+  const auctionCountdown = useCountdown(auctionEndsAt);
+  const auctionClosed =
+    isAuction &&
+    (auctionCountdown === "Closed" || product?.auctionStatus !== "OPEN");
 
-  const auctionCountdown = useCountdown(isAuction ? auctionEndsAt : null);
-  const auctionClosed = isAuction && auctionCountdown === "Closed";
-
-  // ---- Order routing logic (remove old statuses; use current ones) ----
-  // These are the ones in your StatusPill.js:
-  // PENDING_PAYMENT, PAYMENT_SUCCESSFUL, AWAITING_DONOR, SELLER_ACCEPTED, DELIVERY_IN_PROGRESS,
-  // SELLER_PROOF_UPLOADED, BUYER_CONFIRMED, PAID_OUT, CANCELLED_*, REJECTED_BY_ADMIN
-  //
-  // "Early" = before seller is meaningfully acting inside the order detail.
-  // Keep your same behavior: sellers go to Seller tab during early states.
   const earlyStatuses = new Set(["PENDING_PAYMENT", "PAYMENT_SUCCESSFUL"]);
 
   let orderHref = null;
@@ -122,7 +116,6 @@ export default function ProductCard({
     }
   }
 
-  // ---- Card click href by type ----
   const typeHref = isAuction
     ? `/auction/${product._id}`
     : isDonation
@@ -132,27 +125,10 @@ export default function ProductCard({
         : `/buy/${product._id}`;
 
   const href = orderHref ?? typeHref;
-
   const img = product.defaultImage || "/placeholder.png";
-
-  // ---- Auction price logic (defensive field support) ----
-  const auctionCurrentBid =
-    product?.currentBid ??
-    product?.highestBid ??
-    product?.topBid ??
-    product?.currentPrice ??
-    null;
-
-  const auctionStartingBid =
-    product?.startingBid ??
-    product?.startBid ??
-    product?.minBid ??
-    product?.price ??
-    null;
 
   const displayPrice = (() => {
     if (isDonation) {
-      // donation can have 0 / null
       return product.price != null
         ? Number(product.price) === 0
           ? "Free"
@@ -161,33 +137,17 @@ export default function ProductCard({
     }
 
     if (isAuction) {
-      // If there is a bid, show current bid; else show starting bid
-      const v =
-        auctionCurrentBid != null
-          ? Number(auctionCurrentBid)
-          : auctionStartingBid != null
-            ? Number(auctionStartingBid)
-            : null;
-
-      if (v == null || Number.isNaN(v)) return null;
-
-      return `${v.toLocaleString()} ฿`;
+      if (product.startingPrice == null) return null;
+      return `${Number(product.startingPrice).toLocaleString()} ฿`;
     }
 
-    // sell/buy
     if (product.price == null) return null;
     return Number(product.price) === 0
       ? "Free"
       : `${Number(product.price).toLocaleString()} ฿`;
   })();
 
-  const displayPriceLabel = isAuction
-    ? auctionCurrentBid != null
-      ? "Current bid"
-      : "Starting bid"
-    : null;
-
-  // --- Shared subparts -------------------------------------------------------
+  const displayPriceLabel = isAuction ? "Starting price" : null;
 
   const Badges = () => {
     if (isHidden) {
@@ -200,63 +160,25 @@ export default function ProductCard({
       );
     }
 
-    // Auction overlay badge (ended / winner) — separate from reserved logic
     if (isAuction) {
-      // Optional winner fields if your auction flow sets them
-      const winnerEmail =
-        product?.winnerEmail ||
-        product?.auctionWinnerEmail ||
-        product?.topBidderEmail ||
-        null;
+      if (!auctionClosed) return null;
 
-      const winnerName =
-        product?.winnerName ||
-        product?.auctionWinnerName ||
-        product?.topBidderName ||
-        null;
+      const endedText =
+        product?.auctionStatus === "SOLD"
+          ? "Auction sold"
+          : product?.auctionStatus === "CANCELLED"
+            ? "Auction cancelled"
+            : "Auction ended";
 
-      const iAmWinner =
-        !!winnerEmail && !!currentUserEmail && winnerEmail === currentUserEmail;
-
-      // If auction closed, show ended status (and winner if known)
-      if (auctionClosed) {
-        // Owner: show winner name if available
-        if (isOwner && winnerName) {
-          return (
-            <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-              <span className="w-full text-center text-xs md:text-sm text-white font-semibold bg-emerald-700/90 px-1 py-2">
-                Auction won by {winnerName}
-              </span>
-            </div>
-          );
-        }
-
-        // Winner view
-        if (iAmWinner) {
-          return (
-            <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-              <span className="w-full text-center text-xs md:text-sm text-white font-semibold bg-emerald-700/90 px-1 py-2">
-                Won by Me
-              </span>
-            </div>
-          );
-        }
-
-        // Everyone else
-        return (
-          <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-            <span className="w-full text-center text-xs md:text-sm text-white font-semibold bg-black/60 px-1 py-2">
-              Auction ended
-            </span>
-          </div>
-        );
-      }
-
-      // If still live, no full overlay badge (we show countdown pill instead)
-      return null;
+      return (
+        <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+          <span className="w-full text-center text-xs md:text-sm text-white font-semibold bg-black/60 px-1 py-2">
+            {endedText}
+          </span>
+        </div>
+      );
     }
 
-    // Non-auction reserved overlay (your existing logic)
     if (!reserved) return null;
 
     const buyerFinal = isDonation
@@ -314,7 +236,7 @@ export default function ProductCard({
             ? isDonation
               ? "Donated"
               : "Sold"
-            : "This Item is currently Reserved or Unavailable."}
+            : "This item is currently reserved or unavailable."}
         </span>
       </div>
     );
@@ -361,7 +283,6 @@ export default function ProductCard({
         }`}
       />
 
-      {/* Donation countdown pill */}
       {variant !== "overlay" && isDonation && donationDeadlineCountdown && (
         <div className="absolute top-1 right-1">
           <span
@@ -378,17 +299,14 @@ export default function ProductCard({
         </div>
       )}
 
-      {/* Auction countdown pill */}
       {variant !== "overlay" && isAuction && auctionCountdown && (
         <div className="absolute top-1 right-1">
           <span
             className={`text-[10px] md:text-[11px] font-medium px-2 py-0.5 rounded bg-white/85 ${
-              auctionCountdown === "Closed" ? "text-gray-600" : "text-rose-700"
+              auctionClosed ? "text-gray-600" : "text-rose-700"
             }`}
           >
-            {auctionCountdown === "Closed"
-              ? "Auction ended"
-              : `Ends in ${auctionCountdown}`}
+            {auctionClosed ? "Auction ended" : `Ends in ${auctionCountdown}`}
           </span>
         </div>
       )}
@@ -424,15 +342,13 @@ export default function ProductCard({
     );
   };
 
-  // --- Variants --------------------------------------------------------------
-
   if (variant === "overlay") {
     return (
       <Link href={href} title={product.title} className={className}>
         <div
           className={`relative w-full h-[280px] max-[1025px]:h-[260px] max-[426px]:h-[230px] max-[376px]:h-[210px]
           overflow-hidden cursor-pointer bg-white border border-gray-300 rounded-[2.5px] hover:ring-[#cfd8ff]
-          shadow-md hover:scale-[1.02] hover:shadow-lg transition-all duration-500 easse-in-out`}
+          shadow-md hover:scale-[1.02] hover:shadow-lg transition-all duration-500 ease-in-out`}
         >
           <FavOverlay />
 
@@ -451,7 +367,6 @@ export default function ProductCard({
 
             <Badges />
 
-            {/* Type + deadline stack */}
             <div className="absolute top-1 left-1 flex flex-col gap-1 items-start">
               <TypePill />
 
@@ -472,12 +387,10 @@ export default function ProductCard({
               {isAuction && auctionCountdown && (
                 <span
                   className={`text-[10px] md:text-[11px] font-medium px-2 py-0.5 rounded bg-white/85 ${
-                    auctionCountdown === "Closed"
-                      ? "text-gray-600"
-                      : "text-rose-700"
+                    auctionClosed ? "text-gray-600" : "text-rose-700"
                   }`}
                 >
-                  {auctionCountdown === "Closed"
+                  {auctionClosed
                     ? "Auction ended"
                     : `Ends in ${auctionCountdown}`}
                 </span>
@@ -485,7 +398,6 @@ export default function ProductCard({
             </div>
           </div>
 
-          {/* Info bar */}
           <div className="absolute inset-x-0 bottom-0 overflow-hidden">
             <div
               className="absolute inset-0"
@@ -518,7 +430,6 @@ export default function ProductCard({
           ${isOwner ? "hover:scale-[0.98]" : "hover:-translate-y-1"}`}
         >
           <FavOverlay />
-
           <TopImage className="h-[70%] bg-gray-100" />
 
           <div className="relative h-[30%] overflow-hidden border-t border-gray-200">
@@ -542,7 +453,6 @@ export default function ProductCard({
     );
   }
 
-  // classic
   return (
     <Link href={href} title={product.title} className={className}>
       <div
@@ -553,7 +463,6 @@ export default function ProductCard({
         ${isOwner ? "hover:scale-[0.98]" : "hover:-translate-y-1"}`}
       >
         <FavOverlay />
-
         <TopImage className="h-[70%] bg-gray-100" />
 
         <div className="h-[30%] px-3 py-2 flex flex-col justify-center border-t border-gray-200 bg-white">

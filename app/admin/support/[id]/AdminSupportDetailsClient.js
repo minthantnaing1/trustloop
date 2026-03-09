@@ -180,10 +180,8 @@ export default function AdminSupportDetailsClient({ id, initialTicket }) {
 
   return (
     <main className="max-w-[1200px] mx-auto mb-6">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-[#325082] mb-3">
-          Customer Support
-        </h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold text-[#325082]">Customer Support</h1>
         <div className="shrink-0">
           <BackButton text="Back to Previous" />
         </div>

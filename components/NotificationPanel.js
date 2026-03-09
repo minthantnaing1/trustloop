@@ -1,3 +1,4 @@
+// components/NotificationPanel.js
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -8,15 +9,11 @@ import ActionButton from "@/components/ActionButton";
 export default function NotificationPanel({ open, onClose, onUnreadChange }) {
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState([]);
-  const [expanded, setExpanded] = useState({});
-  const toggleExpanded = useCallback((id) => {
-    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
-  }, []);
 
   const load = useCallback(() => {
     if (!open) return;
     setLoading(true);
-    fetch("/api/notifications?unread=1")
+    fetch("/api/notifications")
       .then((r) => (r.ok ? r.json() : []))
       .then((data) => {
         setItems(Array.isArray(data) ? data : data?.items || []);
@@ -30,14 +27,22 @@ export default function NotificationPanel({ open, onClose, onUnreadChange }) {
   }, [load]);
 
   const markOneRead = async (id) => {
-    setItems((prev) => prev.filter((n) => n._id !== id));
+    const target = items.find((n) => n._id === id);
+    if (!target || target.isRead) return;
+
+    setItems((prev) =>
+      prev.map((n) => (n._id === id ? { ...n, isRead: true } : n)),
+    );
+
     onUnreadChange?.(-1);
+
     try {
       await fetch(`/api/notifications/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ op: "markRead" }),
       });
+
       window.dispatchEvent(
         new CustomEvent("notifications:updated", {
           detail: { delta: -1, id, op: "markRead" },
@@ -49,19 +54,22 @@ export default function NotificationPanel({ open, onClose, onUnreadChange }) {
   };
 
   const markAllRead = async () => {
-    const count = items.length;
-    if (!count) return onClose?.();
-    setItems([]);
-    onUnreadChange?.(-count);
+    const unreadCount = items.filter((n) => n.isRead === false).length;
+    if (!unreadCount) return onClose?.();
+
+    setItems((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    onUnreadChange?.(-unreadCount);
+
     try {
       await fetch("/api/notifications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ op: "markAllRead" }),
       });
+
       window.dispatchEvent(
         new CustomEvent("notifications:updated", {
-          detail: { delta: -count, op: "markAllRead" },
+          detail: { delta: -unreadCount, op: "markAllRead" },
         }),
       );
     } catch {
@@ -90,7 +98,7 @@ export default function NotificationPanel({ open, onClose, onUnreadChange }) {
       >
         <div className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-[#2b446a]/5 to-[#325082]/5">
           <h3 className="text-lg font-semibold text-[#2b446a]">
-            Unread Notifications
+            Notifications
           </h3>
           <button
             onClick={onClose}
@@ -104,10 +112,11 @@ export default function NotificationPanel({ open, onClose, onUnreadChange }) {
         <div className="flex items-center justify-between px-4 py-2 border-t border-b border-gray-300 shadow-xs bg-white">
           <Link href="/notifications" onClick={onClose}>
             <ActionButton
-              text="View All Notifications"
+              text="View Details Notifications"
               variant="primaryClick"
             />
           </Link>
+
           <ActionButton
             text="Mark all as read"
             variant="outlineClick"
@@ -117,59 +126,41 @@ export default function NotificationPanel({ open, onClose, onUnreadChange }) {
 
         <div className="overflow-y-auto h-[calc(100%-120px)] p-3">
           {loading && <div className="p-4 text-sm text-gray-500">Loading…</div>}
+
           {!loading && items.length === 0 && (
             <div className="p-6 text-sm text-gray-500">
               No new notifications.
             </div>
           )}
-          <ul className="space-y-1">
+
+          <ul className="space-y-2">
             {items.map((n) => {
               const isUnread = n?.isRead === false;
 
               return (
                 <li
                   key={n._id}
-                  className={`group relative flex gap-3 px-3 py-3 rounded-lg
-    border border-gray-200 bg-white hover:bg-[#f5f8ff]
-    ${isUnread ? "ring-1 ring-[#325082]/20" : ""}`}
+                  className={`flex gap-3 px-3 py-2.5 rounded-md border border-gray-200 bg-white hover:bg-gray-50 transition ${
+                    isUnread ? "bg-[#325082]/5 border-[#325082]/10" : ""
+                  }`}
                 >
-                  {/* Make whole card navigate to details (NOT mark as read) */}
-                  {n.link && (
-                    <Link
-                      href={n.link}
-                      onClick={() => {
-                        // optional: close panel when going to detail
-                        onClose?.();
-                      }}
-                      className="absolute inset-0 rounded-lg"
-                      aria-label={`Open notification: ${n.title}`}
+                  {/* dot */}
+                  <div className="mt-2 shrink-0">
+                    <span
+                      className={`block w-2 h-2 rounded-full ${
+                        isUnread ? "bg-[#325082]" : "bg-gray-300"
+                      }`}
                     />
-                  )}
-
-                  {/* Unread dot */}
-                  <div className="pt-1 relative z-10">
-                    {isUnread && (
-                      <span className="block w-2.5 h-2.5 rounded-full bg-[#325082]" />
-                    )}
                   </div>
 
-                  {/* Content */}
-                  <div className="flex-1 min-w-0 relative z-10">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="font-medium text-sm text-[#1f3b66] truncate">
-                          {n.title}
-                        </p>
+                  {/* content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[13px] font-semibold text-[#1f3b66] truncate">
+                        {n.title}
+                      </p>
 
-                        {n.message && (
-                          <p className="text-sm text-gray-600 line-clamp-2 mt-0.5">
-                            {n.message}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Time */}
-                      <span className="text-[11px] text-gray-400 shrink-0">
+                      <span className="text-[11px] text-gray-400">
                         {new Date(
                           n.updatedAt || n.createdAt,
                         ).toLocaleTimeString([], {
@@ -179,40 +170,36 @@ export default function NotificationPanel({ open, onClose, onUnreadChange }) {
                       </span>
                     </div>
 
-                    {/* Actions */}
-                    <div className="mt-1 flex items-center gap-3">
-                      {n.link && (
+                    {n.message && (
+                      <p className="text-[13px] text-gray-600 leading-snug mt-[2px]">
+                        {n.message}
+                      </p>
+                    )}
+
+                    <div className="flex justify-between mt-1">
+                      {n.link ? (
                         <Link
                           href={n.link}
-                          data-suppress-overlay="true"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // If you want: mark read when user explicitly clicks "View details"
-                            markOneRead(n._id);
-                            onClose?.();
-                          }}
-                          className="text-xs text-[#325082] hover:underline"
+                          onClick={onClose}
+                          className="text-[12px] text-[#325082] font-medium hover:underline"
                         >
-                          View details →
+                          View
                         </Link>
+                      ) : (
+                        <span className="text-[12px] text-gray-400">
+                          No details
+                        </span>
                       )}
 
-                      {isUnread && (
+                      {isUnread ? (
                         <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault(); // prevents clicking underlying Link overlay
-                            e.stopPropagation();
-                            markOneRead(n._id);
-                          }}
-                          className="
-            text-xs text-gray-400 hover:text-[#325082]
-            opacity-0 group-hover:opacity-100
-            transition-opacity
-          "
+                          onClick={() => markOneRead(n._id)}
+                          className="text-[12px] text-gray-400 hover:text-[#325082]"
                         >
                           Mark read
                         </button>
+                      ) : (
+                        <span className="text-[12px] text-gray-300">Read</span>
                       )}
                     </div>
                   </div>

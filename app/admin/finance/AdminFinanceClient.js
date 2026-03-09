@@ -404,7 +404,7 @@ export default function AdminFinanceClient() {
     <>
       <Toast toast={toast} onClose={closeToast} />
 
-      <div className="flex items-center justify-between gap-3 mb-3">
+      <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold text-[#325082]">Finance</h1>
         <div className="block sm:hidden">
           <FinanceTabSwitch tab={tab} setTab={setTab} compact />

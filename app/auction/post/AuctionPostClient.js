@@ -151,8 +151,39 @@ export default function AuctionPostClient({ initialLocation = "" }) {
         <h1 className="text-2xl font-bold text-[#325082]">Post an Auction</h1>
       </div>
 
-      <div className="mb-5">
+      {/* <div className="mb-5">
         <Stepper current={1} variant="auctionSeller" className="px-1" />
+      </div> */}
+
+      {/* Seller fee info (5%) */}
+      <div className="mb-6">
+        <div className="relative rounded-[10px] border border-[#cfdaf1] bg-gradient-to-br from-[#f6f8fc] to-[#eef3fd] px-5 py-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            {/* Icon */}
+            <div className="mt-0.5">
+              <div className="w-8 h-8 flex items-center justify-center rounded-full bg-[#325082] text-white shadow-sm">
+                ₿
+              </div>
+            </div>
+
+            {/* Text */}
+            <div className="flex-1">
+              <h3 className="text-base font-semibold text-[#1f2f4c] mb-1">
+                Platform Fee for Auction Sellers
+              </h3>
+
+              <p className="text-sm leading-relaxed text-[#44536e]">
+                If your auction receives a winning bid and the winner completes
+                the payment,
+                <span className="font-semibold text-[#325082]">
+                  {" "}
+                  5% of the final winning bid{" "}
+                </span>
+                will be deducted from your payout as the platform service fee.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row flex-wrap gap-[30px] items-start">

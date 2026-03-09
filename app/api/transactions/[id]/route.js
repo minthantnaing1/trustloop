@@ -32,7 +32,8 @@ export async function GET(_req, { params }) {
   let txn = await Transaction.findById(id)
     .populate({
       path: "product",
-      select: "title images defaultImage price category condition description",
+      select:
+        "title images defaultImage price category condition description location type",
     })
     .populate({
       path: "seller",
@@ -99,7 +100,7 @@ export async function GET(_req, { params }) {
         .populate({
           path: "product",
           select:
-            "title images defaultImage price category condition description",
+            "title images defaultImage price category condition description location type",
         })
         .populate({
           path: "seller",
@@ -164,7 +165,7 @@ export async function GET(_req, { params }) {
         .populate({
           path: "product",
           select:
-            "title images defaultImage price category condition description",
+            "title images defaultImage price category condition description location type",
         })
         .populate({
           path: "seller",

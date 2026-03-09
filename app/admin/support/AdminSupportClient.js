@@ -339,11 +339,11 @@ export default function AdminSupportClient({ initialTickets }) {
 
   return (
     <main className="max-w-[1200px] mx-auto mb-6">
-      <h1 className="text-2xl font-bold text-[#325082] mb-3">
+      <h1 className="text-2xl font-bold text-[#325082] mb-4">
         Customer Support
       </h1>
 
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
         <StatCard
           label="Recent tickets"
           sub="last 7 days"
@@ -356,11 +356,11 @@ export default function AdminSupportClient({ initialTickets }) {
           value={stats.inProgressAll}
         />
         <StatCard label="Closed" sub="all time" value={stats.closedAll} />
-        <StatCard
+        {/* <StatCard
           label="High / Urgent"
           sub="all time"
           value={stats.highUrgentAll}
-        />
+        /> */}
       </section>
 
       <section className="sticky -top-10 z-40 pb-3">

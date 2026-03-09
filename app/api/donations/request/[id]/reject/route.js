@@ -5,7 +5,7 @@ import DonationRequest from "@/models/DonationRequest";
 import Product from "@/models/Product";
 
 export async function POST(_req, { params }) {
-  const { id } = params; // requestId
+  const { id } = await params; // requestId
   try {
     const session = await auth();
     if (!session?.user?.email)
@@ -17,7 +17,7 @@ export async function POST(_req, { params }) {
     if (!reqDoc) return new Response("Request not found", { status: 404 });
 
     const product = await Product.findById(reqDoc.product._id).populate(
-      "owner"
+      "owner",
     );
     if (!product) return new Response("Product not found", { status: 404 });
 

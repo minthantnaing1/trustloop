@@ -32,6 +32,8 @@ export default function AuctionClient({ initial }) {
 
   const [filters, setFilters] = useState({
     category: "",
+    minPrice: "",
+    maxPrice: "",
     condition: "",
     location: "",
   });
@@ -44,6 +46,8 @@ export default function AuctionClient({ initial }) {
     const query = new URLSearchParams({
       search: nextSearch,
       category: nextFilters.category,
+      minPrice: nextFilters.minPrice || "",
+      maxPrice: nextFilters.maxPrice || "",
       condition: nextFilters.condition,
       location: nextFilters.location,
       type: "auction",
@@ -98,11 +102,19 @@ export default function AuctionClient({ initial }) {
 
   const handleApplyFilters = () => setShowFilter(false);
   const handleClearFilters = () => {
-    setFilters({ category: "", condition: "", location: "" });
+    setFilters({
+      category: "",
+      minPrice: "",
+      maxPrice: "",
+      condition: "",
+      location: "",
+    });
     setShowFilter(false);
   };
 
-  const myAuctions = products.filter((p) => p.owner?.email === userEmail);
+  const myAuctions = products
+    .filter((p) => p.owner?.email === userEmail)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   // ✅ show only active auctions from others
   const otherAuctions = products.filter((p) => {

@@ -238,49 +238,70 @@ export default function ProductImages({ images = [], defaultImage }) {
       {/* LIGHTBOX */}
       {open && (
         <div
-          className="fixed inset-0 z-[30000] bg-black/60 backdrop-blur-sm flex items-center justify-center select-none overscroll-contain"
+          className="fixed inset-0 z-[30000] bg-black/70 backdrop-blur-sm flex items-center justify-center select-none overscroll-contain"
           onMouseUp={onMouseUp}
           onMouseMove={onMouseMove}
           onTouchEnd={onTouchEnd}
-          onTouchMove={(e) => e.preventDefault()} // disable touch-scroll
-          onWheel={onWheel} // keep zoom working
+          onTouchMove={(e) => e.preventDefault()}
+          onWheel={onWheel}
         >
           {/* Close */}
           <button
-            onClick={closeLightbox}
-            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white"
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              closeLightbox();
+            }}
+            className="absolute top-3 right-3 md:top-4 md:right-4 z-[30020] flex items-center justify-center
+                 w-12 h-12 md:w-11 md:h-11 rounded-full
+                 bg-black/45 hover:bg-black/65 active:bg-black/75
+                 text-white shadow-lg transition"
             aria-label="Close"
             title="Close"
           >
-            <XMarkIcon className="w-7 h-7" />
+            <XMarkIcon className="w-7 h-7 md:w-6 md:h-6 pointer-events-none" />
           </button>
 
           {/* Prev/Next */}
           {orderedImages.length > 1 && (
             <>
               <button
-                onClick={handlePrev}
-                className="absolute left-4 md:left-6 z-20 pointer-events-auto flex items-center justify-center w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white transition"
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePrev();
+                }}
+                className="absolute left-3 md:left-6 top-1/2 -translate-y-1/2 z-[30010]
+                     flex items-center justify-center w-11 h-11 rounded-full
+                     bg-black/35 hover:bg-black/55 active:bg-black/70
+                     text-white shadow-md transition"
                 aria-label="Previous"
                 title="Previous"
               >
-                <ChevronLeftIcon className="w-6 h-6" />
+                <ChevronLeftIcon className="w-6 h-6 pointer-events-none" />
               </button>
 
               <button
-                onClick={handleNext}
-                className="absolute right-4 md:right-6 z-20 pointer-events-auto flex items-center justify-center w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white transition"
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNext();
+                }}
+                className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 z-[30010]
+                     flex items-center justify-center w-11 h-11 rounded-full
+                     bg-black/35 hover:bg-black/55 active:bg-black/70
+                     text-white shadow-md transition"
                 aria-label="Next"
                 title="Next"
               >
-                <ChevronRightIcon className="w-6 h-6" />
+                <ChevronRightIcon className="w-6 h-6 pointer-events-none" />
               </button>
             </>
           )}
 
           {/* Image canvas */}
           <div
-            className="relative z-0 max-w-[92vw] max-h-[86vh] w-full h-full flex items-center justify-center cursor-grab active:cursor-grabbing select-none"
+            className="relative z-[30000] max-w-[92vw] max-h-[86vh] w-full h-full flex items-center justify-center cursor-grab active:cursor-grabbing select-none"
             onMouseDown={(e) => {
               e.preventDefault();
               onMouseDown(e);
@@ -310,30 +331,45 @@ export default function ProductImages({ images = [], defaultImage }) {
           </div>
 
           {/* Zoom controls */}
-          <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-2">
+          <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-[30010] flex items-center gap-2">
             <button
-              onClick={zoomOut}
-              className="px-3 py-2 rounded-md bg-white/10 hover:bg-white/20 text-white"
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                zoomOut();
+              }}
+              className="px-3 py-2 rounded-md bg-black/40 hover:bg-black/60 text-white"
               title="Zoom out"
             >
-              <MinusIcon className="w-5 h-5" />
+              <MinusIcon className="w-5 h-5 pointer-events-none" />
             </button>
-            <span className="px-3 py-2 rounded-md bg-white/10 text-white text-sm">
+
+            <span className="px-3 py-2 rounded-md bg-black/40 text-white text-sm">
               {Math.round(zoom * 100)}%
             </span>
+
             <button
-              onClick={zoomIn}
-              className="px-3 py-2 rounded-md bg-white/10 hover:bg-white/20 text-white"
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                zoomIn();
+              }}
+              className="px-3 py-2 rounded-md bg-black/40 hover:bg-black/60 text-white"
               title="Zoom in"
             >
-              <PlusIcon className="w-5 h-5" />
+              <PlusIcon className="w-5 h-5 pointer-events-none" />
             </button>
+
             <button
-              onClick={resetZoom}
-              className="ml-2 px-3 py-2 rounded-md bg-white/10 hover:bg-white/20 text-white"
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                resetZoom();
+              }}
+              className="ml-2 px-3 py-2 rounded-md bg-black/40 hover:bg-black/60 text-white"
               title="Reset"
             >
-              <ArrowPathIcon className="w-5 h-5" />
+              <ArrowPathIcon className="w-5 h-5 pointer-events-none" />
             </button>
           </div>
         </div>

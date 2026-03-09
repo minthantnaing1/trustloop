@@ -17,7 +17,7 @@ export default function NotificationsListClient({ initialItems = [] }) {
       const { id, op } = e?.detail || {};
       if (op === "markRead" && id) {
         setAll((prev) =>
-          prev.map((n) => (n._id === id ? { ...n, isRead: true } : n))
+          prev.map((n) => (n._id === id ? { ...n, isRead: true } : n)),
         );
       } else if (op === "markAllRead") {
         setAll((prev) => prev.map((n) => ({ ...n, isRead: true })));
@@ -40,11 +40,11 @@ export default function NotificationsListClient({ initialItems = [] }) {
       window.dispatchEvent(
         new CustomEvent("notifications:updated", {
           detail: { delta: -1, id, op: "markRead" },
-        })
+        }),
       );
     }
     setAll((prev) =>
-      prev.map((n) => (n._id === id ? { ...n, isRead: true } : n))
+      prev.map((n) => (n._id === id ? { ...n, isRead: true } : n)),
     );
     fetch(`/api/notifications/${id}`, {
       method: "PATCH",
@@ -153,10 +153,13 @@ export default function NotificationsListClient({ initialItems = [] }) {
                   <div className="text-sm text-gray-700 mt-1">{n.message}</div>
                 )}
                 <div className="text-xs text-gray-500 mt-1">
-                  {new Date(n.updatedAt || n.createdAt).toLocaleString("en-GB", {
-                    timeZone: "Asia/Bangkok",
-                    hour12: false,
-                  })}
+                  {new Date(n.updatedAt || n.createdAt).toLocaleString(
+                    "en-GB",
+                    {
+                      timeZone: "Asia/Bangkok",
+                      hour12: false,
+                    },
+                  )}
                 </div>
               </div>
 

@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/db";
 import Product from "@/models/Product";
 import Transaction from "@/models/Transaction";
 import { advanceAuctionWinner } from "@/lib/auctionFlow";
+import { notifyTxnEvent } from "@/lib/notify";
 
 export const runtime = "nodejs";
 
@@ -194,6 +195,12 @@ export async function POST(req) {
       });
 
       await txn.save();
+
+      await notifyTxnEvent({
+        txn,
+        actorId: txn.buyer || null,
+        type: "STRIPE_PAYMENT_CONFIRMED",
+      });
     }
 
     /* ================= CHARGE SUCCEEDED (BEST for fee) ================= */
@@ -249,6 +256,12 @@ export async function POST(req) {
       });
 
       await txn.save();
+
+      await notifyTxnEvent({
+        txn,
+        actorId: null,
+        type: "PAYMENT_FAILED",
+      });
 
       if (txn.product) {
         // ✅ AUCTION: advance winner queue instead of releasing product

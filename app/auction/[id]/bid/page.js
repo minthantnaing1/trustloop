@@ -10,6 +10,7 @@ import User from "@/models/User";
 import Product from "@/models/Product";
 import Auction from "@/models/Auction";
 import { fmtBKK } from "@/utils/timeAgo";
+import DeadlineCountdown from "@/components/DeadlineCountdown";
 
 function ceilBaht(n) {
   return Math.ceil(Number(n) || 0);
@@ -88,9 +89,9 @@ export default async function AuctionBidPage({ params }) {
           <BackButton />
         </div>
 
-        <div className="mb-5">
+        {/* <div className="mb-5">
           <Stepper current={1} variant="auctionBuyer" className="px-1" />
-        </div>
+        </div> */}
 
         <div className="bg-white border border-gray-300 rounded-[5px] shadow-xl p-6">
           <div className="flex flex-col lg:flex-row gap-6">
@@ -106,6 +107,7 @@ export default async function AuctionBidPage({ params }) {
                   alt={product.title}
                   className="w-[150px] h-[150px] sm:w-[200px] sm:h-[200px] rounded-[5px] object-cover border border-gray-300 shadow-sm"
                 />
+
                 <div className="flex-1">
                   <h2 className="text-lg font-bold text-[#1f2f4c]">
                     {product.title}
@@ -120,60 +122,134 @@ export default async function AuctionBidPage({ params }) {
                     </div>
 
                     <div>
-                      Base price:{" "}
-                      <span className="font-semibold">
-                        ฿{Number(product.startingPrice || 0).toLocaleString()}
-                      </span>
+                      Category:{" "}
+                      <span className="font-semibold">{product.category}</span>
                     </div>
 
                     <div>
-                      Current highest:{" "}
-                      <span className="font-semibold">
-                        ฿{currentHighest.toLocaleString()}
-                      </span>
+                      Condition:{" "}
+                      <span className="font-semibold">{product.condition}</span>
                     </div>
 
-                    <div className="text-[#325082]">
-                      Minimum next bid:&nbsp;
-                      <span className="font-semibold">
-                        ฿{minBid.toLocaleString()}
-                      </span>
+                    <div>
+                      Product Location:{" "}
+                      <span className="font-semibold">{product.location}</span>
                     </div>
-
-                    {endsAt && (
-                      <div className="text-rose-700">
-                        Ends at:&nbsp;
-                        <span className="font-semibold">{fmtBKK(endsAt)}</span>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
+              {/* Bottom rules */}
+              <div className="mt-6 space-y-5">
+                {/* Bid Rules */}
+                <div>
+                  <h3 className="text-sm font-semibold text-[#325082] mb-2">
+                    Bid Rules
+                  </h3>
 
-              <div className="mt-6">
-                <h3 className="text-sm font-semibold text-[#325082] mb-2">
-                  Bid rules
-                </h3>
-                <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
-                  <li>Base price must be at least ฿1,000.</li>
-                  <li>First valid bid must be ≥ base + 5% of base.</li>
-                  <li>Next bids must be ≥ last bid + 5% of base price.</li>
-                  <li>Bids after the deadline are rejected.</li>
-                  <li>You can't bid twice in a row as the highest bidder.</li>
-                </ul>
+                  <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
+                    <li>Only bid if you truly intend to buy the item.</li>
+                    <li>
+                      If you win, payment must be completed within the given
+                      time.
+                    </li>
+                    <li>
+                      If payment is not completed, the order will be cancelled
+                      automatically.
+                    </li>
+                    <li>
+                      Repeated non-payment or fake bidding may lead to warning,
+                      restriction, or ban by admin.
+                    </li>
+                  </ul>
+                </div>
+
+                {/* What happens next */}
+                <div>
+                  <h3 className="text-sm font-semibold text-[#325082] mb-2">
+                    What happens next
+                  </h3>
+
+                  <ul className="text-sm text-gray-700 space-y-1 list-disc pl-5">
+                    <li>
+                      Please make a payment within the given time if seller
+                      selected you as a winner.
+                    </li>
+
+                    <li>
+                      If you cancel the order after payment,
+                      <span className="font-medium text-[#325082]">
+                        {" "}
+                        5% of the payment{" "}
+                      </span>
+                      will be charged as a platform fee.
+                    </li>
+
+                    <li>
+                      After payment, arrange delivery via fulfillment chat in
+                      Order Details.
+                    </li>
+
+                    <li>
+                      Seller delivers or meets you; you confirm you’ve received
+                      the item.
+                    </li>
+
+                    <li>
+                      After confirmation, TrustLoop releases the payout to the
+                      seller.
+                    </li>
+                  </ul>
+                </div>
               </div>
             </div>
 
-            {/* Right form */}
-            <div className="w-full lg:w-[460px]">
+            {/* Right form + bid info */}
+            <div className="w-full lg:w-[460px] space-y-4">
               <div className="rounded-[5px] border border-gray-300 shadow-md overflow-hidden">
-                <div className="p-4 bg-gradient-to-br from-[#f3f6fb] to-white">
+                <div className="p-3 bg-gradient-to-br from-[#f3f6fb] to-white">
                   <h3 className="font-semibold text-[#325082]">
                     Submit Your Bid
                   </h3>
                 </div>
 
-                <form id="auctionBidForm" className="p-4 space-y-4">
+                <form id="auctionBidForm" className="px-4 py-2 space-y-4">
+                  {/* Bid summary */}
+                  <div className="rounded-[5px] border border-[#dbe6ff] bg-[#f8fbff] p-3 space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Base price</span>
+                      <span className="font-semibold text-[#1f2f4c]">
+                        ฿{Number(product.startingPrice || 0).toLocaleString()}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Current highest</span>
+                      <span className="font-semibold text-[#1f2f4c]">
+                        ฿{currentHighest.toLocaleString()}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-[#325082] font-medium">
+                        Minimum next bid
+                      </span>
+                      <span className="font-bold text-[#325082]">
+                        ฿{minBid.toLocaleString()}
+                      </span>
+                    </div>
+
+                    {endsAt && (
+                      <div className="pt-2 border-t border-[#dbe6ff] text-[13px] text-rose-700">
+                        <span className="font-medium">Ends:</span>{" "}
+                        <span className="font-semibold">{fmtBKK(endsAt)}</span>{" "}
+                        <span className="font-semibold">
+                          (<DeadlineCountdown target={endsAt} prefix="" /> left)
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Main input */}
                   <div>
                     <label className="block text-xs font-semibold text-[#325082] mb-1">
                       Your bid amount (THB) *
@@ -184,12 +260,29 @@ export default async function AuctionBidPage({ params }) {
                       min={minBid}
                       step="1"
                       required
-                      placeholder={`Minimum: ${minBid}`}
+                      defaultValue={minBid}
                       className="w-full rounded-[5px] border border-[#dbe6ff] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#325082]/30"
                     />
                     <p className="text-xs text-gray-600 ml-1 mt-1">
                       Minimum next bid is ฿{minBid.toLocaleString()}.
                     </p>
+                  </div>
+
+                  {/* Short pricing rules */}
+                  <div className="rounded-[5px] bg-[#f9fbff] border border-gray-200 p-3">
+                    <h4 className="text-xs font-semibold text-[#325082] mb-2">
+                      Quick Bid Rules
+                    </h4>
+                    <ul className="text-xs text-gray-700 list-disc pl-5 space-y-1">
+                      <li>
+                        First bid must be at least 5% above the base price.
+                      </li>
+                      <li>
+                        Each next bid must be at least 5% above the current
+                        highest bid.
+                      </li>
+                      <li>Bids after the deadline will not be accepted.</li>
+                    </ul>
                   </div>
 
                   <div className="mt-2">

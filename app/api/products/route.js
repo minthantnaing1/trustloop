@@ -1,3 +1,4 @@
+// app/api/products/route.js
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 import Product from "@/models/Product";
@@ -190,13 +191,13 @@ export async function GET(req) {
       ],
     };
 
-    // ✅ Apply price filter only for sell/request (not donation, not auction)
+    // ✅ Apply price filter only for sell/request or auction (not donation)
     if (type !== "donation" && type !== "auction") {
       filters.price = { $gte: minPrice, $lte: maxPrice };
     } else if (type === "donation") {
       filters.price = 0;
     } else if (type === "auction") {
-      // auctions use startingPrice + endsAt; no price filter here
+      filters.startingPrice = { $gte: minPrice, $lte: maxPrice };
     }
 
     // ✅ Apply optional filters

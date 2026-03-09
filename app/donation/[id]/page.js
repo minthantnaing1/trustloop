@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
+import Transaction from "@/models/Transaction";
 import NavBar from "@/components/NavBar";
 import DonationDetails from "@/components/DonationDetails";
 import BackButton from "@/components/BackButton";
@@ -18,7 +19,7 @@ export default async function DonationProductPage({ params }) {
     {
       headers: { Cookie: cookieStore.toString() },
       cache: "no-store",
-    }
+    },
   );
 
   // 404 or not found
@@ -73,9 +74,22 @@ export default async function DonationProductPage({ params }) {
       .lean();
   }
 
+  let sellerSoldCount = 0;
+  if (product?.owner?._id) {
+    sellerSoldCount = await Transaction.countDocuments({
+      seller: product.owner._id,
+      status: "PAID_OUT",
+      kind: { $in: ["BUY_SELL", "AUCTION"] },
+    });
+  }
+
+  if (product?.owner) {
+    product.owner.soldCount = sellerSoldCount;
+  }
+
   const initialIsFav = Boolean(
     product.isFav ??
-      me?.favorites?.some((fid) => String(fid) === String(product._id))
+    me?.favorites?.some((fid) => String(fid) === String(product._id)),
   );
 
   const isOwner = sessionEmail === product.owner?.email;

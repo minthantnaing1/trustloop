@@ -1,5 +1,7 @@
+// components/admin/AdminSidebar.js
 "use client";
-import { useState } from "react";
+
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -14,14 +16,68 @@ import {
   ArrowLeftOnRectangleIcon,
   ArrowUturnLeftIcon,
   ChatBubbleLeftRightIcon,
-  ScaleIcon,
   CalculatorIcon,
 } from "@heroicons/react/24/outline";
 
 export default function AdminSidebar({ collapsed, setCollapsed }) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [badges, setBadges] = useState({
+    transactions: 0,
+    support: 0,
+  });
 
   const pathname = usePathname();
+
+  const loadBadges = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/sidebar-badges", {
+        cache: "no-store",
+      });
+      if (!res.ok) return;
+
+      const data = await res.json().catch(() => ({}));
+      setBadges({
+        transactions: Number(data?.transactions || 0),
+        support: Number(data?.support || 0),
+      });
+    } catch {
+      // keep silent
+    }
+  }, []);
+
+  useEffect(() => {
+    loadBadges();
+
+    const interval = setInterval(() => {
+      loadBadges();
+    }, 4000); // faster refresh
+
+    const handleFocus = () => loadBadges();
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        loadBadges();
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [loadBadges]);
+
+  function renderBadge(count) {
+    if (!count) return null;
+
+    return (
+      <span className="absolute top-1.5 left-[26px] min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none shadow">
+        {count > 99 ? "99+" : count}
+      </span>
+    );
+  }
 
   const menuItems = [
     {
@@ -43,6 +99,7 @@ export default function AdminSidebar({ collapsed, setCollapsed }) {
       label: "Transactions",
       href: "/admin/transactions",
       icon: <BanknotesIcon className="w-5 h-5" />,
+      badge: badges.transactions,
     },
     {
       label: "Finance",
@@ -53,6 +110,7 @@ export default function AdminSidebar({ collapsed, setCollapsed }) {
       label: "Support Tickets",
       href: "/admin/support",
       icon: <ChatBubbleLeftRightIcon className="w-5 h-5" />,
+      badge: badges.support,
     },
     {
       label: "Settings",
@@ -92,6 +150,7 @@ export default function AdminSidebar({ collapsed, setCollapsed }) {
         {/* Menu Items */}
         {menuItems.map((item) => {
           const isActive = pathname === item.href;
+
           return (
             <Link href={item.href} key={item.href}>
               <div
@@ -99,9 +158,11 @@ export default function AdminSidebar({ collapsed, setCollapsed }) {
                   isActive ? "bg-blue-600" : "hover:bg-[#2d3a50]"
                 }`}
               >
-                <div className="w-[30px] min-w-[30px] h-[28px] flex items-center justify-center">
+                <div className="relative w-[30px] min-w-[30px] h-[28px] flex items-center justify-center">
                   {item.icon}
+                  {collapsed && renderBadge(item.badge)}
                 </div>
+
                 <span
                   className={`transition-opacity duration-500 ${
                     collapsed ? "opacity-0" : "opacity-100"
@@ -113,6 +174,12 @@ export default function AdminSidebar({ collapsed, setCollapsed }) {
                 >
                   {item.label}
                 </span>
+
+                {!collapsed && item.badge > 0 && (
+                  <span className="ml-auto mr-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none shadow">
+                    {item.badge > 99 ? "99+" : item.badge}
+                  </span>
+                )}
               </div>
             </Link>
           );
@@ -162,7 +229,7 @@ export default function AdminSidebar({ collapsed, setCollapsed }) {
           </span>
         </button>
       </div>
-      {/* Confirm Modal */}
+
       <ConfirmModal
         isOpen={showLogoutConfirm}
         message="Are you sure you want to sign out?"

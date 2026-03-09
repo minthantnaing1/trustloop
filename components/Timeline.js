@@ -27,10 +27,18 @@ export const TIMELINE_LABELS = {
   ADMIN_STATUS_OVERRIDE: "Admin changed order status",
   ADMIN_REFUNDED_BUYER: "Admin refunded buyer",
   ADMIN_PAID_OUT: "Payout released to seller",
+
+  AUCTION_WINNER_ASSIGNED: "Winner assigned by seller",
+  AUCTION_WINNER_ASSIGNED_AUTO: "Winner auto-assigned by system",
+  AUCTION_WINNER_ADVANCED: "Winner moved to next bidder",
+  AUCTION_UNSUCCESSFUL: "Auction ended without successful sale",
+  AUCTION_UNSUCCESSFUL_NO_BIDS: "Auction ended with no bids",
+  AUCTION_ALL_BIDDERS_FAILED: "All auction bidders failed",
 };
 
 /** Donation wording overrides (label only) */
 const DONATION_LABEL_OVERRIDES = {
+  DONATION_INSTANT_CREATED: "Donation request created",
   SELLER_ACCEPTED: "Donor accepted the request",
   SELLER_PROOF_UPLOADED: "Donor uploaded delivery proof",
   BUYER_CONFIRMED: "Recipient confirmed received",

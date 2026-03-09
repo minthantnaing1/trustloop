@@ -1,3 +1,4 @@
+// app/my-orders/[id]/OrderDetail.js
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -151,6 +152,15 @@ export default function OrderDetail({ id }) {
   const canUploadProof =
     isSeller && ["DELIVERY_IN_PROGRESS"].includes(txn?.status);
 
+  const isCancelled =
+    txn?.status === "CANCELLED_BY_BUYER" ||
+    txn?.status === "CANCELLED_BY_SELLER";
+
+  const canViewRefund =
+    kind !== "DONATION" && isBuyer && isCancelled && txn?.hasPaymentSucceeded;
+
+  const refundReady = Boolean(txn?.adminRefundReceiptUrl);
+
   async function uploadOne(file) {
     const fd = new FormData();
     fd.append("file", file);
@@ -216,7 +226,7 @@ export default function OrderDetail({ id }) {
 
   return (
     <div className="space-y-6">
-      {me && txn && (
+      {/* {me && txn && (
         <Stepper
           className="px-1"
           current={2}
@@ -234,7 +244,7 @@ export default function OrderDetail({ id }) {
                   : "seller"
           }
         />
-      )}
+      )} */}
 
       {/* Header */}
       <div className={`${card} p-6`}>
@@ -295,6 +305,16 @@ export default function OrderDetail({ id }) {
                       {otherPhone}
                     </a>
                   )}
+
+                  {/* Buyer location (seller only) */}
+                  {isSeller && canShowContact && txn?.buyerLocation && (
+                    <div className="text-sm text-gray-700">
+                      <span className="font-medium text-[#325082]">
+                        Buyer Location:
+                      </span>{" "}
+                      {txn.buyerLocation}
+                    </div>
+                  )}
                 </div>
               );
             })()}
@@ -336,6 +356,13 @@ export default function OrderDetail({ id }) {
                 Description:{" "}
                 <span className="font-medium">
                   {txn.product?.description || "-"}
+                </span>
+              </div>
+
+              <div className="mt-1">
+                Product Location:{" "}
+                <span className="font-medium">
+                  {txn.product?.location || "-"}
                 </span>
               </div>
             </div>
@@ -395,6 +422,16 @@ export default function OrderDetail({ id }) {
                   />
                 </Link>
               )}
+
+            {/* Buyer: refund page */}
+            {canViewRefund && (
+              <Link href={`/my-orders/${id}/refund`}>
+                <ActionButton
+                  text={refundReady ? "View Refund" : "Refund Status"}
+                  variant="primaryClick"
+                />
+              </Link>
+            )}
 
             {/* Seller: payout link */}
             {kind !== "DONATION" &&

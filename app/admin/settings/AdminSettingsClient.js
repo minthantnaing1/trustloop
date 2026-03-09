@@ -160,13 +160,7 @@ export default function AdminSettingsClient() {
 
   return (
     <>
-      <div className="sm:hidden mb-3">
-        <h1 className="text-2xl font-bold text-[#325082]">Settings</h1>
-      </div>
-
-      <h1 className="hidden sm:block text-2xl font-bold text-[#325082] mb-3">
-        Settings
-      </h1>
+      <h1 className="text-2xl font-bold text-[#325082] mb-4">Settings</h1>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
         <StatCard label="System Mode" value={stats.mode} />

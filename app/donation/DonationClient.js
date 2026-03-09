@@ -1,3 +1,4 @@
+// app/donation/DonationClient.js
 "use client";
 
 import { useEffect, useState, useRef, useTransition } from "react";
@@ -60,7 +61,7 @@ export default function DonationClient({ initial }) {
           products: data.products,
           userEmail: data.userEmail,
           ts: Date.now(),
-        })
+        }),
       );
     } catch {}
   };
@@ -105,7 +106,7 @@ export default function DonationClient({ initial }) {
   // Split into "my donations" (show first, horizontal scroll) and "others"
   const myDonations = products.filter((p) => p.owner?.email === userEmail);
   const otherDonations = products.filter(
-    (p) => p.owner?.email !== userEmail && p.isAvailable
+    (p) => p.owner?.email !== userEmail && p.isAvailable,
   );
 
   function onDonateClick() {

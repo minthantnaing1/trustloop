@@ -31,7 +31,7 @@ async function requirePartyAndTxn(txnId) {
   if (!me) return { err: new Response("User not found", { status: 404 }) };
 
   const txn = await Transaction.findById(txnId).select(
-    "buyer seller kind status timeline sellerProofUrls sellerProofUploadedAt autoConfirmAt",
+    "buyer seller product kind status timeline sellerProofUrls sellerProofUploadedAt autoConfirmAt",
   );
   if (!txn) return { err: new Response("Not found", { status: 404 }) };
 

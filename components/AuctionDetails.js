@@ -29,6 +29,20 @@ function computeMinNextBid({ product, auction }) {
   return ceilBaht(ref + inc);
 }
 
+function formatCountdown(target, nowTs) {
+  if (!target) return "";
+  const diff = new Date(target).getTime() - nowTs;
+  if (diff <= 0) return "0d 0h 0m 0s";
+
+  const totalSeconds = Math.floor(diff / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+}
+
 export default function AuctionDetails({
   product,
   auction,
@@ -42,11 +56,21 @@ export default function AuctionDetails({
 
   // ✅ local state so UI can update without reload
   const [auctionLive, setAuctionLive] = useState(auction);
+  const [nowTs, setNowTs] = useState(Date.now());
 
   // keep local state synced if server re-renders for any reason
   useEffect(() => {
     setAuctionLive(auction);
   }, [auction?._id]); // only when changing auction doc (safe)
+
+  // ✅ live clock so deadline UI updates automatically
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNowTs(Date.now());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   const endsAt = useMemo(() => {
     return product?.auctionEndsAt
@@ -56,7 +80,16 @@ export default function AuctionDetails({
         : null;
   }, [product?.auctionEndsAt, auctionLive?.endsAt]);
 
-  const ended = endsAt ? endsAt.getTime() <= Date.now() : false;
+  const timeEnded = endsAt ? endsAt.getTime() <= nowTs : false;
+
+  // stop countdown once winner is selected / auction no longer OPEN
+  const biddingClosed = auctionLive?.status && auctionLive.status !== "OPEN";
+
+  const ended = biddingClosed || timeEnded;
+  const countdownText =
+    endsAt && !biddingClosed && !timeEnded
+      ? formatCountdown(endsAt, nowTs)
+      : "";
 
   const basePrice = Number(product?.startingPrice) || 0;
   const hasBid = Boolean(auctionLive?.currentBid?.amount);
@@ -94,6 +127,9 @@ export default function AuctionDetails({
     Boolean(auctionLive?.currentBid?.amount) &&
     product?.isAvailable !== false &&
     !product?.isHidden;
+
+  // ✅ owner manage buttons visibility
+  const canOwnerManage = isOwner && product?.isAvailable !== false && !ended;
 
   // ✅ refresh helper (calls server endpoint which also auto-finalizes after deadline)
   const refreshingRef = useRef(false);
@@ -192,7 +228,7 @@ export default function AuctionDetails({
         <div className="flex flex-col sm:flex-row items-start sm:items-center mb-4 gap-2">
           <BackButton />
 
-          {isOwner && product?.isAvailable !== false && (
+          {canOwnerManage && (
             <div className="flex gap-2 sm:gap-3 items-center w-full sm:w-auto self-end sm:self-auto sm:ml-auto justify-end flex-wrap">
               <HideToggleButton
                 productId={product._id}
@@ -308,7 +344,13 @@ export default function AuctionDetails({
                         : "text-[#325082] border-[#cfe3ff] bg-white"
                     }`}
                   >
-                    {ended ? "Ended" : "Ends"}: {fmtBKK(endsAt)}
+                    {auctionLive?.status === "OPEN" && !timeEnded
+                      ? "Ends"
+                      : "Ended"}
+                    : {fmtBKK(endsAt)}
+                    {auctionLive?.status === "OPEN" && countdownText
+                      ? ` • ${countdownText}`
+                      : ""}
                   </span>
                 )}
 
@@ -326,7 +368,7 @@ export default function AuctionDetails({
                     ฿{basePrice.toLocaleString()}
                   </div>
                   <div className="text-[11px] text-gray-500">
-                    Minimum base is ฿1,000
+                    Minimum base is ฿10
                   </div>
                 </div>
 
@@ -382,12 +424,15 @@ export default function AuctionDetails({
                 </div>
               )}
 
-              {!isOwner && viewerIsLastBidder && !ended && (
-                <div className="mt-2 text-xs sm:text-sm px-3 py-2 rounded bg-yellow-50 border border-yellow-200 text-yellow-800">
-                  You are currently the highest bidder. You can bid again only
-                  after another user places a bid.
-                </div>
-              )}
+              {!isOwner &&
+                auctionLive?.status === "OPEN" &&
+                viewerIsLastBidder &&
+                !timeEnded && (
+                  <div className="mt-2 text-xs sm:text-sm px-3 py-2 rounded bg-yellow-50 border border-yellow-200 text-yellow-800">
+                    You are currently the highest bidder. You can bid again only
+                    after another user places a bid.
+                  </div>
+                )}
 
               {/* ✅ Seller accept highest bidder (right aligned + ActionButton) */}
               {canSellerAccept && (
@@ -474,30 +519,55 @@ export default function AuctionDetails({
             </div>
 
             {/* Seller */}
-            <div className="flex items-center gap-4 mt-3 p-3 rounded-md bg-[#f0f0f0] border border-[#ccc]">
-              <Link href={`/profile/${product.owner?._id}`}>
-                <img
-                  src={product.owner?.image || "/default-profile.png"}
-                  alt="Seller Image"
-                  width={60}
-                  height={60}
-                  className="rounded-full object-cover border-2 border-[#325082] w-[60px] h-[60px] transition-transform duration-500 hover:scale-105"
-                  onError={(e) => {
-                    e.currentTarget.src = "/default-profile.png";
-                  }}
-                />
-              </Link>
-              <div className="flex flex-col">
-                <h3 className="font-semibold">
-                  {isOwner ? "Seller (Me):" : "Seller:"}
-                </h3>
-                <p className="font-semibold text-[#222]">
-                  {product.owner?.name}
-                </p>
-                <p className="text-[14px] text-[#222]">
-                  <MaskedUserId email={product.owner?.email} reveal={isOwner} />
-                </p>
+            <div className="flex items-center justify-between gap-3 mt-3 p-3 rounded-md bg-[#f0f0f0] border border-[#ccc]">
+              <div className="flex items-center gap-3 min-w-0">
+                <Link href={`/profile/${product.owner?._id}`}>
+                  <img
+                    src={product.owner?.image || "/default-profile.png"}
+                    alt="Seller Image"
+                    width={60}
+                    height={60}
+                    className="rounded-full object-cover border-2 border-[#325082] w-[60px] h-[60px] transition-transform duration-500 hover:scale-105"
+                    onError={(e) => {
+                      e.currentTarget.src = "/default-profile.png";
+                    }}
+                  />
+                </Link>
+
+                <div className="flex flex-col leading-tight">
+                  <h3 className="font-semibold text-[14px]">
+                    {isOwner ? "Seller (Me):" : "Seller:"}
+                  </h3>
+                  <p className="font-semibold text-[#222] text-[14px] leading-tight">
+                    {product.owner?.name}
+                  </p>
+                  <p className="text-[12px] text-[#222]">
+                    <MaskedUserId
+                      email={product.owner?.email}
+                      reveal={isOwner}
+                    />
+                  </p>
+                </div>
               </div>
+
+              {!isOwner && (
+                <div className="flex flex-col items-end text-right leading-tight">
+                  {/* rating */}
+                  <div className="text-[#ffcc00] text-[20px]">
+                    {"★".repeat(Math.round(product.owner?.rating || 0)) +
+                      "☆".repeat(5 - Math.round(product.owner?.rating || 0))}
+                  </div>
+
+                  <div className="text-[13px] text-gray-600">
+                    {Number(product.owner?.rating || 0).toFixed(1)}/5 rating
+                  </div>
+
+                  {/* sold count */}
+                  <div className="text-[13px] text-[#325082] font-semibold mt-[2px]">
+                    {product.owner?.soldCount || 0} sold
+                  </div>
+                </div>
+              )}
             </div>
 
             <CommentSection

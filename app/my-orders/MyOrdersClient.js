@@ -559,8 +559,8 @@ export default function MyOrdersClient() {
           </div>
         </div>
 
-        {/* Buyer-only progress (Donation recipient stepper at step 2) */}
-        {role === "buyer" && kindFilter === "DONATION" && (
+        {/* Stepper which we will update later. */}
+        {/* {role === "buyer" && kindFilter === "DONATION" && (
           <div
             key={`stepper-buyer-${kindFilter}`}
             className="mb-4"
@@ -570,26 +570,24 @@ export default function MyOrdersClient() {
           </div>
         )}
 
-        {/* Seller-only progress (UI stepper at step 2) */}
         {role === "seller" && (
           <div
             key={`stepper-seller-${kindFilter}`}
             className="mb-4"
             style={{ animation: "fadeSlide 800ms ease-out" }}
           >
-            {/* <Stepper
+            <Stepper
               current={2}
               variant={kindFilter === "DONATION" ? "donor" : "seller"}
               className="px-1"
-            /> */}
+            />
           </div>
-        )}
+        )} */}
 
         {err && <p className="mb-4 text-sm text-red-600">{err}</p>}
         {!list && !err && (
           <div className="mb-4 text-sm text-slate-500">Loading…</div>
         )}
-
         {/* Entire list fades/slides on tab change */}
         <section
           key={`${role}-${kindFilter}`}
@@ -707,10 +705,10 @@ export default function MyOrdersClient() {
                               )}
 
                               {/* Admin rejection reason (Buy/Sell only) */}
-                              {t.kind === "BUY_SELL" && t.adminRejectReason && (
+                              {t.adminRejectReason && (
                                 <>
                                   <span className="text-slate-500">
-                                    Reject reason:
+                                    Admin Reject reason:
                                   </span>
                                   <span className="font-semibold">
                                     {t.adminRejectReason}

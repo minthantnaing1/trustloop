@@ -7,42 +7,61 @@ import Transaction from "@/models/Transaction";
 import { notifyTxnEvent } from "@/lib/notify";
 
 export async function POST(_req, { params }) {
-  const { id } = await params; // requestId
+  const { id } = await params;
+
   try {
     const session = await auth();
-    if (!session?.user?.email)
+    if (!session?.user?.email) {
       return new Response("Unauthorized", { status: 401 });
+    }
 
     await connectDB();
 
-    const reqDoc = await DonationRequest.findById(id).populate(
-      "product requester"
-    );
+    const reqDoc =
+      await DonationRequest.findById(id).populate("product requester");
     if (!reqDoc) return new Response("Request not found", { status: 404 });
 
     const product = await Product.findById(reqDoc.product._id).populate(
-      "owner"
+      "owner",
     );
     if (!product) return new Response("Product not found", { status: 404 });
 
-    if (product.owner.email !== session.user.email)
+    if (product.owner.email !== session.user.email) {
       return new Response("Unauthorized", { status: 403 });
+    }
 
-    if (product.isAvailable === false) {
+    if (product.type !== "donation") {
+      return new Response("Not a donation item.", { status: 400 });
+    }
+
+    if (product.isAvailable === false || product.acceptedBy) {
       return new Response("This item is already reserved/unavailable.", {
         status: 409,
       });
     }
 
-    // Accept this request
+    // accept selected request
     reqDoc.status = "accepted";
     await reqDoc.save();
 
-    // Reserve product
+    // reject all other pending requests for same product
+    await DonationRequest.updateMany(
+      {
+        product: product._id,
+        _id: { $ne: reqDoc._id },
+        status: "pending",
+      },
+      {
+        $set: { status: "rejected" },
+      },
+    );
+
+    // reserve product + mark accepted receiver
     product.isAvailable = false;
+    product.acceptedBy = reqDoc.requester._id;
     await product.save();
 
-    // Create zero-cost DONATION txn, meetup-only, jump to SELLER_ACCEPTED
+    // create zero-cost DONATION txn directly at accepted state
     const txn = await Transaction.create({
       kind: "DONATION",
       product: product._id,
@@ -53,11 +72,9 @@ export async function POST(_req, { params }) {
       fee: 0,
       total: 0,
       sellerNet: 0,
-      fulfillment: {
-        method: "MEETUP",
-        meetupLocation: product.location || "",
-        notes: "",
-      },
+      buyerLocation:
+        String(reqDoc.requester?.location || "").trim() ||
+        "Assumption University",
       requestReason: reqDoc.reason || "",
       timeline: [
         {
@@ -68,7 +85,6 @@ export async function POST(_req, { params }) {
       ],
     });
 
-    // 🔔 notify recipient/donor/admins
     await notifyTxnEvent({
       txn,
       actorId: product.owner._id,
@@ -77,7 +93,7 @@ export async function POST(_req, { params }) {
 
     return new Response(
       JSON.stringify({ ok: true, orderId: String(txn._id) }),
-      { status: 200 }
+      { status: 200 },
     );
   } catch (err) {
     console.error("❌ accept error:", err);

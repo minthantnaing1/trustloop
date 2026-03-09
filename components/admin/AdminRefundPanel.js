@@ -1,3 +1,4 @@
+// components/admin/AdminRefundPanel.js
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -38,7 +39,8 @@ export default function AdminRefundPanel({ txn }) {
   const alreadyRefunded = Boolean(
     txn?.adminRefundReceiptUrl || adminRefundReceiptUrl,
   );
-  const canRefund = kindUp === "BUY_SELL" && isCancelled && !alreadyRefunded;
+  const canRefund =
+    ["BUY_SELL", "AUCTION"].includes(kindUp) && isCancelled && !alreadyRefunded;
 
   const buyer = txn?.buyer || {};
   const product = txn?.product || {};
@@ -318,7 +320,7 @@ export default function AdminRefundPanel({ txn }) {
 
               {!canRefund && (
                 <p className="text-xs text-gray-500 mt-2">
-                  Available only for cancelled Buy/Sell orders.
+                  Available only for cancelled Buy/Sell or Auction orders.
                 </p>
               )}
             </Card>

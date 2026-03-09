@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 import Product from "@/models/Product";
+import Transaction from "@/models/Transaction";
 import Auction from "@/models/Auction";
 import NavBar from "@/components/NavBar";
 import BackButton from "@/components/BackButton";
@@ -23,6 +24,7 @@ export default async function AuctionProductPage({ params }) {
   await connectDB();
 
   const product = await Product.findById(id).populate("owner").lean();
+
   if (!product) {
     return (
       <>
@@ -50,6 +52,16 @@ export default async function AuctionProductPage({ params }) {
         </main>
       </>
     );
+  }
+
+  let sellerSoldCount = 0;
+
+  if (product?.owner?._id) {
+    sellerSoldCount = await Transaction.countDocuments({
+      seller: product.owner._id,
+      status: "PAID_OUT",
+      kind: { $in: ["BUY_SELL", "AUCTION"] },
+    });
   }
 
   if (product.type && product.type !== "auction") {
@@ -86,13 +98,14 @@ export default async function AuctionProductPage({ params }) {
     );
   }
 
-  // ✅ auto finalize after deadline (creates txn + locks auction if needed)
+  // Runs when this page is requested.
+  // This is NOT a background scheduler; it finalizes when a request hits this auction.
   await autoAcceptIfDeadlinePassed(product._id, { actorUserId: null });
 
   const auction = await Auction.findOne({ product: product._id })
     .populate({ path: "currentBid.bidder", select: "name email image" })
     .populate({ path: "bidHistory.bidder", select: "name email image" })
-    .populate({ path: "winner", select: "name email image" }) // ✅ NEW
+    .populate({ path: "winner", select: "name email image" })
     .lean();
 
   if (!auction) {
@@ -138,10 +151,15 @@ export default async function AuctionProductPage({ params }) {
   const missing = [];
   if (!me?.phone) missing.push("Phone");
   if (!me?.location) missing.push("Location");
+
   const bidGuard = { ok: missing.length === 0, missing };
 
   const productPlain = JSON.parse(JSON.stringify(product));
   const auctionPlain = JSON.parse(JSON.stringify(auction));
+
+  if (productPlain?.owner) {
+    productPlain.owner.soldCount = sellerSoldCount;
+  }
 
   return (
     <AuctionDetails

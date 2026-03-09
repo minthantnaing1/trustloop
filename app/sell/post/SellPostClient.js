@@ -103,9 +103,9 @@ export default function SellPostClient({ initialLocation = "" }) {
       </div>
 
       {/* Progress Stepper (buyer, step 1) */}
-      <div className="mb-5">
+      {/* <div className="mb-5">
         <Stepper current={1} variant="seller" className="px-1" />
-      </div>
+      </div> */}
 
       {/* Seller fee info (5%) */}
       <div className="mb-6">

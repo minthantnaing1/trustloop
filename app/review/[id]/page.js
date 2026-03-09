@@ -130,13 +130,13 @@ export default async function ReviewPage({ params }) {
         </div>
 
         {/* Progress Stepper (recipient/buyer, final step) */}
-        <div className="mb-5">
+        {/* <div className="mb-5">
           <Stepper
             current={4}
             variant={isDonation ? "recipient" : "buyer"}
             className="px-1"
           />
-        </div>
+        </div> */}
 
         <div className="bg-white border border-gray-200 shadow-md rounded-[5px] p-6 mb-8">
           <div className="flex items-center justify-between">
