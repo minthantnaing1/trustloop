@@ -201,7 +201,7 @@ export default function TxnChat({
     }
   }
 
-  async function pollNew() {
+  const pollNew = useCallback(async () => {
     if (!lastAfter) return;
     try {
       const res = await fetch(
@@ -232,7 +232,7 @@ export default function TxnChat({
     } catch (e) {
       console.error(e);
     }
-  }
+  }, [lastAfter, txnId, scrollToBottom]);
 
   async function uploadOne(file) {
     const fd = new FormData();
@@ -331,8 +331,22 @@ export default function TxnChat({
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [txnId, meId, lastAfter]);
+  }, [txnId, meId, pollNew]);
+
+  useEffect(() => {
+    function handleExternalChatRefresh(e) {
+      if (e?.detail?.txnId && String(e.detail.txnId) !== String(txnId)) return;
+      pollNew();
+    }
+
+    window.addEventListener("txn-chat:new-message", handleExternalChatRefresh);
+    return () => {
+      window.removeEventListener(
+        "txn-chat:new-message",
+        handleExternalChatRefresh,
+      );
+    };
+  }, [txnId, pollNew]);
 
   return (
     <div className="mt-4 rounded-[3px] border border-[#e7ecf8] bg-[#f9fbff] flex flex-col h-[360px]">

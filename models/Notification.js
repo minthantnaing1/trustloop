@@ -73,7 +73,6 @@ const NotificationSchema = new mongoose.Schema(
     expiresAt: {
       type: Date,
       default: () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      index: true,
     },
   },
   { timestamps: true },
@@ -82,8 +81,6 @@ const NotificationSchema = new mongoose.Schema(
 // Latest-first list + uniqueness per (recipient, transaction)
 NotificationSchema.index({ recipient: 1, updatedAt: -1 });
 NotificationSchema.index({ recipient: 1, transaction: 1 }, { unique: true });
-
-// ✅ TTL index
 NotificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 export default mongoose.models.Notification ||

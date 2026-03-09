@@ -95,12 +95,21 @@ export default function NotificationsListClient({ initialItems = [] }) {
         const latestTitle = n.title || "Notification";
         const latestMsg = n.message || "";
 
-        const historyEvs = evs.filter((e) => {
-          const t = new Date(e.at).getTime();
-          const sameTime = Math.abs(t - latestAtMs) < 1000; // within 1 sec
+        const sortedEvs = evs
+          .slice()
+          .sort((a, b) => new Date(b.at) - new Date(a.at));
+
+        let removedLatest = false;
+        const historyEvs = sortedEvs.filter((e) => {
           const sameTitle = (e.title || "") === latestTitle;
           const sameMsg = (e.message || "") === latestMsg;
-          return !(sameTime && sameTitle && sameMsg);
+
+          if (!removedLatest && sameTitle && sameMsg) {
+            removedLatest = true;
+            return false;
+          }
+
+          return true;
         });
 
         const meId = n?.recipient?._id || n?.recipient; // the user receiving this noti
@@ -212,24 +221,21 @@ export default function NotificationsListClient({ initialItems = [] }) {
             {isOpen && (
               <div className="mt-3 border-t border-gray-300 pt-2">
                 <ul className="divide-y divide-gray-200">
-                  {historyEvs
-                    .slice() // clone
-                    .sort((a, b) => new Date(b.at) - new Date(a.at))
-                    .map((e, idx) => (
-                      <li
-                        key={idx}
-                        className="py-2 first:pt-0 text-sm text-gray-700"
-                      >
-                        <span className="font-medium">{e.title}</span>
-                        {e.message ? ` — ${e.message}` : ""}
-                        <span className="block text-xs text-gray-500">
-                          {new Date(e.at).toLocaleString("en-GB", {
-                            timeZone: "Asia/Bangkok",
-                            hour12: false,
-                          })}
-                        </span>
-                      </li>
-                    ))}
+                  {historyEvs.map((e, idx) => (
+                    <li
+                      key={idx}
+                      className="py-2 first:pt-0 text-sm text-gray-700"
+                    >
+                      <span className="font-medium">{e.title}</span>
+                      {e.message ? ` — ${e.message}` : ""}
+                      <span className="block text-xs text-gray-500">
+                        {new Date(e.at).toLocaleString("en-GB", {
+                          timeZone: "Asia/Bangkok",
+                          hour12: false,
+                        })}
+                      </span>
+                    </li>
+                  ))}
                 </ul>
               </div>
             )}

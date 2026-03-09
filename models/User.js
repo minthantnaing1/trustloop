@@ -33,7 +33,6 @@ const UserSchema = new mongoose.Schema({
   banType: {
     type: String,
     enum: ["PERMANENT", "TEMPORARY"],
-    default: "PERMANENT",
   },
   bannedReason: { type: String, default: "" },
   bannedAt: { type: Date },

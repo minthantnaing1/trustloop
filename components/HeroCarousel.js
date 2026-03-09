@@ -4,16 +4,32 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import ActionButton from "@/components/ActionButton";
 
-const images = ["/AU_ABAC.jpg", "/AU_ABAC2.jpg", "/AU_ABAC3.jpg"];
+// const images = ["/AU_ABAC.jpg", "/AU_ABAC2.jpg", "/AU_ABAC3.jpg"];
+const images = ["amos/au_pic1.jpg", "amos/au_pic2.jpg", "amos/au_pic3.jpg"];
 
 export default function HeroCarousel() {
   const [index, setIndex] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setIndex((prev) => (prev + 1) % images.length);
     }, 8000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    async function checkAdmin() {
+      try {
+        const res = await fetch("/api/users/me", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const user = data?.user || data;
+        if (user?.role === "admin") setIsAdmin(true);
+      } catch {}
+    }
+
+    checkAdmin();
   }, []);
 
   return (
@@ -41,13 +57,20 @@ export default function HeroCarousel() {
         <h1 className="text-3xl sm:text-5xl font-bold mb-4 drop-shadow-lg">
           Welcome to TrustLoop
         </h1>
-        <p className="max-w-[800px] text-sm sm:text-lg mb-6 drop-shadow-lg">
+        <p className="max-w-[800px] text-sm sm:text-lg mb-4 drop-shadow-lg">
           Assumption University&apos;s exclusive second-hand marketplace.
           <br /> Buy, sell, donate, and auction securely among AU students.
         </p>
-        <Link href="/buy">
-          <ActionButton text="Start Exploring" variant="glassClick" />
-        </Link>
+        <div className="flex flex-col items-center gap-3 mb-6">
+          {isAdmin && (
+            <Link href="/admin">
+              <ActionButton text="Admin Dashboard" variant="glassClick" />
+            </Link>
+          )}
+          <Link href="/buy">
+            <ActionButton text="Start Exploring" variant="glassClick" />
+          </Link>
+        </div>
       </div>
 
       {/* Dots Navigation */}

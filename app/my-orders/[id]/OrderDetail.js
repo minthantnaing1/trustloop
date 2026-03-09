@@ -122,6 +122,12 @@ export default function OrderDetail({ id }) {
     return () => clearInterval(t);
   }, [txn?.status, txn?.autoConfirmAt]);
 
+  useEffect(() => {
+    if (isBuyer && txn?.status === "SELLER_PROOF_UPLOADED") {
+      router.prefetch(`/review/${id}`);
+    }
+  }, [isBuyer, txn?.status, id, router]);
+
   async function doPatch(payload) {
     try {
       setBusy(true);
@@ -134,7 +140,7 @@ export default function OrderDetail({ id }) {
 
       if (isBuyer && payload?.action === "buyer_confirm") {
         window.dispatchEvent(new CustomEvent("overlay:show"));
-        router.push(`/review/${id}`);
+        router.replace(`/review/${id}`);
         return;
       }
 
@@ -188,6 +194,7 @@ export default function OrderDetail({ id }) {
 
     try {
       setProofBusy(true);
+      setProofOpen(false); // close modal immediately for faster UI feel
 
       const urls = (await Promise.all(list.map(uploadOne))).filter(Boolean);
       if (!urls.length) throw new Error("Upload failed");
@@ -207,9 +214,15 @@ export default function OrderDetail({ id }) {
         images: urls,
       });
 
-      setProofOpen(false);
-      await load();
+      window.dispatchEvent(
+        new CustomEvent("txn-chat:new-message", {
+          detail: { txnId: id },
+        }),
+      );
+
+      load();
     } catch (e) {
+      setProofOpen(true);
       alert(e.message || "Failed to upload proof");
     } finally {
       setProofBusy(false);

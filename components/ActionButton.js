@@ -47,7 +47,7 @@ export default function ActionButton({
       "w-full h-[46px] border-[#325082] text-[#325082] bg-transparent hover:scale-[1.02] border-[2px]",
 
     glassClick:
-      "backdrop-blur-xs bg-white/20 text-white font-semibold rounded-full px-3 py-2 text-sm sm:px-5 sm:py-3 sm:text-base shadow-lg hover:bg-white/30 transition",
+      "backdrop-blur-sm bg-white/10 border border-white/30 text-white font-semibold rounded-full px-3 py-2 text-sm sm:px-5 sm:py-3 sm:text-base shadow-[0_8px_32px_rgba(0,0,0,0.25)] hover:bg-white/15 hover:border-white/40 hover:scale-[1.03] active:scale-[0.97] transition-all duration-200",
 
     orderCancel:
       "h-[42px] w-[110px] border-gray-200 text-gray-300 bg-transparent text-sm hover:text-red-600 hover:border-red-600 hover:scale-[1.06] border-[1.5px]",
