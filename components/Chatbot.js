@@ -9,9 +9,9 @@ import { usePathname, useRouter } from "next/navigation";
 
 const CHATBOT_CONFIG = {
   welcomeMessage:
-    "Hi! I’m TrustLoop Assistant. I can help with buy & sell, donation, auction, payment, refund, payout, delivery, and order status questions.",
+    "Hi! I'm TrustLoop Assistant. I can help with buy & sell, donation, auction, payment, refund, payout, delivery, and order status questions.",
   fallbackMessage:
-    "I’m not fully sure about that yet, but I can explain TrustLoop flows like buy & sell, donation, auction, payment, refund, payout, order status, and support.",
+    "I'm not fully sure about that yet, but I can explain TrustLoop flows like buy & sell, donation, auction, payment, refund, payout, order status, and support.",
   typingDelay: 350,
   maxSuggestionsPerReply: 3,
 };
@@ -477,8 +477,16 @@ export default function Chatbot() {
   ]);
 
   const showButton = useMemo(() => {
-    return !pathname?.startsWith("/admin");
+    if (!pathname) return false;
+
+    if (pathname === "/" || pathname === "/terms") return false;
+    if (pathname.startsWith("/admin")) return false;
+
+    return true;
   }, [pathname]);
+
+  const liftedPaths = ["/sell/post", "/donation/post", "/auction/post"];
+  const shouldLift = liftedPaths.some((p) => pathname?.startsWith(p));
 
   const CLOSE_DURATION = 180;
   const OPEN_TRANSITION =
@@ -567,7 +575,11 @@ export default function Chatbot() {
   }
 
   return (
-    <div className="fixed bottom-5 right-5 z-[30000] pointer-events-none">
+    <div
+      className={`fixed right-5 z-[30000] pointer-events-none ${
+        shouldLift ? "bottom-23" : "bottom-5"
+      }`}
+    >
       {/* Floating launcher */}
       <button
         onClick={() => {

@@ -18,19 +18,29 @@ import Transaction from "@/models/Transaction";
 // Keep only fields MyProductCard needs, and make them serializable
 function toPlainProduct(p) {
   if (!p) return null;
-  // normalize a lowercase type for the card (supports either `type` or `kind`)
+
   const rawType = (p.type || p.kind || "").toString().toLowerCase();
+
   return {
     _id: p._id?.toString(),
     title: p.title ?? "",
     price: typeof p.price === "number" ? p.price : Number(p.price || 0),
+    startingPrice:
+      typeof p.startingPrice === "number"
+        ? p.startingPrice
+        : p.startingPrice != null
+          ? Number(p.startingPrice)
+          : null,
+    auctionEndsAt: p.auctionEndsAt || null,
+    auctionStatus: p.auctionStatus || null,
     defaultImage: p.defaultImage || null,
     images: Array.isArray(p.images) ? p.images : [],
     category: p.category ?? "",
     createdAt: p.createdAt || null,
-    type: rawType, // <- needed for DONATION pill / routing
-    kind: p.kind || p.type || "", // <- just in case
-    requestDeadline: p.requestDeadline || null, // <- for donation deadline
+    type: rawType,
+    kind: p.kind || p.type || "",
+    requestDeadline: p.requestDeadline || null,
+    acceptedBy: p.acceptedBy || null,
   };
 }
 
@@ -49,7 +59,7 @@ export default async function ProfilePage() {
       .sort({ createdAt: -1 })
       .limit(8)
       .select(
-        "title price images defaultImage category createdAt type kind requestDeadline isAvailable",
+        "title price startingPrice auctionEndsAt auctionStatus images defaultImage category createdAt type kind requestDeadline acceptedBy isAvailable",
       )
       .lean(),
 
@@ -63,7 +73,7 @@ export default async function ProfilePage() {
       .populate({
         path: "product",
         select:
-          "title price images defaultImage category createdAt type kind requestDeadline isAvailable",
+          "title price startingPrice auctionEndsAt auctionStatus images defaultImage category createdAt type kind requestDeadline acceptedBy isAvailable",
         lean: true,
       })
       .lean(),
@@ -78,7 +88,7 @@ export default async function ProfilePage() {
       .populate({
         path: "product",
         select:
-          "title price images defaultImage category createdAt type kind requestDeadline isAvailable",
+          "title price startingPrice auctionEndsAt auctionStatus images defaultImage category createdAt type kind requestDeadline acceptedBy isAvailable",
         lean: true,
       })
       .lean(),

@@ -187,7 +187,8 @@ export default function TermsClient() {
                   disabled={checked}
                 />
                 <ActionButton
-                  text={loading ? "Saving..." : "Accept & Continue"}
+                  // text={loading ? "Saving..." : "Accept & Continue"}
+                  text="Accept & Continue"
                   variant={
                     !checked || loading ? "disabledClick" : "primaryClick"
                   }
@@ -353,7 +354,8 @@ export default function TermsClient() {
               className="w-1/2"
             />
             <ActionButton
-              text={loading ? "Saving..." : "Accept & Continue"}
+              // text={loading ? "Saving..." : "Accept & Continue"}
+              text="Accept & Continue"
               variant={!checked || loading ? "disabledClick" : "primaryClick"}
               onClick={onAccept}
               disabled={!checked || loading}
