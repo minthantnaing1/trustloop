@@ -576,7 +576,7 @@ export default function Chatbot() {
 
   return (
     <div
-      className={`fixed right-5 z-[30000] pointer-events-none ${
+      className={`fixed right-4 z-[30000] pointer-events-none ${
         shouldLift ? "bottom-23" : "bottom-5"
       }`}
     >

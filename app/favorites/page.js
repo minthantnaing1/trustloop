@@ -38,11 +38,14 @@ export default async function FavoritesPage() {
     _id: String(p._id),
     title: p.title || p.name || "Untitled",
     price: Number(p.price || 0),
+    startingPrice: p.startingPrice != null ? Number(p.startingPrice) : null,
     location: p.location || "",
     category: p.category || "",
     condition: p.condition || "",
     type: p.type || "",
     requestDeadline: p.requestDeadline || null,
+    auctionEndsAt: p.auctionEndsAt || null,
+    auctionStatus: p.auctionStatus || "",
     defaultImage:
       p.defaultImage ||
       p.images?.[0]?.url ||

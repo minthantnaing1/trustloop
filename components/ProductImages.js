@@ -238,7 +238,7 @@ export default function ProductImages({ images = [], defaultImage }) {
       {/* LIGHTBOX */}
       {open && (
         <div
-          className="fixed inset-0 z-[30000] bg-black/70 backdrop-blur-sm flex items-center justify-center select-none overscroll-contain"
+          className="fixed inset-0 z-[50000] bg-black/70 backdrop-blur-sm flex items-center justify-center select-none overscroll-contain"
           onMouseUp={onMouseUp}
           onMouseMove={onMouseMove}
           onTouchEnd={onTouchEnd}

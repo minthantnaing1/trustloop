@@ -156,12 +156,11 @@ export default function DonationDetails({
           )}
         </div>
 
-        {/* For Donor view (owner) */}
-        {isOwner && isSelective && (
+        {/* {isOwner && isSelective && (
           <div className="mb-5">
             <Stepper current={2} variant="donor" className="px-1" />
           </div>
-        )}
+        )} */}
 
         {/* --- Main Content --- */}
         <div className="flex gap-[30px] flex-col sm:flex-row">

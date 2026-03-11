@@ -55,9 +55,9 @@ export default async function SellerPayoutPage({ params }) {
           </div>
 
           {/* Progress Stepper (seller, step 4) */}
-          <div className="mb-5">
+          {/* <div className="mb-5">
             <Stepper current={3} variant="seller" className="px-1" />
-          </div>
+          </div> */}
 
           <div className="rounded-[5px] bg-white p-6 border border-[#325082] text-[#325082] text-center">
             Transaction not found.
@@ -82,9 +82,9 @@ export default async function SellerPayoutPage({ params }) {
           </div>
 
           {/* Progress Stepper (seller, step 4) */}
-          <div className="mb-5">
+          {/* <div className="mb-5">
             <Stepper current={3} variant="seller" className="px-1" />
-          </div>
+          </div> */}
 
           <div className="rounded-[5px] bg-white p-6 border border-[#325082] text-[#325082] text-center">
             You are not the seller for this transaction.
