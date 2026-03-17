@@ -10,6 +10,7 @@ import ActionButton from "@/components/ActionButton";
 import MyProductCard from "@/components/MyProductCard";
 import SlipLink from "@/components/SlipLink";
 import ProfileKindClient from "./ProfileKindClient";
+import ProfileReviewsSection from "@/components/ProfileReviewsSection";
 
 import User from "@/models/User";
 import Product from "@/models/Product";
@@ -76,6 +77,11 @@ export default async function ProfilePage() {
           "title price startingPrice auctionEndsAt auctionStatus images defaultImage category createdAt type kind requestDeadline acceptedBy isAvailable",
         lean: true,
       })
+      .populate({
+        path: "seller",
+        select: "name email",
+        lean: true,
+      })
       .lean(),
 
     // Sales you've completed (seller side)
@@ -89,6 +95,11 @@ export default async function ProfilePage() {
         path: "product",
         select:
           "title price startingPrice auctionEndsAt auctionStatus images defaultImage category createdAt type kind requestDeadline acceptedBy isAvailable",
+        lean: true,
+      })
+      .populate({
+        path: "buyer",
+        select: "name email",
         lean: true,
       })
       .lean(),
@@ -121,6 +132,54 @@ export default async function ProfilePage() {
             viewerRole: "seller",
           }
         : null;
+    })
+    .filter(Boolean);
+
+  const boughtReviewTargets = boughtTxns
+    .map((t) => {
+      const p = t.product;
+      if (!p?._id) return null;
+
+      const kind =
+        String(t.kind || p.type || "").toUpperCase() === "DONATION"
+          ? "DONATION"
+          : String(t.kind || p.type || "").toUpperCase() === "AUCTION"
+            ? "AUCTION"
+            : "BUY_SELL";
+
+      return {
+        transactionId: t._id.toString(),
+        title: p.title || "Untitled",
+        image: p.defaultImage || p.images?.[0] || "/placeholder.png",
+        category: p.category || "",
+        kind,
+        side: "buyer",
+        counterpartyName: t.seller?.name || t.seller?.email || "Counterparty",
+      };
+    })
+    .filter(Boolean);
+
+  const soldReviewTargets = soldTxns
+    .map((t) => {
+      const p = t.product;
+      if (!p?._id) return null;
+
+      const kind =
+        String(t.kind || p.type || "").toUpperCase() === "DONATION"
+          ? "DONATION"
+          : String(t.kind || p.type || "").toUpperCase() === "AUCTION"
+            ? "AUCTION"
+            : "BUY_SELL";
+
+      return {
+        transactionId: t._id.toString(),
+        title: p.title || "Untitled",
+        image: p.defaultImage || p.images?.[0] || "/placeholder.png",
+        category: p.category || "",
+        kind,
+        side: "seller",
+        counterpartyName: t.buyer?.name || t.buyer?.email || "Counterparty",
+      };
     })
     .filter(Boolean);
 
@@ -320,6 +379,12 @@ export default async function ProfilePage() {
           sellingPlain={sellingPlain}
           boughtProducts={boughtProducts}
           soldProducts={soldProducts}
+        />
+
+        {/* Reviews */}
+        <ProfileReviewsSection
+          boughtReviewTargets={boughtReviewTargets}
+          soldReviewTargets={soldReviewTargets}
         />
       </main>
     </>

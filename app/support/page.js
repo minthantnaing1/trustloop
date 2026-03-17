@@ -1,3 +1,4 @@
+// app/support/page.js
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -317,7 +318,8 @@ export default function SupportHomePage() {
               My Recent Reports
             </div>
             <span className="text-[12px] text-slate-500">
-              For order-specific reports, use “Support” inside Order Details.
+              For order-specific reports, you can also use “Support” inside
+              Order Details.
             </span>
           </div>
 

@@ -1,3 +1,4 @@
+// app/support/[id]/SupportTicketClient.js
 "use client";
 
 import { useEffect, useMemo, useState } from "react";

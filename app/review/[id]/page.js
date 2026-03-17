@@ -1,3 +1,4 @@
+// app/review/[id]/page.js
 import { cookies } from "next/headers";
 import { auth } from "@/auth";
 import NavBar from "@/components/NavBar";

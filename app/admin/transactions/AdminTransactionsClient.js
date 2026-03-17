@@ -3,6 +3,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import AdminTxnRowActions from "@/components/admin/AdminTxnRowActions";
 import ConfirmModal from "@/components/ConfirmModal";
 import TxnToolbar from "@/components/admin/TxnToolbar";
@@ -170,7 +171,9 @@ export default function AdminTransactionsClient({ initialTxns }) {
                   <th className="p-2 border-b font-medium">Seller</th>
                   <th className="p-2 border-b font-medium">Total</th>
                   <th className="p-2 border-b font-medium">Order Status</th>
-                  <th className="p-2 border-b font-medium">Actions</th>
+                  <th className="p-2 border-b font-medium w-[1%] whitespace-nowrap">
+                    Actions
+                  </th>
                 </tr>
               </thead>
 
@@ -292,7 +295,7 @@ export default function AdminTransactionsClient({ initialTxns }) {
                         </div>
                       </td>
 
-                      <td className="p-2">
+                      <td className="p-2 align-top w-[1%] whitespace-nowrap">
                         {deleteMode ? (
                           <button
                             type="button"
@@ -308,84 +311,96 @@ export default function AdminTransactionsClient({ initialTxns }) {
                               Delete
                             </span>
                           </button>
-                        ) : showActions ? (
-                          <AdminTxnRowActions
-                            txnId={txnId}
-                            currentStatus={t.status}
-                            kind={kindUp}
-                            onDone={({ id, newStatus }) => {
-                              setTxns((prev) =>
-                                prev.map((row) => {
-                                  const rowId =
-                                    row._id?.toString?.() || row._id;
-                                  if (rowId !== id) return row;
-
-                                  const already = Boolean(
-                                    row?.hasPaymentSucceeded,
-                                  );
-                                  const hitNow =
-                                    String(newStatus).toUpperCase() ===
-                                    "PAYMENT_SUCCESSFUL";
-
-                                  return {
-                                    ...row,
-                                    status: newStatus,
-                                    hasPaymentSucceeded: already || hitNow,
-                                    updatedAt: new Date().toISOString(),
-                                  };
-                                }),
-                              );
-
-                              if (editMode) setEditMode(false);
-                            }}
-                          />
-                        ) : isPaidFlow && t.status === "BUYER_CONFIRMED" ? (
-                          <ActionButton
-                            text="Payout"
-                            variant="primaryClick"
-                            className="bg-emerald-700 border-emerald-700 hover:bg-emerald-800 hover:border-emerald-800"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              router.push(
-                                `/admin/transactions/${txnId}/payout`,
-                              );
-                            }}
-                          />
-                        ) : isPaidFlow && t.status === "PAID_OUT" ? (
-                          <a
-                            href={`/admin/transactions/${txnId}/payout`}
-                            className="text-sm underline text-[#325082] underline-offset-2"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            View Payout
-                          </a>
-                        ) : isPaidFlow &&
-                          hasPaid &&
-                          (t.status === "CANCELLED_BY_BUYER" ||
-                            t.status === "CANCELLED_BY_SELLER") ? (
-                          !t.adminRefundReceiptUrl ? (
-                            <ActionButton
-                              text="Refund"
-                              variant="primaryClick"
-                              className="bg-amber-700 border-amber-700 hover:bg-amber-800 hover:border-amber-800"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                router.push(
-                                  `/admin/transactions/${txnId}/refund`,
-                                );
-                              }}
-                            />
-                          ) : (
-                            <a
-                              href={`/admin/transactions/${txnId}/refund`}
+                        ) : (
+                          <div className="flex flex-col items-start gap-2">
+                            <Link
+                              href={`/admin/transactions/${txnId}`}
                               className="text-sm underline text-[#325082] underline-offset-2"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              View Refund
-                            </a>
-                          )
-                        ) : (
-                          <span className="text-gray-400">—</span>
+                              View Details
+                            </Link>
+
+                            {showActions ? (
+                              <AdminTxnRowActions
+                                txnId={txnId}
+                                currentStatus={t.status}
+                                kind={kindUp}
+                                onDone={({ id, newStatus }) => {
+                                  setTxns((prev) =>
+                                    prev.map((row) => {
+                                      const rowId =
+                                        row._id?.toString?.() || row._id;
+                                      if (rowId !== id) return row;
+
+                                      const already = Boolean(
+                                        row?.hasPaymentSucceeded,
+                                      );
+                                      const hitNow =
+                                        String(newStatus).toUpperCase() ===
+                                        "PAYMENT_SUCCESSFUL";
+
+                                      return {
+                                        ...row,
+                                        status: newStatus,
+                                        hasPaymentSucceeded: already || hitNow,
+                                        updatedAt: new Date().toISOString(),
+                                      };
+                                    }),
+                                  );
+
+                                  if (editMode) setEditMode(false);
+                                }}
+                              />
+                            ) : isPaidFlow && t.status === "BUYER_CONFIRMED" ? (
+                              <ActionButton
+                                text="Payout"
+                                variant="primaryClick"
+                                className="bg-emerald-700 border-emerald-700 hover:bg-emerald-800 hover:border-emerald-800"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(
+                                    `/admin/transactions/${txnId}/payout`,
+                                  );
+                                }}
+                              />
+                            ) : isPaidFlow && t.status === "PAID_OUT" ? (
+                              <a
+                                href={`/admin/transactions/${txnId}/payout`}
+                                className="text-sm underline text-[#325082] underline-offset-2"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                View Payout
+                              </a>
+                            ) : isPaidFlow &&
+                              hasPaid &&
+                              (t.status === "CANCELLED_BY_BUYER" ||
+                                t.status === "CANCELLED_BY_SELLER") ? (
+                              !t.adminRefundReceiptUrl ? (
+                                <ActionButton
+                                  text="Refund"
+                                  variant="primaryClick"
+                                  className="bg-amber-700 border-amber-700 hover:bg-amber-800 hover:border-amber-800"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.push(
+                                      `/admin/transactions/${txnId}/refund`,
+                                    );
+                                  }}
+                                />
+                              ) : (
+                                <a
+                                  href={`/admin/transactions/${txnId}/refund`}
+                                  className="text-sm underline text-[#325082] underline-offset-2"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  View Refund
+                                </a>
+                              )
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
+                          </div>
                         )}
                       </td>
                     </tr>

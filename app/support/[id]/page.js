@@ -1,3 +1,4 @@
+// app/support/[id]/page.js
 import NavBar from "@/components/NavBar";
 import SupportTicketClient from "./SupportTicketClient";
 

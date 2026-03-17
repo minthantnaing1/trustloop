@@ -1,3 +1,4 @@
+// app/admin/users/[id]/page.js
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/auth";
@@ -5,10 +6,12 @@ import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 import Product from "@/models/Product";
 import Transaction from "@/models/Transaction";
+import Review from "@/models/Review";
 import SupportTicket from "@/models/SupportTicket";
 import BackButton from "@/components/BackButton";
 import ActionButton from "@/components/ActionButton";
 import MaskedUserId from "@/components/MaskedUserId";
+import AdminUserReviewsSection from "@/components/admin/AdminUserReviewsSection";
 
 function StatCard({ label, value, sub = "" }) {
   return (
@@ -16,6 +19,33 @@ function StatCard({ label, value, sub = "" }) {
       <div className="text-sm text-gray-500">{label}</div>
       <div className="text-2xl font-bold text-[#325082]">{value}</div>
       {sub ? <div className="text-xs text-gray-400 mt-1">{sub}</div> : null}
+    </div>
+  );
+}
+
+function StarRating({ rating = 0, size = "text-lg", showNumber = true }) {
+  const value = Math.max(0, Math.min(5, Number(rating || 0)));
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className={`flex items-center leading-none ${size}`}>
+        {[1, 2, 3, 4, 5].map((i) => (
+          <span
+            key={i}
+            className={
+              i <= Math.round(value) ? "text-amber-400" : "text-slate-300"
+            }
+          >
+            ★
+          </span>
+        ))}
+      </div>
+
+      {showNumber ? (
+        <span className="text-sm font-medium text-slate-500">
+          {value.toFixed(1)}/5
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -115,6 +145,34 @@ function fmtMoney(n) {
   return `฿${Number(n || 0).toLocaleString()}`;
 }
 
+function getReceivedReviewLabel(role, txnKind) {
+  const kind = String(txnKind || "").toUpperCase();
+
+  if (role === "buyer") {
+    return kind === "DONATION"
+      ? "Recipient reviewed this user"
+      : "Buyer reviewed this user";
+  }
+
+  return kind === "DONATION"
+    ? "Donor reviewed this user"
+    : "Seller reviewed this user";
+}
+
+function getWrittenReviewLabel(role, txnKind) {
+  const kind = String(txnKind || "").toUpperCase();
+
+  if (role === "buyer") {
+    return kind === "DONATION"
+      ? "This user reviewed donor"
+      : "This user reviewed seller";
+  }
+
+  return kind === "DONATION"
+    ? "This user reviewed recipient"
+    : "This user reviewed buyer";
+}
+
 export default async function AdminUserDetailPage({ params }) {
   const { id } = await params;
 
@@ -140,6 +198,8 @@ export default async function AdminUserDetailPage({ params }) {
     supportTickets,
     completedSoldCount,
     completedBoughtCount,
+    receivedReviewsRaw,
+    writtenReviewsRaw,
   ] = await Promise.all([
     Product.find({ owner: user._id, isAvailable: true })
       .sort({ createdAt: -1 })
@@ -187,7 +247,93 @@ export default async function AdminUserDetailPage({ params }) {
       status: { $in: ["BUYER_CONFIRMED", "PAID_OUT"] },
       kind: { $in: ["BUY_SELL", "AUCTION"] },
     }),
+
+    Review.find({ target: user._id })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .populate({
+        path: "product",
+        select: "title images defaultImage category type kind",
+        lean: true,
+      })
+      .populate({
+        path: "reviewer",
+        select: "name email",
+        lean: true,
+      })
+      .populate({
+        path: "transaction",
+        select: "kind",
+        lean: true,
+      })
+      .lean(),
+
+    Review.find({ reviewer: user._id })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .populate({
+        path: "product",
+        select: "title images defaultImage category type kind",
+        lean: true,
+      })
+      .populate({
+        path: "target",
+        select: "name email",
+        lean: true,
+      })
+      .populate({
+        path: "transaction",
+        select: "kind",
+        lean: true,
+      })
+      .lean(),
   ]);
+
+  const receivedReviews = (receivedReviewsRaw || [])
+    .map((r) => {
+      const p = r.product;
+      const t = r.transaction;
+      if (!p?._id || !t?._id) return null;
+
+      return {
+        transactionId: t._id.toString(),
+        title: p.title || "Untitled",
+        image: p.defaultImage || p.images?.[0] || "/placeholder.png",
+        category: p.category || "",
+        rating: Number(r.rating || 0),
+        comment: r.comment || "",
+        createdAt: r.createdAt || null,
+        reviewTypeLabel: getReceivedReviewLabel(
+          r.role,
+          t.kind || p.kind || p.type,
+        ),
+        personLabel: r.reviewer?.name || r.reviewer?.email || "Counterparty",
+      };
+    })
+    .filter((r) => r && r.rating > 0);
+
+  const writtenReviews = (writtenReviewsRaw || [])
+    .map((r) => {
+      const p = r.product;
+      const t = r.transaction;
+      if (!p?._id || !t?._id) return null;
+
+      return {
+        transactionId: t._id.toString(),
+        title: p.title || "Untitled",
+        image: p.defaultImage || p.images?.[0] || "/placeholder.png",
+        category: p.category || "",
+        rating: Number(r.rating || 0),
+        comment: r.comment || "",
+        createdAt: r.createdAt || null,
+        reviewTypeLabel: getWrittenReviewLabel(
+          r.role,
+          t.kind || p.kind || p.type,
+        ),
+        personLabel: r.target?.name || r.target?.email || "Counterparty",
+      };
+    })
+    .filter((r) => r && r.rating > 0);
 
   const totalListings = allProducts.length;
   const activeListings = activeProducts.length;
@@ -268,10 +414,15 @@ export default async function AdminUserDetailPage({ params }) {
             </div>
 
             <div className="lg:ml-auto grid grid-cols-2 md:grid-cols-3 gap-3 w-full lg:w-[520px]">
-              <StatCard
-                label="Rating"
-                value={Number(user.rating || 0).toFixed(1)}
-              />
+              <div className="bg-white rounded-xl shadow p-4 border border-slate-200">
+                <div className="text-sm text-gray-500">Rating</div>
+                <div className="text-2xl font-bold text-[#325082]">
+                  {Number(user.rating || 0).toFixed(1)}
+                </div>
+                <div className="mt-1">
+                  <StarRating rating={user.rating || 0} />
+                </div>
+              </div>
               <StatCard label="Items Sold" value={completedSoldCount} />
               <StatCard label="Items Bought" value={completedBoughtCount} />
               <StatCard label="Revenue" value={fmtMoney(user.revenue || 0)} />
@@ -514,6 +665,11 @@ export default async function AdminUserDetailPage({ params }) {
             </div>
           )}
         </section>
+
+        <AdminUserReviewsSection
+          receivedReviews={receivedReviews}
+          writtenReviews={writtenReviews}
+        />
 
         {/* support tickets */}
         <section className="bg-white rounded-xl shadow-md border border-slate-200 p-5">

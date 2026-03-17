@@ -149,7 +149,10 @@ export default function AdminSidebar({ collapsed, setCollapsed }) {
 
         {/* Menu Items */}
         {menuItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive =
+            item.href === "/admin"
+              ? pathname === "/admin"
+              : pathname === item.href || pathname.startsWith(item.href + "/");
 
           return (
             <Link href={item.href} key={item.href}>

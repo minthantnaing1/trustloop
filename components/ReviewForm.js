@@ -1,3 +1,4 @@
+// components/ReviewForm.js
 "use client";
 import { useState } from "react";
 import ActionButton from "@/components/ActionButton";
@@ -18,7 +19,7 @@ function Stars({ value = 0, size = 8 }) {
             key={i}
             className={`w-${size} h-${size} text-gray-300`}
           />
-        )
+        ),
       )}
     </div>
   );
@@ -51,7 +52,7 @@ export default function ReviewForm({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ rating, comment }),
-        }
+        },
       );
       if (!res.ok) throw new Error(await res.text());
       const saved = await res.json().catch(() => ({}));
@@ -92,8 +93,8 @@ export default function ReviewForm({
         {role === "donor"
           ? "Leave a Review for the Recipient"
           : role === "seller"
-          ? "Leave a Review for the Buyer"
-          : "Leave a Review"}
+            ? "Leave a Review for the Buyer"
+            : "Leave a Review"}
       </h2>
 
       <div className="flex gap-2 mb-3">

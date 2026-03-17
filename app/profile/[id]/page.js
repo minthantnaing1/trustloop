@@ -2,10 +2,12 @@
 import { connectDB } from "@/lib/db";
 import User from "@/models/User";
 import Product from "@/models/Product";
+import Review from "@/models/Review";
 import NavBar from "@/components/NavBar";
 import BackButton from "@/components/BackButton";
 import MaskedUserId from "@/components/MaskedUserId";
 import PublicProfileKindClient from "./PublicProfileKindClient";
+import ProfileReviewsSection from "@/components/ProfileReviewsSection";
 
 export const dynamic = "force-dynamic";
 
@@ -43,6 +45,18 @@ function toPlainProduct(p) {
   };
 }
 
+function getPublicReviewLabel(reviewRole, txnKind) {
+  const kind = String(txnKind || "").toUpperCase();
+
+  if (reviewRole === "buyer") {
+    return kind === "DONATION"
+      ? "Recipient reviewed you"
+      : "Buyer reviewed you";
+  }
+
+  return kind === "DONATION" ? "Donor reviewed you" : "Seller reviewed you";
+}
+
 export default async function PublicProfilePage({ params }) {
   const { id } = await params;
 
@@ -53,26 +67,75 @@ export default async function PublicProfilePage({ params }) {
     .lean();
 
   let listingsPlain = [];
+  let publicReviews = [];
 
   if (user) {
-    // ✅ ONLY current + NOT hidden
-    // (your Product model uses isHidden)
-    const listings = await Product.find({
-      owner: id,
-      isAvailable: true,
-      isHidden: { $ne: true },
-    })
-      .sort({ createdAt: -1 })
-      .limit(80)
-      .select(
-        "title price images defaultImage category createdAt updatedAt type kind requestDeadline isAvailable owner seller isHidden",
-      )
-      .lean();
+    const [listings, reviews] = await Promise.all([
+      // ✅ ONLY current + NOT hidden
+      Product.find({
+        owner: id,
+        isAvailable: true,
+        isHidden: { $ne: true },
+      })
+        .sort({ createdAt: -1 })
+        .limit(80)
+        .select(
+          "title price images defaultImage category createdAt updatedAt type kind requestDeadline isAvailable owner seller isHidden",
+        )
+        .lean(),
+
+      // ✅ all reviews written ABOUT this user
+      Review.find({ target: user._id })
+        .sort({ createdAt: -1 })
+        .limit(50)
+        .populate({
+          path: "product",
+          select: "title images defaultImage category type kind",
+          lean: true,
+        })
+        .populate({
+          path: "reviewer",
+          select: "name email",
+          lean: true,
+        })
+        .populate({
+          path: "transaction",
+          select: "kind",
+          lean: true,
+        })
+        .lean(),
+    ]);
 
     listingsPlain = (listings || []).map(toPlainProduct).filter(Boolean);
 
     // ✅ extra safety (in case some old docs store it weirdly)
     listingsPlain = listingsPlain.filter((p) => !p.isHidden);
+
+    publicReviews = (reviews || [])
+      .map((r) => {
+        const p = r.product;
+        const t = r.transaction;
+
+        // ✅ match own profile behavior:
+        // skip review if related product or transaction is gone
+        if (!p?._id || !t?._id) return null;
+
+        return {
+          transactionId: t._id.toString(),
+          title: p.title || "Untitled",
+          image: p.defaultImage || p.images?.[0] || "/placeholder.png",
+          category: p.category || "",
+          rating: Number(r.rating || 0),
+          comment: r.comment || "",
+          createdAt: r.createdAt || null,
+          reviewTypeLabel: getPublicReviewLabel(
+            r.role,
+            t.kind || p.kind || p.type,
+          ),
+          personLabel: r.reviewer?.name || r.reviewer?.email || "Counterparty",
+        };
+      })
+      .filter((r) => r && r.rating > 0);
   }
 
   return (
@@ -81,7 +144,7 @@ export default async function PublicProfilePage({ params }) {
       <main className="max-w-[1200px] mx-auto mb-6 px-3">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-[#325082]">
-            Seller Profile (Public)
+            User Profile (Public)
           </h1>
           <BackButton />
         </div>
@@ -143,6 +206,14 @@ export default async function PublicProfilePage({ params }) {
                 listingsPlain={listingsPlain}
               />
             </div>
+
+            {/* ✅ Public reviews: only reviews ABOUT this user */}
+            <ProfileReviewsSection
+              publicOnly
+              publicReviews={publicReviews}
+              boughtReviewTargets={[]}
+              soldReviewTargets={[]}
+            />
           </>
         )}
       </main>
