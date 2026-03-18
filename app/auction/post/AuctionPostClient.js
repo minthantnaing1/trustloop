@@ -30,6 +30,7 @@ export default function AuctionPostClient({ initialLocation = "" }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (name === "startingPrice" && Number(value) < 0) return;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -62,7 +63,7 @@ export default function AuctionPostClient({ initialLocation = "" }) {
 
     const sp = Number(startingPrice);
     if (!Number.isFinite(sp) || sp < 10) {
-      alert("Please enter a valid starting price must be at least 10.");
+      alert("Please enter a valid Starting Price must be at least ฿10.");
       return;
     }
 

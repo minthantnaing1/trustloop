@@ -1,3 +1,4 @@
+// app/sell/post/SellPostClient.js
 "use client";
 
 import { useEffect, useState } from "react";
@@ -52,6 +53,12 @@ export default function SellPostClient({ initialLocation = "" }) {
       return;
     }
 
+    const sp = Number(price);
+    if (!Number.isFinite(sp) || sp < 10) {
+      alert("Price must be at least ฿10.");
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -84,10 +91,11 @@ export default function SellPostClient({ initialLocation = "" }) {
 
       if (res.ok) {
         router.replace("/sell");
-        return; // ✅ important: do not fall through to any setLoading(false)
+        return;
       }
 
-      alert("Error submitting product.");
+      const msg = await res.text();
+      alert(msg || "Error submitting product.");
       setLoading(false);
     } catch (err) {
       alert("Something went wrong.");

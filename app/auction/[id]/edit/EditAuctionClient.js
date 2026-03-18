@@ -62,6 +62,7 @@ export default function EditAuctionClient({ initialProduct }) {
   // ---- handlers ----
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (name === "startingPrice" && Number(value) < 0) return;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 

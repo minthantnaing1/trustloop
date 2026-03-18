@@ -58,14 +58,24 @@ export async function POST(req) {
         .select("product buyer seller")
         .lean();
 
-      if (txn) {
-        extra = {
-          transaction: txn._id,
-          product: txn.product,
-          buyer: txn.buyer,
-          seller: txn.seller,
-        };
+      if (!txn) {
+        return new Response("Transaction not found", { status: 404 });
       }
+
+      // ✅ SECURITY: ensure user is part of this transaction
+      const isBuyer = String(txn.buyer) === String(me._id);
+      const isSeller = String(txn.seller) === String(me._id);
+
+      if (!isBuyer && !isSeller) {
+        return new Response("Forbidden", { status: 403 });
+      }
+
+      extra = {
+        transaction: txn._id,
+        product: txn.product,
+        buyer: txn.buyer,
+        seller: txn.seller,
+      };
     }
 
     const created = await SupportTicket.create({
@@ -76,7 +86,6 @@ export async function POST(req) {
       description: String(description || "").trim(),
       status: "OPEN",
       messages: [], // ✅ chat starts empty
-      images: Array.isArray(images) ? images : [], // (kept if you still send it)
       ...extra,
       createdAt: new Date(),
       updatedAt: new Date(),

@@ -78,7 +78,7 @@ export async function POST(req) {
       const sp = Number(body.startingPrice);
       if (!Number.isFinite(sp) || sp < 10) {
         return new Response(
-          "startingPrice is required and must be at least 10",
+          "Starting Price is required and must be at least ฿10.",
           { status: 400 },
         );
       }
@@ -133,6 +133,19 @@ export async function POST(req) {
       delete body.auctionStatus;
     }
     // ------------------------------------------------------------------------
+
+    // ---- Price validation (sell only) ----
+    if (body?.type !== "donation" && body?.type !== "auction") {
+      const price = Number(body.price);
+
+      if (!Number.isFinite(price) || price < 10) {
+        return new Response("Price must be at least ฿10.", {
+          status: 400,
+        });
+      }
+
+      body.price = price;
+    }
 
     // ✅ Create Product first
     const createdProduct = await Product.create({

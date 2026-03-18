@@ -135,9 +135,11 @@ export async function PATCH(req, { params }) {
 
     if (s === "OPEN") update.$set.status = "IN_PROGRESS";
 
-    const updated = await SupportTicket.findByIdAndUpdate(id, update, {
-      new: true,
-    })
+    const updated = await SupportTicket.findOneAndUpdate(
+      { _id: id, user: me._id },
+      update,
+      { new: true },
+    )
       .populate("transaction product buyer seller")
       .populate("messages.by", "name email image role")
       .populate("statusUpdatedBy", "name email image role")

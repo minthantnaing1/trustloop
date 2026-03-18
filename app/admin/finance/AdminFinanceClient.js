@@ -256,8 +256,13 @@ export default function AdminFinanceClient() {
       )}).`;
 
     // Rule 3: slip required only if NOT paying self
-    if (!isSelfRepay && !String(repayReceiptUrl || "").trim())
+    if (
+      !isSelfRepay &&
+      !repayReceiptFile &&
+      !String(repayReceiptUrl || "").trim()
+    ) {
       return "Receipt slip is required (upload or paste URL).";
+    }
 
     return "";
   }, [
@@ -268,47 +273,38 @@ export default function AdminFinanceClient() {
     selectedNetOwed,
     isSelfRepay,
     repayReceiptUrl,
+    repayReceiptFile,
   ]);
   // ----- END MINIMAL FIX -----
 
   async function uploadRepayReceipt(file) {
-    if (!file) return;
+    if (!file) return "";
 
     if (!String(file.type || "").startsWith("image/")) {
-      showToast("warning", "Please upload an image file.");
-      return;
+      throw new Error("Please upload an image file.");
     }
+
     const maxMB = 8;
     if (file.size > maxMB * 1024 * 1024) {
-      showToast("warning", `File too large. Max ${maxMB}MB.`);
-      return;
+      throw new Error(`File too large. Max ${maxMB}MB.`);
     }
 
-    setRepayUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
+    const formData = new FormData();
+    formData.append("file", file);
 
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
 
-      const j = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(j?.error || (await res.text()));
-      if (!j?.url) throw new Error("Upload failed: no URL returned.");
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(j?.error || (await res.text()));
+    if (!j?.url) throw new Error("Upload failed: no URL returned.");
 
-      setRepayReceiptUrl(j.url);
-      showToast("success", "Slip uploaded.");
-    } catch (e) {
-      showToast("error", e?.message || "Failed to upload slip.");
-    } finally {
-      setRepayUploading(false);
-    }
+    return j.url;
   }
 
   async function submitRepayment() {
-    // Replace all alerts with UI validation + toast
     if (repayFormError) {
       showToast("warning", repayFormError);
       return;
@@ -318,16 +314,27 @@ export default function AdminFinanceClient() {
 
     setSubmitting(true);
     try {
+      let finalReceiptUrl = String(repayReceiptUrl || "").trim();
+
+      // ✅ upload only when clicking Save, and only if not paying self
+      if (!isSelfRepay && repayReceiptFile && !finalReceiptUrl) {
+        setRepayUploading(true);
+        finalReceiptUrl = await uploadRepayReceipt(repayReceiptFile);
+        setRepayReceiptUrl(finalReceiptUrl);
+        setRepayUploading(false);
+      }
+
       const r = await fetch("/api/admin/finance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           toAdminId: repayToAdminId,
           amount: amt,
-          receiptUrl: isSelfRepay ? "" : repayReceiptUrl, // allow blank when self
+          receiptUrl: isSelfRepay ? "" : finalReceiptUrl,
           note: repayNote,
         }),
       });
+
       if (!r.ok) throw new Error(await r.text());
 
       setRepayOpen(false);
@@ -343,6 +350,7 @@ export default function AdminFinanceClient() {
       showToast("error", e?.message || "Failed to record repayment");
     } finally {
       setSubmitting(false);
+      setRepayUploading(false);
     }
   }
 
@@ -960,11 +968,11 @@ export default function AdminFinanceClient() {
                   </label>
 
                   <div className="rounded-xl border border-dashed border-[#325082]/50 bg-[#f6f8fc] p-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="text-sm text-[#1f2f4c]">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                      <div className="text-sm text-[#1f2f4c] min-w-0 flex-1">
                         {repayReceiptFile ? (
                           <>
-                            <div className="font-medium">
+                            <div className="font-medium break-words whitespace-normal">
                               {repayReceiptFile.name}
                             </div>
                             <div className="text-xs text-gray-600">
@@ -979,27 +987,25 @@ export default function AdminFinanceClient() {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2 justify-between shrink-0">
                         <label className="relative inline-flex">
                           <input
                             type="file"
                             accept="image/*"
                             className="absolute inset-0 opacity-0 cursor-pointer"
                             disabled={submitting || repayUploading}
-                            onChange={async (e) => {
+                            onChange={(e) => {
                               const file = e.target.files?.[0] || null;
                               if (!file) return;
 
                               setRepayReceiptFile(file);
                               setRepayReceiptUrl("");
-                              await uploadRepayReceipt(file);
 
                               e.target.value = "";
                             }}
                           />
                           <span
-                            className={`px-3 py-2 rounded-lg text-sm font-medium shadow-sm border
-                            ${
+                            className={`px-3 py-2 rounded-lg text-sm font-medium shadow-sm border whitespace-nowrap ${
                               submitting || repayUploading
                                 ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                                 : "bg-white text-[#325082] border-[#cfdaf1] hover:bg-[#eef3fd]"
@@ -1012,8 +1018,7 @@ export default function AdminFinanceClient() {
                         {repayReceiptFile && (
                           <button
                             type="button"
-                            className={`px-3 py-2 rounded-lg text-sm font-medium shadow-sm border
-                            ${
+                            className={`px-3 py-2 rounded-lg text-sm font-medium shadow-sm border whitespace-nowrap ${
                               submitting || repayUploading
                                 ? "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
                                 : "bg-white text-red-600 border-red-200 hover:bg-red-50"
@@ -1058,15 +1063,15 @@ export default function AdminFinanceClient() {
                           </div>
                         ) : repayReceiptUrl ? (
                           <div className="text-sm text-emerald-700 font-medium">
-                            Uploaded ✅
+                            Ready to save ✅
                           </div>
                         ) : repayReceiptFile ? (
                           <div className="text-sm text-amber-700 font-medium">
-                            Not uploaded yet (try another file)
+                            Slip selected..
                           </div>
                         ) : (
                           <div className="text-sm text-gray-600">
-                            Upload is recommended.
+                            Upload is required when paying another admin.
                           </div>
                         )}
 

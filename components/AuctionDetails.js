@@ -519,55 +519,63 @@ export default function AuctionDetails({
             </div>
 
             {/* Seller */}
-            <div className="flex items-center justify-between gap-3 mt-3 p-3 rounded-md bg-[#f0f0f0] border border-[#ccc]">
-              <div className="flex items-center gap-3 min-w-0">
-                <Link href={`/profile/${product.owner?._id}`}>
-                  <img
-                    src={product.owner?.image || "/default-profile.png"}
-                    alt="Seller Image"
-                    width={60}
-                    height={60}
-                    className="rounded-full object-cover border-2 border-[#325082] w-[60px] h-[60px] transition-transform duration-500 hover:scale-105"
-                    onError={(e) => {
-                      e.currentTarget.src = "/default-profile.png";
-                    }}
-                  />
-                </Link>
+            <div className="flex items-start justify-between gap-3 mt-3 p-3 rounded-md bg-[#f0f0f0] border border-[#ccc]">
+              <Link
+                href={`/profile/${product.owner?._id}`}
+                className="flex items-center gap-3 min-w-0 group"
+              >
+                {/* Avatar */}
+                <img
+                  src={product.owner?.image || "/default-profile.png"}
+                  alt="Seller Image"
+                  width={60}
+                  height={60}
+                  className="rounded-full object-cover border-2 border-[#325082] w-[60px] h-[60px] transition-all duration-300 group-hover:scale-105 group-hover:shadow-md"
+                  onError={(e) => {
+                    e.currentTarget.src = "/default-profile.png";
+                  }}
+                />
 
+                {/* Info */}
                 <div className="flex flex-col leading-tight">
                   <h3 className="font-semibold text-[14px]">
                     {isOwner ? "Seller (Me):" : "Seller:"}
                   </h3>
-                  <p className="font-semibold text-[#222] text-[14px] leading-tight">
+
+                  <p className="font-semibold text-[#222] text-[14px] leading-tight transition group-hover:text-[#325082]">
                     {product.owner?.name}
                   </p>
+
                   <p className="text-[12px] text-[#222]">
                     <MaskedUserId
                       email={product.owner?.email}
                       reveal={isOwner}
                     />
                   </p>
+
+                  {/* subtle hint */}
+                  <p className="mt-1 text-[11px] text-gray-400 transition group-hover:text-[#325082]">
+                    View profile
+                  </p>
+                </div>
+              </Link>
+
+              <div className="flex flex-col items-end text-right leading-tight">
+                {/* rating */}
+                <div className="text-[#ffcc00] text-[20px]">
+                  {"★".repeat(Math.round(product.owner?.rating || 0)) +
+                    "☆".repeat(5 - Math.round(product.owner?.rating || 0))}
+                </div>
+
+                <div className="text-[13px] text-gray-600">
+                  {Number(product.owner?.rating || 0).toFixed(1)}/5 rating
+                </div>
+
+                {/* sold count */}
+                <div className="text-[13px] text-[#325082] font-semibold mt-[2px]">
+                  {product.owner?.soldCount || 0} sold
                 </div>
               </div>
-
-              {!isOwner && (
-                <div className="flex flex-col items-end text-right leading-tight">
-                  {/* rating */}
-                  <div className="text-[#ffcc00] text-[20px]">
-                    {"★".repeat(Math.round(product.owner?.rating || 0)) +
-                      "☆".repeat(5 - Math.round(product.owner?.rating || 0))}
-                  </div>
-
-                  <div className="text-[13px] text-gray-600">
-                    {Number(product.owner?.rating || 0).toFixed(1)}/5 rating
-                  </div>
-
-                  {/* sold count */}
-                  <div className="text-[13px] text-[#325082] font-semibold mt-[2px]">
-                    {product.owner?.soldCount || 0} sold
-                  </div>
-                </div>
-              )}
             </div>
 
             <CommentSection

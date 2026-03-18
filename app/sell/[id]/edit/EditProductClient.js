@@ -57,6 +57,11 @@ export default function EditProductClient({ initialProduct }) {
       alert("Please select at least one image.");
       return;
     }
+    const sp = Number(price);
+    if (!Number.isFinite(sp) || sp < 10) {
+      alert("Price must be at least ฿10.");
+      return;
+    }
 
     try {
       setLoading(true);

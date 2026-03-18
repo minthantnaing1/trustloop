@@ -415,13 +415,26 @@ export async function PATCH(req, { params }) {
       }
     }
 
+    // ✅ Normal sell price enforcement
+    if (product.type !== "donation" && product.type !== "auction") {
+      const price = Number(product.price);
+
+      if (!Number.isFinite(price) || price < 10) {
+        return new Response("Price must be at least ฿10.", {
+          status: 400,
+        });
+      }
+
+      product.price = price;
+    }
+
     // ✅ Auction enforcement + sync engine doc
     if (product.type === "auction") {
       product.price = 0;
 
       const sp = Number(product.startingPrice);
       if (!Number.isFinite(sp) || sp < 10) {
-        return new Response("startingPrice must be at least ฿10.", {
+        return new Response("Starting Price must be at least ฿10.", {
           status: 400,
         });
       }

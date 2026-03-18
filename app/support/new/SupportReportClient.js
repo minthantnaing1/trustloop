@@ -60,9 +60,9 @@ export default function SupportReportClient() {
   const [category, setCategory] = useState(defaultCategory);
   const [description, setDescription] = useState("");
 
-  // 3-step selection
-  const [kind, setKind] = useState("BUY_SELL"); // BUY_SELL | DONATION
-  const [role, setRole] = useState(preAs === "seller" ? "seller" : "buyer"); // buyer | seller
+  // GENERAL | BUY_SELL | DONATION | AUCTION
+  const [kind, setKind] = useState(preTxnId ? "BUY_SELL" : "GENERAL");
+  const [role, setRole] = useState(preAs === "seller" ? "seller" : "buyer");
   const [myTxns, setMyTxns] = useState([]);
   const [selectedTxnId, setSelectedTxnId] = useState(preTxnId);
 
@@ -71,27 +71,59 @@ export default function SupportReportClient() {
   const [err, setErr] = useState("");
 
   const computedPriority = priorityForCategory(category);
+  const isGeneral = kind === "GENERAL";
 
-  // ✅ keep role synced to URL param when present
   useEffect(() => {
     if (preAs === "seller") setRole("seller");
     else if (preAs === "buyer") setRole("buyer");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preAs]);
 
-  // If user changes kind/role, reset selected transaction (unless preTxnId exists)
   useEffect(() => {
-    if (!preTxnId) setSelectedTxnId("");
+    if (preTxnId) {
+      const applyDeepLink = async () => {
+        try {
+          const r = await fetch(`/api/transactions/${preTxnId}`, {
+            cache: "no-store",
+          });
+          if (!r.ok) return;
+          const data = await r.json();
+          const k = String(data?.kind || "BUY_SELL").toUpperCase();
+          setKind(
+            k === "DONATION"
+              ? "DONATION"
+              : k === "AUCTION"
+                ? "AUCTION"
+                : "BUY_SELL",
+          );
+        } catch {}
+      };
+      applyDeepLink();
+    }
+  }, [preTxnId]);
+
+  useEffect(() => {
+    if (!preTxnId && !isGeneral) setSelectedTxnId("");
+    if (isGeneral) {
+      setSelectedTxnId("");
+      setTxn(null);
+      setMyTxns([]);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kind, role]);
 
-  // Load my transactions based on role, then filter by kind (to avoid huge list)
   useEffect(() => {
     let mounted = true;
 
     (async () => {
       try {
         setErr("");
+
+        if (isGeneral) {
+          if (mounted) setMyTxns([]);
+          return;
+        }
+
         setMyTxns([]);
 
         const url =
@@ -117,11 +149,10 @@ export default function SupportReportClient() {
     return () => {
       mounted = false;
     };
-  }, [role, kind]);
+  }, [role, kind, isGeneral]);
 
-  // Load transaction details when selected
   useEffect(() => {
-    if (!selectedTxnId) {
+    if (isGeneral || !selectedTxnId) {
       setTxn(null);
       return;
     }
@@ -135,11 +166,10 @@ export default function SupportReportClient() {
         });
         if (!r.ok) throw new Error(await r.text());
         const data = await r.json();
+
         if (mounted) {
           setTxn(data);
 
-          // ✅ if deep-linked with transactionId but no `as=`,
-          //    auto-detect role from the transaction itself
           if (!preAs) {
             const meRes = await fetch(`/api/users/me`, {
               cache: "no-store",
@@ -154,10 +184,15 @@ export default function SupportReportClient() {
             }
           }
 
-          // ✅ auto-detect kind from txn when deep-linked
           if (preTxnId) {
             const k = String(data?.kind || "BUY_SELL").toUpperCase();
-            setKind(k === "DONATION" ? "DONATION" : "BUY_SELL");
+            setKind(
+              k === "DONATION"
+                ? "DONATION"
+                : k === "AUCTION"
+                  ? "AUCTION"
+                  : "BUY_SELL",
+            );
           }
         }
       } catch (e) {
@@ -172,7 +207,22 @@ export default function SupportReportClient() {
       mounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTxnId]);
+  }, [selectedTxnId, isGeneral]);
+
+  useEffect(() => {
+    if (preTxnId) return;
+    if (isGeneral) return;
+
+    if (myTxns.length > 0) {
+      setSelectedTxnId((prev) =>
+        prev && myTxns.some((t) => String(t._id) === String(prev))
+          ? prev
+          : String(myTxns[0]._id),
+      );
+    } else {
+      setSelectedTxnId("");
+    }
+  }, [myTxns, preTxnId, isGeneral]);
 
   const contextLine = useMemo(() => {
     if (!txn) return null;
@@ -199,7 +249,7 @@ export default function SupportReportClient() {
       const payload = {
         category,
         description: cleanDesc,
-        transactionId: selectedTxnId || undefined,
+        transactionId: !isGeneral ? selectedTxnId || undefined : undefined,
       };
 
       const res = await fetch("/api/support", {
@@ -221,7 +271,6 @@ export default function SupportReportClient() {
 
   return (
     <main className="max-w-[1200px] mx-auto px-3 mb-6">
-      {/* Header */}
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-2xl font-bold text-[#325082] leading-tight">
@@ -240,17 +289,22 @@ export default function SupportReportClient() {
 
       {err && <p className="mb-3 text-sm text-red-600">{String(err)}</p>}
 
-      {/* 3-step transaction selector */}
       <section className="bg-white ring-1 ring-slate-200 shadow-sm rounded-[6px] p-5 mb-4">
         <div className="text-[15px] font-semibold text-[#325082]">
           Related Order (optional)
         </div>
         <div className="text-[12px] text-slate-500 mt-1">
-          To keep the list small, choose kind + your role first, then pick the
-          order.
+          Select an order type. Choose General if your report is not about a
+          specific order.
         </div>
 
-        <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div
+          className={`mt-4 grid gap-3 ${
+            isGeneral
+              ? "sm:grid-cols-1 lg:grid-cols-1"
+              : "sm:grid-cols-2 lg:grid-cols-3"
+          }`}
+        >
           {/* Step 1: Kind */}
           <div>
             <label className="text-sm font-medium text-[#1f2f4c]">
@@ -259,75 +313,99 @@ export default function SupportReportClient() {
             <select
               className="w-full mt-1 border border-slate-200 rounded-md p-2 text-sm bg-white disabled:bg-slate-50"
               value={kind}
-              disabled={!!preTxnId} // ✅ lock when coming from order detail
+              disabled={!!preTxnId}
               onChange={(e) => setKind(e.target.value)}
             >
+              <option value="GENERAL">General</option>
               <option value="BUY_SELL">Buy/Sell</option>
               <option value="DONATION">Donation</option>
+              <option value="AUCTION">Auction</option>
             </select>
           </div>
 
-          {/* Step 2: Role */}
-          <div>
-            <label className="text-sm font-medium text-[#1f2f4c]">
-              2) I am the
-            </label>
-            <select
-              className="w-full mt-1 border border-slate-200 rounded-md p-2 text-sm bg-white disabled:bg-slate-50"
-              value={role}
-              disabled={!!preTxnId || !!preAs} // ✅ lock if deep-linked (transactionId) OR explicitly provided via as=
-              onChange={(e) => setRole(e.target.value)}
-            >
-              <option value="buyer">
-                {kind === "DONATION" ? "Recipient" : "Buyer"}
-              </option>
-              <option value="seller">
-                {kind === "DONATION" ? "Donor" : "Seller"}
-              </option>
-            </select>
-          </div>
-
-          {/* Step 3: Transaction */}
-          <div className="sm:col-span-2 lg:col-span-1">
-            <label className="text-sm font-medium text-[#1f2f4c]">
-              3) Select order
-            </label>
-            <select
-              className="w-full mt-1 border border-slate-200 rounded-md p-2 text-sm bg-white"
-              value={selectedTxnId}
-              onChange={(e) => setSelectedTxnId(e.target.value)}
-              disabled={!!preTxnId} // ✅ when coming from order detail, keep that order selected
-            >
-              <option value="">No order (general report)</option>
-              {myTxns.map((t) => {
-                const tid = String(t._id);
-                const title = t.product?.title || "Order";
-                const status = t.status || "";
-                return (
-                  <option key={tid} value={tid}>
-                    {title} — {status} ({tid.slice(-6)})
+          {!isGeneral && (
+            <>
+              {/* Step 2: Role */}
+              <div>
+                <label className="text-sm font-medium text-[#1f2f4c]">
+                  2) I am the
+                </label>
+                <select
+                  className="w-full mt-1 border border-slate-200 rounded-md p-2 text-sm bg-white disabled:bg-slate-50"
+                  value={role}
+                  disabled={!!preTxnId || !!preAs}
+                  onChange={(e) => setRole(e.target.value)}
+                >
+                  <option value="buyer">
+                    {kind === "DONATION"
+                      ? "Recipient"
+                      : kind === "AUCTION"
+                        ? "Bidder / Winner"
+                        : "Buyer"}
                   </option>
-                );
-              })}
-            </select>
-
-            {myTxns.length === 0 && !preTxnId && (
-              <div className="mt-1 text-[12px] text-slate-500">
-                No {kind === "DONATION" ? "donation" : "buy/sell"} orders found
-                for this role.
+                  <option value="seller">
+                    {kind === "DONATION"
+                      ? "Donor"
+                      : kind === "AUCTION"
+                        ? "Auction Seller"
+                        : "Seller"}
+                  </option>
+                </select>
               </div>
-            )}
 
-            {!!preTxnId && (
-              <div className="mt-1 text-[12px] text-slate-500">
-                This order is auto-selected from Order Details.
+              {/* Step 3: Transaction */}
+              <div className="sm:col-span-2 lg:col-span-1">
+                <label className="text-sm font-medium text-[#1f2f4c]">
+                  3) Select order
+                </label>
+                <select
+                  className="w-full mt-1 border border-slate-200 rounded-md p-2 text-sm bg-white disabled:bg-slate-50"
+                  value={selectedTxnId}
+                  onChange={(e) => setSelectedTxnId(e.target.value)}
+                  disabled={!!preTxnId || myTxns.length === 0}
+                >
+                  {myTxns.length === 0 ? (
+                    <option value="">No orders found</option>
+                  ) : (
+                    <>
+                      {myTxns.map((t) => {
+                        const tid = String(t._id);
+                        const title = t.product?.title || "Order";
+                        const status = t.status || "";
+                        return (
+                          <option key={tid} value={tid}>
+                            {title} — {status} ({tid.slice(-6)})
+                          </option>
+                        );
+                      })}
+                      <option value="">No specific order</option>
+                    </>
+                  )}
+                </select>
+
+                {myTxns.length === 0 && !preTxnId && (
+                  <div className="mt-1 text-[12px] text-slate-500">
+                    No{" "}
+                    {kind === "DONATION"
+                      ? "donation"
+                      : kind === "AUCTION"
+                        ? "auction"
+                        : "buy/sell"}{" "}
+                    orders found for this role.
+                  </div>
+                )}
+
+                {!!preTxnId && (
+                  <div className="mt-1 text-[12px] text-slate-500">
+                    This order is auto-selected from Order Details.
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
       </section>
 
-      {/* Preview */}
       {contextLine && (
         <section className="bg-white ring-1 ring-slate-200 shadow-sm rounded-[6px] p-5 mb-4">
           <div className="text-[15px] font-semibold text-[#325082]">
@@ -357,7 +435,6 @@ export default function SupportReportClient() {
         </section>
       )}
 
-      {/* Form */}
       <section className="bg-white p-5 rounded-xl shadow-md">
         <div className="flex items-center justify-between">
           <div className="text-[16px] font-semibold text-[#325082]">

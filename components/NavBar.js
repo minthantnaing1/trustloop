@@ -322,23 +322,6 @@ function NavBar() {
     [myOrdersHref],
   );
 
-  // const navLinks = useMemo(() => {
-  //   const links = [
-  //     { label: "HOME", href: "/home" },
-  //     { label: "BUY", href: "/buy" },
-  //     { label: "SELL", href: "/sell" },
-  //     { label: "DONATION", href: "/donation" },
-  //     { label: "MY ORDERS", href: myOrdersHref }, // ✅ keep your changed one
-  //   ];
-
-  //   // ✅ Only admin sees AUCTION for now
-  //   if (isAdmin) {
-  //     links.splice(4, 0, { label: "AUCTION", href: "/auction" }); // insert before MY ORDERS
-  //   }
-
-  //   return links;
-  // }, [myOrdersHref, isAdmin]);
-
   const isActiveLink = (href) => {
     const baseHref = (href || "").split("?")[0];
 
@@ -349,6 +332,19 @@ function NavBar() {
       (baseHref === "/donation" && pathname.startsWith("/donation/")) ||
       (baseHref === "/auction" && pathname.startsWith("/auction")) ||
       (baseHref === "/my-orders" && pathname.startsWith("/my-orders"))
+    );
+  };
+
+  const isPanelRouteActive = (href) => {
+    const baseHref = (href || "").split("?")[0];
+
+    return (
+      pathname === baseHref ||
+      (baseHref === "/profile" && pathname.startsWith("/profile")) ||
+      (baseHref === "/favorites" && pathname.startsWith("/favorites")) ||
+      (baseHref === "/notifications" &&
+        pathname.startsWith("/notifications")) ||
+      (baseHref === "/support" && pathname.startsWith("/support"))
     );
   };
 
@@ -579,28 +575,51 @@ function NavBar() {
             ))}
           </div>
 
-          {/* Profile (Always Show) */}
+          {/* Profile, Favorites, Notifications, Support (Always Show) */}
           <Link href="/profile" onClick={() => setShowMenu(false)}>
-            <div className="mb-4 hover:underline cursor-pointer">Profile</div>
+            <div
+              className={`mb-4 cursor-pointer ${
+                isPanelRouteActive("/profile")
+                  ? "underline font-semibold text-blue-400"
+                  : "hover:underline"
+              }`}
+            >
+              Profile
+            </div>
           </Link>
 
-          {/* My Favorites (Always Show) */}
           <Link href="/favorites" onClick={() => setShowMenu(false)}>
-            <div className="mb-4 hover:underline cursor-pointer">
+            <div
+              className={`mb-4 cursor-pointer ${
+                isPanelRouteActive("/favorites")
+                  ? "underline font-semibold text-blue-400"
+                  : "hover:underline"
+              }`}
+            >
               My Favorites
             </div>
           </Link>
 
-          {/* All Notifications (Always Show) */}
           <Link href="/notifications" onClick={() => setShowMenu(false)}>
-            <div className="mb-4 hover:underline cursor-pointer">
+            <div
+              className={`mb-4 cursor-pointer ${
+                isPanelRouteActive("/notifications")
+                  ? "underline font-semibold text-blue-400"
+                  : "hover:underline"
+              }`}
+            >
               All Notifications
             </div>
           </Link>
 
-          {/* Customer Support (Always Show) */}
           <Link href="/support" onClick={() => setShowMenu(false)}>
-            <div className="mb-4 hover:underline cursor-pointer">
+            <div
+              className={`mb-4 cursor-pointer ${
+                isPanelRouteActive("/support")
+                  ? "underline font-semibold text-blue-400"
+                  : "hover:underline"
+              }`}
+            >
               Customer Support
             </div>
           </Link>
