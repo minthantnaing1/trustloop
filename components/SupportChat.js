@@ -1,6 +1,7 @@
+// components/SupportChat.js
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 function formatDateTime(iso) {
   try {
@@ -29,22 +30,28 @@ export default function SupportChat({
   disabled,
   placeholder = "Write a message…",
 
-  // ✅ viewer role so alignment works on both pages
-  viewerRole = "USER", // "USER" | "ADMIN"
-
-  // ✅ block user from sending first message (admin must reply first)
+  viewerRole = "USER",
   requireAdminFirstReply = false,
 
-  // ✅ optional (Closed by ...)
   ticketStatus,
   statusUpdatedBy,
   statusUpdatedAt,
 
-  // ✅ NEW: control scroll height (optional)
   maxHeightClass = "lg:max-h-[360px] max-h-[300px]",
 }) {
   const [draft, setDraft] = useState("");
   const [warn, setWarn] = useState("");
+  const [files, setFiles] = useState([]);
+  const [previews, setPreviews] = useState([]);
+  const [uploading, setUploading] = useState(false);
+
+  const fileRef = useRef(null);
+
+  useEffect(() => {
+    const urls = files.map((f) => URL.createObjectURL(f));
+    setPreviews(urls);
+    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+  }, [files]);
 
   const sorted = useMemo(() => {
     const list = Array.isArray(messages) ? messages : [];
@@ -63,28 +70,80 @@ export default function SupportChat({
   const blockedByAdminFirst =
     requireAdminFirstReply && viewerRole === "USER" && !hasAdminReply;
 
-  const finalDisabled = !!disabled || isClosed || blockedByAdminFirst;
+  const finalDisabled =
+    !!disabled || isClosed || blockedByAdminFirst || uploading;
 
-  // ✅ Align by viewer role:
-  // - USER view: USER bubble right, ADMIN left
-  // - ADMIN view: ADMIN bubble right, USER left
   function isRightSide(messageRole) {
     const r = String(messageRole || "").toUpperCase();
     if (viewerRole === "ADMIN") return r === "ADMIN";
     return r === "USER";
   }
 
+  async function uploadOne(file) {
+    const fd = new FormData();
+    fd.append("file", file);
+
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      body: fd,
+    });
+
+    if (!res.ok) throw new Error(await res.text());
+
+    const data = await res.json();
+
+    return {
+      url: data?.url || "",
+      publicId: data?.publicId || "",
+    };
+  }
+
+  async function handleSend() {
+    const text = String(draft || "").trim();
+
+    if (!text && files.length === 0) return;
+
+    if (blockedByAdminFirst) {
+      setWarn("Please wait for admin reply first.");
+      return;
+    }
+
+    try {
+      setWarn("");
+      setUploading(true);
+
+      let uploadedImages = [];
+      if (files.length) {
+        uploadedImages = await Promise.all(files.map(uploadOne));
+        uploadedImages = uploadedImages.filter((img) => img?.url);
+      }
+
+      await onSend?.({
+        text,
+        images: uploadedImages,
+      });
+
+      setDraft("");
+      setFiles([]);
+      setPreviews([]);
+
+      if (fileRef.current) fileRef.current.value = "";
+    } catch (e) {
+      setWarn(e?.message || "Failed to send message");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   return (
     <div className="bg-white rounded-md border border-slate-200 shadow-sm flex flex-col">
-      {/* ✅ Scrollable Messages */}
       <div className={`overflow-y-auto p-4 space-y-3 ${maxHeightClass}`}>
         {sorted.length ? (
           sorted.map((m, idx) => {
-            const role = String(m?.role || "").toUpperCase(); // USER/ADMIN
+            const role = String(m?.role || "").toUpperCase();
             const right = isRightSide(role);
             const isAdmin = role === "ADMIN";
 
-            // ✅ show both role + name (what you asked)
             const baseName =
               viewerRole === "ADMIN"
                 ? displayName(m?.by, isAdmin ? "Admin" : "User")
@@ -111,7 +170,36 @@ export default function SupportChat({
                     </span>{" "}
                     · {formatDateTime(m?.at)}
                   </div>
-                  <div className="text-slate-800">{m?.text}</div>
+
+                  {!!String(m?.text || "").trim() && (
+                    <div className="text-slate-800">{m?.text}</div>
+                  )}
+
+                  {Array.isArray(m?.images) && m.images.length > 0 && (
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      {m.images.map((img, imageIdx) => {
+                        const src =
+                          typeof img === "string" ? img : img?.url || "";
+                        if (!src) return null;
+
+                        return (
+                          <a
+                            key={`${src}-${imageIdx}`}
+                            href={src}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block"
+                          >
+                            <img
+                              src={src}
+                              alt={`attachment-${imageIdx + 1}`}
+                              className="w-full h-28 object-cover rounded-md border border-slate-200"
+                            />
+                          </a>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -121,7 +209,6 @@ export default function SupportChat({
         )}
       </div>
 
-      {/* Composer */}
       {onSend && (
         <div className="border-t border-slate-200 p-3">
           {(warn || blockedByAdminFirst || isClosed) && (
@@ -133,7 +220,6 @@ export default function SupportChat({
             </div>
           )}
 
-          {/* optional closed by line */}
           {statusUpdatedBy && statusUpdatedAt && (
             <div className="mb-2 text-[12px] text-slate-500">
               Status updated by{" "}
@@ -141,6 +227,39 @@ export default function SupportChat({
                 {`Admin: ${displayName(statusUpdatedBy, "Admin")}`}
               </span>{" "}
               · {formatDateTime(statusUpdatedAt)}
+            </div>
+          )}
+
+          {previews.length > 0 && (
+            <div className="mb-3">
+              <div className="grid grid-cols-3 gap-2">
+                {previews.map((src, idx) => (
+                  <div
+                    key={src}
+                    className="relative rounded-md overflow-hidden border border-slate-200"
+                  >
+                    <img
+                      src={src}
+                      alt="preview"
+                      className="w-full h-20 object-cover"
+                    />
+                    <button
+                      type="button"
+                      className="absolute top-1 right-1 text-[10px] bg-black/60 text-white rounded px-1.5 py-0.5"
+                      onClick={() =>
+                        setFiles((prev) => prev.filter((_, i) => i !== idx))
+                      }
+                      disabled={finalDisabled}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-2 text-[11px] text-slate-500">
+                Selected {previews.length} image(s) (max 3)
+              </div>
             </div>
           )}
 
@@ -156,24 +275,41 @@ export default function SupportChat({
             }}
           />
 
-          <div className="mt-2 flex justify-end">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            multiple
+            disabled={finalDisabled}
+            className="hidden"
+            onChange={(e) => {
+              const incoming = Array.from(e.target.files || []);
+              if (!incoming.length) return;
+
+              setFiles((prev) => [...prev, ...incoming].slice(0, 3));
+
+              if (fileRef.current) fileRef.current.value = "";
+            }}
+          />
+
+          <div className="mt-2 flex justify-between gap-2">
+            <button
+              type="button"
+              className="px-4 py-1.5 text-sm rounded-md border border-slate-300 bg-white text-slate-700 disabled:opacity-50"
+              disabled={finalDisabled || files.length >= 3}
+              onClick={() => fileRef.current?.click()}
+            >
+              + Image
+            </button>
+
             <button
               className="px-4 py-1.5 text-sm rounded-md bg-[#325082] text-white disabled:opacity-50"
-              disabled={finalDisabled || !String(draft).trim()}
-              onClick={() => {
-                const text = String(draft || "").trim();
-                if (!text) return;
-
-                if (blockedByAdminFirst) {
-                  setWarn("Please wait for admin reply first.");
-                  return;
-                }
-
-                onSend(text);
-                setDraft("");
-              }}
+              disabled={
+                finalDisabled || (!String(draft).trim() && files.length === 0)
+              }
+              onClick={handleSend}
             >
-              Send
+              {uploading ? "Uploading..." : "Send"}
             </button>
           </div>
         </div>

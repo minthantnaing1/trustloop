@@ -6,11 +6,24 @@ export const revalidate = 0;
 import mongoose from "mongoose";
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/db";
+import cloudinary from "@/lib/cloudinary";
 import User from "@/models/User";
 import SupportTicket from "@/models/SupportTicket";
 
 function isValidObjectId(id) {
   return !!id && mongoose.Types.ObjectId.isValid(id);
+}
+
+function extractPublicId(url = "") {
+  try {
+    const u = new URL(url);
+    const parts = u.pathname.split("/upload/")[1]?.split("/") || [];
+    const withoutVersion = parts[0]?.match(/^v\d+$/) ? parts.slice(1) : parts;
+    const joined = withoutVersion.join("/");
+    return joined.replace(/\.[^.]+$/, "");
+  } catch {
+    return null;
+  }
 }
 
 export async function GET(req, { params }) {
@@ -72,9 +85,20 @@ export async function PATCH(req, { params }) {
 
     const body = await req.json().catch(() => ({}));
     const text = String(body?.text || "").trim();
-    if (!text) return new Response("Message is required", { status: 400 });
 
-    // load ticket (must belong to user)
+    const images = Array.isArray(body?.images)
+      ? body.images
+          .map((img) => ({
+            url: String(img?.url || "").trim(),
+            publicId: String(img?.publicId || "").trim(),
+          }))
+          .filter((img) => img.url)
+      : [];
+
+    if (!text && images.length === 0) {
+      return new Response("Message or image is required", { status: 400 });
+    }
+
     const ticket = await SupportTicket.findOne({ _id: id, user: me._id })
       .select("status messages")
       .lean();
@@ -86,7 +110,6 @@ export async function PATCH(req, { params }) {
       return new Response("This ticket is closed", { status: 400 });
     }
 
-    // ✅ RULE: user cannot send the first message (admin must reply first)
     const hasAdminMessage = Array.isArray(ticket.messages)
       ? ticket.messages.some((m) => String(m?.role || "") === "ADMIN")
       : false;
@@ -102,6 +125,7 @@ export async function PATCH(req, { params }) {
       by: me._id,
       role: "USER",
       text,
+      images,
     };
 
     const update = {
@@ -109,7 +133,6 @@ export async function PATCH(req, { params }) {
       $set: { updatedAt: new Date() },
     };
 
-    // if already IN_PROGRESS, keep; if OPEN (shouldn't happen after admin replied, but safe)
     if (s === "OPEN") update.$set.status = "IN_PROGRESS";
 
     const updated = await SupportTicket.findByIdAndUpdate(id, update, {
@@ -151,19 +174,47 @@ export async function DELETE(req, { params }) {
       return new Response("Invalid ticket id", { status: 400 });
     }
 
-    const deleted = await SupportTicket.findOneAndDelete({
+    const ticket = await SupportTicket.findOne({
       _id: id,
       user: me._id,
-    });
-    if (!deleted) return new Response("Not found", { status: 404 });
+    }).select("messages");
 
-    return new Response(JSON.stringify({ ok: true }), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Cache-Control": "no-store",
+    if (!ticket) return new Response("Not found", { status: 404 });
+
+    const publicIds = [];
+    const msgs = Array.isArray(ticket.messages) ? ticket.messages : [];
+
+    for (const msg of msgs) {
+      const imgs = Array.isArray(msg?.images) ? msg.images : [];
+      for (const img of imgs) {
+        const pid =
+          String(img?.publicId || "").trim() || extractPublicId(img?.url || "");
+        if (pid) publicIds.push(pid);
+      }
+    }
+
+    const uniquePublicIds = [...new Set(publicIds)];
+
+    await Promise.allSettled(
+      uniquePublicIds.map((pid) =>
+        cloudinary.uploader.destroy(pid).catch((e) => {
+          console.warn("cloudinary destroy failed:", pid, e?.message);
+        }),
+      ),
+    );
+
+    await SupportTicket.deleteOne({ _id: id, user: me._id });
+
+    return new Response(
+      JSON.stringify({ ok: true, imagesDeleted: uniquePublicIds.length }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-store",
+        },
       },
-    });
+    );
   } catch (err) {
     console.error("❌ Support [id] DELETE error:", err);
     return new Response("Server Error", { status: 500 });

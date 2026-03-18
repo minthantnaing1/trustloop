@@ -1,3 +1,4 @@
+// app/terms/page.js
 import { Suspense } from "react";
 import TermsClient from "./TermsClient";
 

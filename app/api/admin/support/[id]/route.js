@@ -1,3 +1,4 @@
+// app/api/admin/support/[id]/route.js
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -89,6 +90,15 @@ export async function PATCH(req, { params }) {
     const nextStatus =
       body?.status !== undefined ? String(body.status || "").toUpperCase() : "";
 
+    const images = Array.isArray(body?.images)
+      ? body.images
+          .map((img) => ({
+            url: String(img?.url || "").trim(),
+            publicId: String(img?.publicId || "").trim(),
+          }))
+          .filter((img) => img.url)
+      : [];
+
     const ALLOWED_STATUS = new Set([
       "OPEN",
       "IN_PROGRESS",
@@ -96,8 +106,8 @@ export async function PATCH(req, { params }) {
       "REJECTED",
     ]);
 
-    // must provide either text or status
-    if (!text && !nextStatus) {
+    // must provide either text, images, or status
+    if (!text && images.length === 0 && !nextStatus) {
       return new Response("Nothing to update", { status: 400 });
     }
 
@@ -111,20 +121,21 @@ export async function PATCH(req, { params }) {
       current.status === "RESOLVED" || current.status === "REJECTED";
 
     // If closed: allow status change only (reopen), disallow new messages
-    if (isClosed && text) {
+    if (isClosed && (text || images.length > 0)) {
       return new Response("This ticket is closed", { status: 400 });
     }
 
     const update = { $set: { updatedAt: new Date() } };
 
     // ✅ admin sends message
-    if (text) {
+    if (text || images.length > 0) {
       update.$push = {
         messages: {
           at: new Date(),
           by: me._id,
           role: "ADMIN",
           text,
+          images,
         },
       };
 

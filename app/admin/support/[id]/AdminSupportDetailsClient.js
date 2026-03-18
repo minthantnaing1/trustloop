@@ -1,3 +1,4 @@
+// app/admin/support/[id]/AdminSupportDetailsClient.js
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -116,7 +117,6 @@ export default function AdminSupportDetailsClient({ id, initialTicket }) {
       try {
         setErr("");
 
-        // ✅ If we already have initialTicket from server, skip first load()
         if (initialTicket) {
           setDraftStatus(String(initialTicket?.status || "OPEN"));
           return;
@@ -160,10 +160,17 @@ export default function AdminSupportDetailsClient({ id, initialTicket }) {
     }
   }
 
-  async function onSendMessage(text) {
-    const v = String(text || "").trim();
-    if (!v) return;
-    await patch({ text: v });
+  async function onSendMessage(payload) {
+    const text =
+      typeof payload === "string"
+        ? String(payload || "").trim()
+        : String(payload?.text || "").trim();
+
+    const images = Array.isArray(payload?.images) ? payload.images : [];
+
+    if (!text && images.length === 0) return;
+
+    await patch({ text, images });
     await load();
   }
 
@@ -333,6 +340,7 @@ export default function AdminSupportDetailsClient({ id, initialTicket }) {
                         value={draftStatus}
                         onChange={(e) => setDraftStatus(e.target.value)}
                       >
+                        <option value="OPEN">Open</option>
                         <option value="IN_PROGRESS">In progress</option>
                         <option value="RESOLVED">Resolved</option>
                         <option value="REJECTED">Rejected</option>
@@ -357,7 +365,6 @@ export default function AdminSupportDetailsClient({ id, initialTicket }) {
               </div>
             </div>
 
-            {/* ✅ Same place, now uses SupportChat */}
             <div className="col-span-12 lg:col-span-8 order-2 lg:order-1">
               <div className="bg-white rounded-md shadow-md border border-slate-200 p-5">
                 <div className="flex items-center justify-between">

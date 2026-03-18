@@ -3,12 +3,21 @@ import mongoose from "mongoose";
 
 const { ObjectId } = mongoose.Schema.Types;
 
+const MessageImageSchema = new mongoose.Schema(
+  {
+    url: { type: String, required: true },
+    publicId: { type: String, default: "" },
+  },
+  { _id: false },
+);
+
 const MessageSchema = new mongoose.Schema(
   {
     at: { type: Date, default: Date.now },
     by: { type: ObjectId, ref: "User", required: true },
     role: { type: String, enum: ["USER", "ADMIN"], required: true },
-    text: { type: String, required: true },
+    text: { type: String, default: "" },
+    images: { type: [MessageImageSchema], default: [] },
   },
   { _id: false },
 );
@@ -43,7 +52,6 @@ const SupportTicketSchema = new mongoose.Schema(
 
     subject: { type: String, default: "" },
 
-    // initial user report (NOT chat)
     description: { type: String, required: true },
 
     status: {
@@ -53,7 +61,6 @@ const SupportTicketSchema = new mongoose.Schema(
       index: true,
     },
 
-    // ✅ who last changed status (for "Closed by Admin X")
     statusUpdatedBy: { type: ObjectId, ref: "User" },
     statusUpdatedAt: { type: Date },
 

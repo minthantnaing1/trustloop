@@ -144,9 +144,15 @@ export default function SupportTicketClient({ id }) {
     }
   }
 
-  async function sendMessage(text) {
-    const v = String(text || "").trim();
-    if (!v || busy) return;
+  async function sendMessage(payload) {
+    const text =
+      typeof payload === "string"
+        ? String(payload || "").trim()
+        : String(payload?.text || "").trim();
+
+    const images = Array.isArray(payload?.images) ? payload.images : [];
+
+    if ((!text && images.length === 0) || busy) return;
 
     try {
       setBusy(true);
@@ -155,7 +161,7 @@ export default function SupportTicketClient({ id }) {
       const r = await fetch(`/api/support/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: v }),
+        body: JSON.stringify({ text, images }),
       });
 
       if (!r.ok) throw new Error(await r.text());
@@ -303,7 +309,6 @@ export default function SupportTicketClient({ id }) {
                 </div>
               </section>
 
-              {/* ✅ Same place, now uses SupportChat */}
               <section className="bg-white ring-1 ring-slate-200 shadow-sm rounded-[6px] p-5">
                 <div className="flex items-center justify-between">
                   <div className="text-[15px] font-semibold text-[#325082]">

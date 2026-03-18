@@ -1,6 +1,7 @@
+// app/terms/TermsClient.js
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signOut } from "next-auth/react";
 import ActionButton from "@/components/ActionButton";
@@ -15,8 +16,55 @@ export default function TermsClient() {
     return raw;
   }, [sp]);
 
+  const TERMS_VERSION = "v1";
+
   const [checked, setChecked] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
+  const [alreadyAccepted, setAlreadyAccepted] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function checkTermsStatus() {
+      if (!mounted) return;
+
+      setChecking(true);
+      setAlreadyAccepted(false);
+      setChecked(false);
+
+      try {
+        const res = await fetch("/api/users/me", {
+          cache: "no-store",
+          headers: { "Cache-Control": "no-cache" },
+        });
+
+        const data = await res.json();
+
+        if (!mounted) return;
+
+        const hasAcceptedCurrent =
+          Boolean(data?.user?.agreedToTerms) &&
+          Boolean(data?.user?.agreedToTermsAt) &&
+          String(data?.user?.agreedToTermsVersion || "") === TERMS_VERSION;
+
+        setAlreadyAccepted(hasAcceptedCurrent);
+        setChecked(hasAcceptedCurrent);
+      } catch {
+        if (!mounted) return;
+        setAlreadyAccepted(false);
+        setChecked(false);
+      } finally {
+        if (mounted) setChecking(false);
+      }
+    }
+
+    checkTermsStatus();
+
+    return () => {
+      mounted = false;
+    };
+  }, [TERMS_VERSION]);
 
   async function onAccept() {
     if (!checked || loading) return;
@@ -25,13 +73,21 @@ export default function TermsClient() {
     const r = await fetch("/api/users/accept-terms", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ version: "v1" }),
+      body: JSON.stringify({ version: TERMS_VERSION }),
     });
 
     setLoading(false);
 
-    if (r.ok) router.replace(callbackUrl);
-    else await signOut({ callbackUrl: "/" });
+    if (r.ok) {
+      setAlreadyAccepted(true);
+      router.replace(callbackUrl);
+    } else {
+      await signOut({ callbackUrl: "/" });
+    }
+  }
+
+  function onContinue() {
+    router.replace(callbackUrl);
   }
 
   async function onCancel() {
@@ -161,41 +217,66 @@ export default function TermsClient() {
               </div>
             </div>
 
-            <div className="mt-5 flex items-end justify-between gap-6">
-              <label className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  className="mt-1 h-4 w-4"
-                  checked={checked}
-                  onChange={(e) => setChecked(e.target.checked)}
-                />
-                <div>
-                  <div className="text-sm font-semibold text-[#1f2f4c]">
-                    I agree to the TrustLoop Terms & Privacy Notice.
+            <div className="mt-5">
+              {checking ? (
+                <div className="text-sm text-gray-500">
+                  Checking agreement status...
+                </div>
+              ) : alreadyAccepted ? (
+                <div className="flex items-end justify-between gap-6">
+                  <div>
+                    <div className="text-sm font-semibold text-[#1f2f4c]">
+                      You have already accepted this Terms & Privacy Notice
+                      version.
+                    </div>
+                    <div className="text-[12px] text-gray-600 mt-1">
+                      You can continue using TrustLoop.
+                    </div>
                   </div>
-                  <div className="text-[12px] text-gray-600 mt-1">
-                    If you cancel, you will be signed out.
+
+                  <ActionButton
+                    text="Continue"
+                    variant="primaryClick"
+                    onClick={onContinue}
+                  />
+                </div>
+              ) : (
+                <div className="flex items-end justify-between gap-6">
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4"
+                      checked={checked}
+                      onChange={(e) => setChecked(e.target.checked)}
+                    />
+                    <div>
+                      <div className="text-sm font-semibold text-[#1f2f4c]">
+                        I agree to the TrustLoop Terms & Privacy Notice.
+                      </div>
+                      <div className="text-[12px] text-gray-600 mt-1">
+                        If you cancel, you will be signed out.
+                      </div>
+                    </div>
+                  </label>
+
+                  <div className="flex gap-3">
+                    <ActionButton
+                      text="Cancel"
+                      variant={checked ? "disabledClick" : "outlineClick"}
+                      onClick={onCancel}
+                      disabled={checked}
+                    />
+                    <ActionButton
+                      text={loading ? "Saving..." : "Accept & Continue"}
+                      variant={
+                        !checked || loading ? "disabledClick" : "primaryClick"
+                      }
+                      onClick={onAccept}
+                      disabled={!checked || loading}
+                    />
                   </div>
                 </div>
-              </label>
-
-              <div className="flex gap-3">
-                <ActionButton
-                  text="Cancel"
-                  variant={checked ? "disabledClick" : "outlineClick"}
-                  onClick={onCancel}
-                  disabled={checked}
-                />
-                <ActionButton
-                  // text={loading ? "Saving..." : "Accept & Continue"}
-                  text="Accept & Continue"
-                  variant={
-                    !checked || loading ? "disabledClick" : "primaryClick"
-                  }
-                  onClick={onAccept}
-                  disabled={!checked || loading}
-                />
-              </div>
+              )}
             </div>
           </div>
         </main>
@@ -244,7 +325,6 @@ export default function TermsClient() {
               </div>
             </div>
 
-            {/* Mobile scroll area (page remains scrollable too) */}
             <div className="px-4 py-4 text-[13px] text-slate-700 leading-relaxed space-y-5">
               <Section title="1) Eligibility & account">
                 <ul className="list-disc pl-5 space-y-1 mt-2">
@@ -320,7 +400,6 @@ export default function TermsClient() {
                 to follow them.
               </div>
 
-              {/* spacer so content isn’t hidden under sticky bar */}
               <div className="h-24" />
             </div>
           </div>
@@ -328,40 +407,67 @@ export default function TermsClient() {
 
         {/* Sticky bottom actions (mobile only) */}
         <div className="fixed left-0 right-0 bottom-0 bg-white/95 backdrop-blur border-t border-gray-200 px-4 py-3">
-          <label className="flex items-start gap-3">
-            <input
-              type="checkbox"
-              className="mt-1 h-4 w-4"
-              checked={checked}
-              onChange={(e) => setChecked(e.target.checked)}
-            />
-            <div className="min-w-0">
+          {checking ? (
+            <div className="text-sm text-gray-500">
+              Checking agreement status...
+            </div>
+          ) : alreadyAccepted ? (
+            <>
               <div className="text-sm font-semibold text-[#1f2f4c] leading-snug">
-                I agree to the TrustLoop Terms & Privacy Notice.
+                You already accepted this Terms & Privacy Notice version.
               </div>
               <div className="text-[12px] text-gray-600 mt-1 leading-snug">
-                If you cancel, you will be signed out.
+                Continue to use TrustLoop.
               </div>
-            </div>
-          </label>
 
-          <div className="mt-3 flex justify-end gap-3">
-            <ActionButton
-              text="Cancel"
-              variant={checked ? "disabledClick" : "outlineClick"}
-              onClick={onCancel}
-              disabled={checked}
-              className="w-1/2"
-            />
-            <ActionButton
-              // text={loading ? "Saving..." : "Accept & Continue"}
-              text="Accept & Continue"
-              variant={!checked || loading ? "disabledClick" : "primaryClick"}
-              onClick={onAccept}
-              disabled={!checked || loading}
-              className="w-1/2"
-            />
-          </div>
+              <div className="mt-3">
+                <ActionButton
+                  text="Continue"
+                  variant="primaryClick"
+                  onClick={onContinue}
+                  className="w-full"
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <label className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4"
+                  checked={checked}
+                  onChange={(e) => setChecked(e.target.checked)}
+                />
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-[#1f2f4c] leading-snug">
+                    I agree to the TrustLoop Terms & Privacy Notice.
+                  </div>
+                  <div className="text-[12px] text-gray-600 mt-1 leading-snug">
+                    If you cancel, you will be signed out.
+                  </div>
+                </div>
+              </label>
+
+              <div className="mt-3 flex justify-end gap-3">
+                <ActionButton
+                  text="Cancel"
+                  variant={checked ? "disabledClick" : "outlineClick"}
+                  onClick={onCancel}
+                  disabled={checked}
+                  className="w-1/2"
+                />
+                <ActionButton
+                  text={loading ? "Saving..." : "Accept & Continue"}
+                  variant={
+                    !checked || loading ? "disabledClick" : "primaryClick"
+                  }
+                  onClick={onAccept}
+                  disabled={!checked || loading}
+                  className="w-1/2"
+                />
+              </div>
+            </>
+          )}
         </div>
       </div>
     </>
