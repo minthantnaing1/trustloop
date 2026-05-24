@@ -24,6 +24,10 @@ TrustLoop solves this by restricting the platform to **verified university accou
 - Session-based authentication using **NextAuth (Auth.js v5)**
 - Role-based access control (User / Admin)
 
+![Login](images/Login.png)
+
+![Home](images/Home.png)
+
 ---
 
 ## Marketplace System
@@ -34,6 +38,12 @@ TrustLoop solves this by restricting the platform to **verified university accou
 - Reserve items and complete transactions
 - Buyer confirmation and payout release workflow
 
+![Sell](images/Sell.png)
+
+![Buy](images/Buy.png)
+
+![Buy Detail](images/BuyDetail.png)
+
 ### Auction System
 
 - Real-time auction listings
@@ -42,11 +52,15 @@ TrustLoop solves this by restricting the platform to **verified university accou
 - Payment window for winners
 - Automatic reassignment if winner fails to pay
 
+![Auction](images/Auction.png)
+
 ### Donation System
 
 - Request-based donation workflow
 - Donor approval process
 - Chat coordination for item handoff
+
+![Donation](images/Donation.png)
 
 ---
 
@@ -67,6 +81,8 @@ Automatic handling for:
 - Auto-confirmation after 3 days
 - Refund handling
 
+![MyOrders](images/MyOrders.png)
+
 ---
 
 ## Notification System
@@ -80,6 +96,8 @@ TrustLoop provides **two notification channels**:
 - Auction updates
 - Order status changes
 
+![Notification](images/Notification.png)
+
 ### Email Notifications
 
 Implemented using **Resend API**
@@ -92,6 +110,8 @@ Emails are sent only for **important events** such as:
 - Refund issued
 - Admin payout released
 
+![Email](images/Email.png)
+
 ---
 
 ## Favorites System
@@ -101,6 +121,8 @@ Users can:
 - Save favorite products
 - Track auction countdowns
 - Quickly access saved listings
+
+![Favorite](images/Favorite.png)
 
 ---
 
@@ -113,6 +135,10 @@ Admins can:
 - Release seller payouts
 - Override transaction status
 - Manage platform activity
+
+![Admin Dashboard](images/AdminDashboard.png)
+
+![Admin Transactions](images/AdminTransactions.png)
 
 ---
 
@@ -147,6 +173,8 @@ Admins can:
 
 - Stripe
 - PromptPay integration
+
+![Stripe](images/Stripe.png)
 
 ---
 
